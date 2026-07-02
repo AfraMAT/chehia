@@ -11,5 +11,16 @@ export const SITE_URL = "https://chehia.app";
  * mobile app's universal-link domain), independent of any env var.
  */
 export function qrOrigin(): string {
-  return process.env.NODE_ENV === "development" ? "http://localhost:3000" : SITE_URL;
+  if (process.env.NODE_ENV === "development") return "http://localhost:3000";
+  // On preview deployments (the `develop` branch) point QR / table links at the
+  // deployment's own origin, so the full scan → order flow can be tested
+  // end-to-end against the dev backend. Production always uses the hardcoded
+  // canonical origin — never an env var — so it can never be mispointed.
+  if (
+    process.env.NEXT_PUBLIC_DEPLOY_ENV === "preview" &&
+    process.env.NEXT_PUBLIC_PREVIEW_ORIGIN
+  ) {
+    return process.env.NEXT_PUBLIC_PREVIEW_ORIGIN;
+  }
+  return SITE_URL;
 }

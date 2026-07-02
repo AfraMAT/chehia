@@ -112,35 +112,49 @@ only writes the "what should I do" narrative.
 - **Money** — integer millimes end-to-end (1 TND = 1000). Display rule: minimum one decimal,
   trailing zeros trimmed (`2,8` / `6,0` / `5,55`).
 
-## Deploying (production domain: `chehia.app`)
+## Environments (dev / prod)
 
-1. **Supabase Cloud** — link the project (`wpnouppukofzmvsieyeq`), push the schema, deploy functions:
-   ```bash
-   supabase link --project-ref wpnouppukofzmvsieyeq
-   supabase db push                      # applies migrations (schema + RLS + storage)
-   supabase functions deploy place-order call-waiter generate-insights
-   supabase secrets set INSIGHTS_CRON_SECRET=... ANTHROPIC_API_KEY=...
-   ```
-   Enable **anonymous sign-ins** (Auth → Providers) and schedule `generate-insights` nightly via
-   `pg_cron` + `pg_net` (`net.http_post` to the function with the `x-cron-secret` header). The
-   `item-photos` Storage bucket + RLS are created by migration `20260703000002`.
-2. **Vercel** — import the `AfraMAT/chehia` repo and set **Root Directory = `apps/web`** so Vercel
-   auto-detects Next.js; its native pnpm-workspace support installs from the repo root and resolves
-   `@chehia/shared`. Set env (Production + Preview):
-   `NEXT_PUBLIC_SUPABASE_URL=https://wpnouppukofzmvsieyeq.supabase.co`,
-   `NEXT_PUBLIC_SUPABASE_ANON_KEY=<cloud anon/publishable key>`,
-   `NEXT_PUBLIC_BASE_URL=https://chehia.app`.
-3. **Domain** — point `chehia.app` DNS at Vercel. The app serves
-   `/.well-known/apple-app-site-association` and `/.well-known/assetlinks.json` from route handlers
-   that activate once `APPLE_TEAM_ID` / `ANDROID_CERT_SHA256` env vars are set (they 404 until then,
-   so no invalid association is ever published), letting installed apps open table links directly.
-4. **EAS (mobile)** — `eas login && eas init && eas build:configure`, then `eas build` for iOS/Android
-   with `EXPO_PUBLIC_SUPABASE_URL/ANON_KEY` in the build profile pointing at the cloud project;
-   submit via `eas submit`. `app.json` universal/app links already target `chehia.app`.
+Two branches map to two environments, each with its own Supabase project. Everything runs on free
+tiers (~$0/month): one Vercel project with Git previews, two Supabase free projects.
 
-### Credentials needed from you to finalize
+| Branch      | Vercel deployment                          | Supabase project              |
+| ----------- | ------------------------------------------ | ----------------------------- |
+| `main`      | Production → **chehia.app**                | `chehia` (`wpnouppukofzmvsieyeq`) |
+| `develop` (+ any other branch) | Preview → `chehia-web-git-<branch>-aframat.vercel.app` | `chehia-dev` (`sxmbqwldtqkkmlfbjyzc`) |
 
-- **Vercel** — import `AfraMAT/chehia` into the Vercel team; add `chehia.app` DNS (Squarespace → Vercel).
+**The backend is selected in code, not in the dashboard.** `src/lib/supabase.ts` picks the Supabase
+project from Vercel's build-time `VERCEL_ENV` (inlined via `next.config.ts`): `production` → prod,
+`preview` → dev. Supabase publishable keys are safe to ship in the browser bundle (Row-Level Security
+is the trust boundary), so there is nothing to configure per-environment in Vercel and a stale
+dashboard env var can never point production at the wrong database. Locally, `.env.local` overrides
+both to the local `supabase start` stack.
+
+**Workflow:** develop on `develop` → push → check the preview URL (runs against the dev project) →
+merge to `main` → production deploys to chehia.app (runs against the prod project).
+
+## Deploying
+
+- **Vercel** — a single project imported from `AfraMAT/chehia` with **Root Directory = `apps/web`** so
+  Vercel auto-detects Next.js (its pnpm-workspace support installs from the repo root and resolves
+  `@chehia/shared`). Production branch is `main`; every other branch gets an automatic preview. No
+  Supabase env vars are required (selected in code, above).
+- **Supabase** — both projects carry the same migrations (`supabase/migrations/`), seed, and the five
+  edge functions (`place-order`, `call-waiter`, `generate-insights`, `admin-provision-business`,
+  `create-staff`). The `item-photos` Storage bucket + RLS come from migration `20260703000002`.
+  Schedule `generate-insights` nightly via `pg_cron` + `pg_net` on prod. **Enable anonymous sign-ins**
+  (Auth → Providers) on **each** project — customer ordering signs in anonymously.
+- **Domain** — `chehia.app` DNS points at Vercel. The app serves
+  `/.well-known/apple-app-site-association` and `/.well-known/assetlinks.json` from route handlers that
+  activate once `APPLE_TEAM_ID` / `ANDROID_CERT_SHA256` env vars are set (they 404 until then, so no
+  invalid association is ever published), letting installed apps open table links directly.
+- **EAS (mobile)** — `eas login && eas init && eas build:configure`, then `eas build` for iOS/Android
+  with `EXPO_PUBLIC_SUPABASE_URL/ANON_KEY` in the build profile pointing at the cloud project; submit
+  via `eas submit`. `app.json` universal/app links already target `chehia.app`.
+
+### Credentials / one-time actions needed from you
+
+- **Anonymous sign-ins** on the **dev** Supabase project (`chehia-dev`) — Auth → Providers → enable
+  (prod already has it). Without it, customer ordering on preview deployments fails.
 - **Apple Developer** ($99/yr) & **Google Play** ($25) for store builds; the Apple Team ID and Android
   signing SHA-256 then populate `APPLE_TEAM_ID` / `ANDROID_CERT_SHA256` (deep-link association files).
 - **`ANTHROPIC_API_KEY`** for production AI insights (template fallback works without it) — set via

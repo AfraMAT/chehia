@@ -1,16 +1,43 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// NEXT_PUBLIC_* values are inlined at build time, so they must be referenced
-// literally for Next to replace them. Validation is lazy (at first use) so a
-// missing variable fails with a clear, named error at runtime instead of a
-// cryptic "supabaseUrl is required" from deep inside supabase-js.
-const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const envAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Backend selection is derived from the *deployment environment*, not from
+// hosting-dashboard env vars. Supabase publishable keys are safe to ship in the
+// client bundle (they already are — Row-Level Security is the real trust
+// boundary), so we can hardcode the per-environment projects here. The upshot:
+// `main`/production always talks to the prod project and every `develop`/preview
+// deployment always talks to the dev project, with nothing to misconfigure in a
+// dashboard and no way for a stale env var to point production at the wrong DB.
+const PROD_CONFIG = {
+  url: "https://wpnouppukofzmvsieyeq.supabase.co",
+  anonKey: "sb_publishable_3-8-FFBSDKTgLm9aqQwjdw_HFYQ3-Pu",
+};
+const DEV_CONFIG = {
+  url: "https://sxmbqwldtqkkmlfbjyzc.supabase.co",
+  anonKey: "sb_publishable_pEBLwqR-_d8lIXtYTcIQRQ_n9NW_gqq",
+};
 
+// Injected at build time from Vercel's VERCEL_ENV (see next.config.ts):
+// "production" on main, "preview" on every other branch, "" when built off Vercel.
+const deployEnv = process.env.NEXT_PUBLIC_DEPLOY_ENV;
+
+// Explicit local override — e.g. .env.local pointing at the local Supabase stack.
+// NEXT_PUBLIC_* values are inlined at build time, so they must be referenced
+// literally for Next to replace them.
+const overrideUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const overrideAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// Validation is lazy (at first use) so a missing config fails with a clear, named
+// error at runtime instead of a cryptic "supabaseUrl is required" from supabase-js.
 function requireConfig(): { url: string; anonKey: string } {
-  if (!envUrl) throw new Error("Missing required environment variable NEXT_PUBLIC_SUPABASE_URL");
-  if (!envAnonKey) throw new Error("Missing required environment variable NEXT_PUBLIC_SUPABASE_ANON_KEY");
-  return { url: envUrl, anonKey: envAnonKey };
+  // On Vercel the branch decides the backend, ignoring any dashboard env vars.
+  if (deployEnv === "production") return PROD_CONFIG;
+  if (deployEnv === "preview") return DEV_CONFIG;
+  // Off Vercel (local dev, CI): honour an explicit override, else fail clearly.
+  if (overrideUrl && overrideAnonKey) return { url: overrideUrl, anonKey: overrideAnonKey };
+  throw new Error(
+    "Supabase is not configured: set NEXT_PUBLIC_SUPABASE_URL and " +
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY for local development (see apps/web/.env.example).",
+  );
 }
 
 let browserClient: SupabaseClient | null = null;
