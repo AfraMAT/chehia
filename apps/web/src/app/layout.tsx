@@ -20,14 +20,14 @@ const plexArabic = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL ?? "https://chahia.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL ?? "https://chehia.app"),
   title: {
-    default: "Chahia — Scannez. Commandez. Régalez-vous.",
-    template: "%s · Chahia",
+    default: "Chehia — Scannez. Commandez. Régalez-vous.",
+    template: "%s · Chehia",
   },
   description:
     "Commandez depuis votre table dans les cafés et restaurants tunisiens. QR ordering for Tunisian cafés & restaurants.",
-  applicationName: "Chahia",
+  applicationName: "Chehia",
 };
 
 export const viewport: Viewport = {

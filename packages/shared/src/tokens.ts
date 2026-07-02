@@ -1,5 +1,5 @@
 /**
- * Chahia design tokens — "Harissa & Sidi Bou".
+ * Chehia design tokens — "Harissa & Sidi Bou".
  * Warm terracotta (appetite, craft) × deep Mediterranean teal (trust).
  * Single source of truth for both the Expo app and the web portal.
  */

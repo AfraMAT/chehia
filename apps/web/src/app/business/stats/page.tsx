@@ -224,7 +224,7 @@ export default function StatsPage() {
         </div>
       )}
 
-      {/* Chahia Intelligence */}
+      {/* Chehia Intelligence */}
       <div className="mx-6 my-4 bg-teal-pressed rounded-2xl p-4.5 flex flex-col gap-3 p-4">
         <div className="flex items-center gap-2.5 flex-wrap">
           <ZelligeMark size={26} color="#FAF6EF" inner="#0B4A52" radius={8} />

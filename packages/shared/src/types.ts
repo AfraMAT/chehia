@@ -29,6 +29,7 @@ export interface Restaurant {
   is_active: boolean;
   opening_hours: Record<string, string>;
   plan: "starter" | "pro";
+  onboarding_completed_at: string | null;
 }
 
 export interface Category {

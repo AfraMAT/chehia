@@ -4,7 +4,7 @@
 // 404 until configured so we never publish an invalid association file.
 export function GET() {
   const sha = process.env.ANDROID_CERT_SHA256;
-  const pkg = process.env.ANDROID_PACKAGE ?? "tn.chahia.app";
+  const pkg = process.env.ANDROID_PACKAGE ?? "tn.chehia.app";
   if (!sha) {
     return new Response("Not configured", { status: 404 });
   }

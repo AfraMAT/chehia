@@ -19,7 +19,8 @@ begin
       ('11111111-1111-1111-1111-111111111101'::uuid, 'owner@elmarsa.tn'),
       ('11111111-1111-1111-1111-111111111102'::uuid, 'cuisine@elmarsa.tn'),
       ('11111111-1111-1111-1111-111111111103'::uuid, 'sana@elmarsa.tn'),
-      ('22222222-2222-2222-2222-222222222201'::uuid, 'owner@lezink.tn')
+      ('22222222-2222-2222-2222-222222222201'::uuid, 'owner@lezink.tn'),
+      ('33333333-3333-3333-3333-333333333301'::uuid, 'admin@chehia.app')
     ) as t(uid, email)
   loop
     insert into auth.users (
@@ -52,6 +53,14 @@ values
   ('bbbbbbbb-0000-0000-0000-000000000002', 'le-zink', 'Le Zink',
    '{"fr":"Berges du Lac 2","ar":"ضفاف البحيرة 2","en":"Berges du Lac 2"}',
    'Rue du Lac Léman', 'Tunis', '+216 71 111 111', 'starter', null, '{}');
+
+-- Demo venues are already live and past onboarding.
+update public.restaurants set is_active = true, onboarding_completed_at = now()
+where slug in ('cafe-el-marsa', 'le-zink');
+
+-- ---------- platform admin (local demo) ----------
+insert into public.platform_admins (auth_uid, display_name) values
+  ('33333333-3333-3333-3333-333333333301', 'Chehia Admin');
 
 -- ---------- staff ----------
 insert into public.staff (restaurant_id, auth_uid, role, display_name) values

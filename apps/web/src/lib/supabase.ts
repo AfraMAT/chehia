@@ -53,3 +53,27 @@ export async function ensureCustomerSession(): Promise<string> {
 export function functionsUrl(name: string): string {
   return `${requireConfig().url}/functions/v1/${name}`;
 }
+
+/**
+ * Invoke an edge function with the current (staff/admin) session token.
+ * Returns the parsed body plus ok/status so callers can branch on error codes
+ * without reimplementing the fetch + auth-header plumbing each time.
+ */
+export async function callFunction<T = unknown>(
+  name: string,
+  body: unknown,
+): Promise<{ ok: boolean; status: number; data: T | null }> {
+  const { anonKey } = requireConfig();
+  const { data: sessionData } = await getSupabase().auth.getSession();
+  const response = await fetch(functionsUrl(name), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${sessionData.session?.access_token ?? ""}`,
+      apikey: anonKey,
+    },
+    body: JSON.stringify(body),
+  });
+  const data = (await response.json().catch(() => null)) as T | null;
+  return { ok: response.ok, status: response.status, data };
+}

@@ -19,7 +19,10 @@ interface PortalContextValue {
   refreshRestaurant: () => Promise<void>;
   signOut: () => Promise<void>;
   canManage: boolean;
+  needsOnboarding: boolean;
 }
+
+const ONBOARDING_PATH = "/business/onboarding";
 
 const PortalContext = createContext<PortalContextValue | null>(null);
 
@@ -89,6 +92,15 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state, router]);
 
+  // A venue past provisioning but before setup: the owner is sent into the
+  // onboarding wizard; other staff wait until the owner finishes.
+  const needsOnboarding = !!restaurant && !restaurant.onboarding_completed_at;
+  useEffect(() => {
+    if (state === "ready" && needsOnboarding && staff?.role === "owner" && pathname !== ONBOARDING_PATH) {
+      router.replace(ONBOARDING_PATH);
+    }
+  }, [state, needsOnboarding, staff, pathname, router]);
+
   const refreshRestaurant = useCallback(async () => {
     if (!staff) return;
     const { data } = await getSupabase().from("restaurants").select("*").eq("id", staff.restaurant_id).maybeSingle<Restaurant>();
@@ -109,6 +121,7 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
             refreshRestaurant,
             signOut,
             canManage: staff.role === "owner" || staff.role === "manager",
+            needsOnboarding: !restaurant.onboarding_completed_at,
           }
         : null,
     [staff, restaurant, refreshRestaurant, signOut],
@@ -160,12 +173,44 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Staff (not the owner) of a venue still being set up: nothing to do yet.
+  if (state === "ready" && value && needsOnboarding && staff?.role !== "owner") {
+    return (
+      <div className="min-h-dvh bg-sand flex items-center justify-center p-6" data-pathname={pathname}>
+        <div className="bg-card border border-line rounded-2xl p-8 max-w-[380px] flex flex-col items-center gap-4 text-center">
+          <span className="font-display font-extrabold text-xl text-ink">Configuration en cours</span>
+          <p className="text-sm text-muted leading-relaxed">
+            Le propriétaire finalise la mise en place de l&apos;établissement. Revenez bientôt.
+          </p>
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            className="h-11 px-6 rounded-lg bg-ink text-cream font-extrabold text-sm cursor-pointer"
+          >
+            Se déconnecter
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (state !== "ready" || !value) {
     return (
       <div className="min-h-dvh bg-sand flex items-center justify-center" data-pathname={pathname}>
         <div className="flex flex-col items-center gap-3">
           <span className="w-8 h-8 border-[3px] border-harissa border-t-transparent rounded-full animate-spin" />
         </div>
+      </div>
+    );
+  }
+
+  // Owner of an un-onboarded venue on any non-wizard path: hold the spinner
+  // while the redirect effect moves them into the wizard (avoids a flash of
+  // the empty portal).
+  if (needsOnboarding && staff?.role === "owner" && pathname !== ONBOARDING_PATH) {
+    return (
+      <div className="min-h-dvh bg-sand flex items-center justify-center" data-pathname={pathname}>
+        <span className="w-8 h-8 border-[3px] border-harissa border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

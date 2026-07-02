@@ -9,7 +9,7 @@ export default function Home() {
         <ZelligeMark size={76} radius={20} />
         <div className="flex flex-col items-center gap-2">
           <span className="font-display font-extrabold text-5xl text-ink tracking-tight">
-            chahia<span className="text-harissa">.</span>
+            chehia<span className="text-harissa">.</span>
           </span>
           <p className="text-lg font-semibold text-muted">Scannez. Commandez. Régalez-vous.</p>
           <p dir="rtl" className="font-arabic font-semibold text-lg text-teal">
@@ -41,6 +41,10 @@ export default function Home() {
         <Logo markSize={18} textSize={13} />
         <span>· Café El Marsa est un lieu de démonstration</span>
       </div>
+
+      <Link href="/admin" className="text-[11px] font-bold text-muted-soft hover:text-muted transition-colors">
+        Administration
+      </Link>
     </div>
   );
 }

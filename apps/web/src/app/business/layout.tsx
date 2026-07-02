@@ -15,7 +15,10 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
     return <>{children}</>;
   }
 
-  const bare = pathname.startsWith("/business/kitchen") || pathname.startsWith("/business/tables/print");
+  const bare =
+    pathname.startsWith("/business/kitchen") ||
+    pathname.startsWith("/business/tables/print") ||
+    pathname.startsWith("/business/onboarding");
 
   return (
     <PortalProvider>

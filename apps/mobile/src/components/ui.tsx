@@ -46,7 +46,7 @@ export function ZelligeMark({
 export function Wordmark({ size = 19, color = colors.ink, dotColor = colors.harissa }: { size?: number; color?: string; dotColor?: string }) {
   return (
     <Text style={{ fontFamily: fontFamily.display, fontSize: size, color, letterSpacing: -0.4 }}>
-      chahia<Text style={{ color: dotColor }}>.</Text>
+      chehia<Text style={{ color: dotColor }}>.</Text>
     </Text>
   );
 }
