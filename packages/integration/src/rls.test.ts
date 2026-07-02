@@ -6,19 +6,34 @@ import {
   EL_MARSA_ID,
   LE_ZINK_ID,
   CAPPUCCINO_ID,
+  T12_TOKEN,
 } from "./helpers";
 
 describe("RLS — public menu access", () => {
-  it("anonymous (no session) can read restaurants, categories, items, tables", async () => {
+  it("anonymous (no session) can read restaurants and items", async () => {
     const client = anonClient();
-    const [{ data: restaurants }, { data: items }, { data: tables }] = await Promise.all([
+    const [{ data: restaurants }, { data: items }] = await Promise.all([
       client.from("restaurants").select("id"),
       client.from("items").select("id"),
-      client.from("tables").select("id"),
     ]);
     expect(restaurants?.length).toBeGreaterThan(0);
     expect(items?.length).toBeGreaterThan(0);
-    expect(tables?.length).toBeGreaterThan(0);
+  });
+
+  it("anonymous cannot enumerate tables (qr_token stays a capability)", async () => {
+    const client = anonClient();
+    const { data: tables } = await client.from("tables").select("id, qr_token");
+    expect(tables ?? []).toHaveLength(0);
+  });
+
+  it("a known qr_token resolves exactly one table via resolve_table; a bogus one resolves none", async () => {
+    const client = anonClient();
+    const { data, error } = await client.rpc("resolve_table", { p_qr_token: T12_TOKEN });
+    expect(error).toBeNull();
+    expect(data?.length).toBe(1);
+    expect(data?.[0]?.restaurant_id).toBe(EL_MARSA_ID);
+    const { data: none } = await client.rpc("resolve_table", { p_qr_token: "not-a-real-token" });
+    expect(none ?? []).toHaveLength(0);
   });
 
   it("anonymous cannot modify menu items", async () => {

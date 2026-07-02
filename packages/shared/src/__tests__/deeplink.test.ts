@@ -3,17 +3,17 @@ import { buildTableUrl, parseTableUrl } from "../deeplink";
 
 describe("deep links", () => {
   it("builds the QR url", () => {
-    expect(buildTableUrl("https://chehia.tn", { slug: "cafe-el-marsa", qrToken: "demo-elmarsa-t12" })).toBe(
-      "https://chehia.tn/r/cafe-el-marsa/t/demo-elmarsa-t12",
+    expect(buildTableUrl("https://chahia.app", { slug: "cafe-el-marsa", qrToken: "demo-elmarsa-t12" })).toBe(
+      "https://chahia.app/r/cafe-el-marsa/t/demo-elmarsa-t12",
     );
   });
 
   it("tolerates trailing slashes on the base", () => {
-    expect(buildTableUrl("https://chehia.tn/", { slug: "a", qrToken: "b" })).toBe("https://chehia.tn/r/a/t/b");
+    expect(buildTableUrl("https://chahia.app/", { slug: "a", qrToken: "b" })).toBe("https://chahia.app/r/a/t/b");
   });
 
   it("parses full urls and bare paths", () => {
-    expect(parseTableUrl("https://chehia.tn/r/cafe-el-marsa/t/tok123")).toEqual({
+    expect(parseTableUrl("https://chahia.app/r/cafe-el-marsa/t/tok123")).toEqual({
       slug: "cafe-el-marsa",
       qrToken: "tok123",
     });

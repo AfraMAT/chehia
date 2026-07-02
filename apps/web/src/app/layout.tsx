@@ -20,6 +20,7 @@ const plexArabic = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL ?? "https://chahia.app"),
   title: {
     default: "Chehia — Scannez. Commandez. Régalez-vous.",
     template: "%s · Chehia",

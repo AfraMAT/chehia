@@ -61,7 +61,7 @@ directly on that table, otherwise the web experience serves the same flow.
 
 ```bash
 pnpm --filter @chehia/shared test        # 46 unit tests (money, cart, reconcile, i18n parity, status machine, deep links)
-pnpm --filter @chehia/integration test   # 25 integration tests (RLS isolation, order flow, idempotency, abuse caps)
+pnpm --filter @chehia/integration test   # 27 integration tests (RLS isolation, table-token scoping, order flow, idempotency, abuse caps)
 pnpm typecheck                           # all workspaces
 ```
 
@@ -98,36 +98,42 @@ only writes the "what should I do" narrative.
 - **Money** — integer millimes end-to-end (1 TND = 1000). Display rule: minimum one decimal,
   trailing zeros trimmed (`2,8` / `6,0` / `5,55`).
 
-## Deploying (when ready to go live)
+## Deploying (production domain: `chahia.app`)
 
-1. **Supabase Cloud** — create a project, then:
+1. **Supabase Cloud** — link the project (`wpnouppukofzmvsieyeq`), push the schema, deploy functions:
    ```bash
-   supabase link --project-ref <ref>
-   supabase db push                      # applies migrations
+   supabase link --project-ref wpnouppukofzmvsieyeq
+   supabase db push                      # applies migrations (schema + RLS + storage)
    supabase functions deploy place-order call-waiter generate-insights
-   supabase secrets set ANTHROPIC_API_KEY=... INSIGHTS_CRON_SECRET=...
+   supabase secrets set INSIGHTS_CRON_SECRET=... ANTHROPIC_API_KEY=...
    ```
-   Enable **anonymous sign-ins** (Auth settings) and schedule `generate-insights` nightly
-   (Dashboard → Edge Functions → Schedules, or pg_cron) with the `x-cron-secret` header.
-2. **Vercel** — import `apps/web`, set `NEXT_PUBLIC_SUPABASE_URL`,
-   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_BASE_URL=https://chehia.tn`.
-3. **Domain** — point `chehia.tn` at Vercel. Host `apple-app-site-association` +
-   `assetlinks.json` (Next.js `public/.well-known/`) once app bundle ids/signing certs exist,
-   so installed apps open table links directly.
-4. **EAS (mobile)** — `eas build` for iOS/Android with `EXPO_PUBLIC_SUPABASE_URL/ANON_KEY`
-   pointing at the cloud project; submit via `eas submit`.
+   Enable **anonymous sign-ins** (Auth → Providers) and schedule `generate-insights` nightly via
+   `pg_cron` + `pg_net` (`net.http_post` to the function with the `x-cron-secret` header). The
+   `item-photos` Storage bucket + RLS are created by migration `20260703000002`.
+2. **Vercel** — import the `AfraMAT/chehia` repo. A root `vercel.json` pins the monorepo build
+   (`framework: nextjs`, install `pnpm install --frozen-lockfile`, build `pnpm --filter @chehia/web build`,
+   output `apps/web/.next`), so leave **Root Directory = repo root**. Set env (Production + Preview):
+   `NEXT_PUBLIC_SUPABASE_URL=https://wpnouppukofzmvsieyeq.supabase.co`,
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY=<cloud anon/publishable key>`,
+   `NEXT_PUBLIC_BASE_URL=https://chahia.app`.
+3. **Domain** — point `chahia.app` DNS at Vercel. The app serves
+   `/.well-known/apple-app-site-association` and `/.well-known/assetlinks.json` from route handlers
+   that activate once `APPLE_TEAM_ID` / `ANDROID_CERT_SHA256` env vars are set (they 404 until then,
+   so no invalid association is ever published), letting installed apps open table links directly.
+4. **EAS (mobile)** — `eas login && eas init && eas build:configure`, then `eas build` for iOS/Android
+   with `EXPO_PUBLIC_SUPABASE_URL/ANON_KEY` in the build profile pointing at the cloud project;
+   submit via `eas submit`. `app.json` universal/app links already target `chahia.app`.
 
 ### Credentials needed from you to finalize
 
-- Supabase Cloud project (org + project ref, or invite)
-- Vercel account/team for `apps/web` + the `chehia.tn` domain DNS
-- Apple Developer account ($99/yr) & Google Play console ($25) for store builds
-- `ANTHROPIC_API_KEY` for production AI insights (template fallback works without it)
+- **Vercel** — import `AfraMAT/chehia` into the Vercel team; add `chahia.app` DNS (Squarespace → Vercel).
+- **Apple Developer** ($99/yr) & **Google Play** ($25) for store builds; the Apple Team ID and Android
+  signing SHA-256 then populate `APPLE_TEAM_ID` / `ANDROID_CERT_SHA256` (deep-link association files).
+- **`ANTHROPIC_API_KEY`** for production AI insights (template fallback works without it) — set via
+  `supabase secrets set`, never committed.
 
-## Known gaps (deliberate, pending cloud setup)
+## Known gaps (deliberate)
 
-- Menu photo upload UI is stubbed — wiring to Supabase Storage is straightforward once the cloud
-  bucket exists (schema already has `photo_url` everywhere).
 - Store submission assets (app icon final art, splash, store listings) to generate at EAS setup.
 - Phase 2/3 features per the playbook (favorites, reviews, promotions, payments) intentionally
   out of MVP scope.

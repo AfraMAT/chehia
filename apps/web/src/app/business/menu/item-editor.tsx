@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   type I18nText,
   type Language,
@@ -10,7 +10,7 @@ import {
 } from "@chehia/shared";
 import { getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
-import { Toggle } from "@/components/ui";
+import { PhotoPlaceholder, Toggle } from "@/components/ui";
 import { usePortal } from "../portal-provider";
 
 interface EditableModifier {
@@ -71,12 +71,39 @@ export function ItemEditor({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(item?.photo_url ?? null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const parsePrice = (value: string): number | null => {
     const normalized = value.replace(",", ".").trim();
     const parsed = Number(normalized);
     if (!Number.isFinite(parsed) || parsed < 0) return null;
     return Math.round(parsed * 1000);
+  };
+
+  // Upload to the tenant-scoped folder (<restaurant_id>/…); storage RLS rejects
+  // writes outside the caller's own restaurant.
+  const onPickPhoto = async (file: File) => {
+    if (!/^image\/(png|jpe?g|webp)$/.test(file.type) || file.size > 5_000_000) {
+      setError(t.errors.generic);
+      return;
+    }
+    setUploading(true);
+    setError(null);
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+    const path = `${restaurant.id}/${crypto.randomUUID()}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("item-photos")
+      .upload(path, file, { upsert: false, contentType: file.type });
+    if (upErr) {
+      setError(t.errors.generic);
+      setUploading(false);
+      return;
+    }
+    const { data } = supabase.storage.from("item-photos").getPublicUrl(path);
+    setPhotoUrl(data.publicUrl);
+    setUploading(false);
   };
 
   const save = async () => {
@@ -101,6 +128,7 @@ export function ItemEditor({
         price_millimes: millimes,
         is_available: available,
         is_popular: popular,
+        photo_url: photoUrl,
       };
       if (itemId) {
         const { error: e } = await supabase.from("items").update(payload).eq("id", itemId).select("id").single();
@@ -257,14 +285,32 @@ export function ItemEditor({
         <Toggle checked={popular} onChange={setPopular} />
       </div>
 
-      {/* Photo placeholder upload zone (storage wiring comes with cloud setup) */}
-      <div className="border-[1.5px] border-dashed border-line-dashed rounded-md p-3.5 flex items-center gap-3">
-        <div className="w-[42px] h-[42px] rounded-md photo-placeholder shrink-0" />
+      {/* Product photo — click to upload (tenant-scoped Supabase Storage). */}
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+        className="border-[1.5px] border-dashed border-line-dashed rounded-md p-3.5 flex items-center gap-3 text-start hover:border-harissa transition-colors disabled:opacity-60 cursor-pointer"
+      >
+        <PhotoPlaceholder src={photoUrl} alt="" className="w-[42px] h-[42px] rounded-md shrink-0" />
         <div className="flex flex-col gap-0.5 min-w-0">
           <span className="font-extrabold text-[12.5px] text-ink">{t.portal.menu.photo}</span>
-          <span className="text-[11.5px] font-semibold text-muted-soft">{t.portal.menu.photoHint}</span>
+          <span className="text-[11.5px] font-semibold text-muted-soft">
+            {uploading ? t.portal.menu.photoUploading : t.portal.menu.photoHint}
+          </span>
         </div>
-      </div>
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void onPickPhoto(f);
+          e.target.value = "";
+        }}
+      />
 
       {/* Option groups */}
       <div className="flex flex-col gap-1.5">

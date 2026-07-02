@@ -211,6 +211,7 @@ export const fr = {
       available: "DISPONIBLE",
       photo: "Photo du produit",
       photoHint: "Glissez ou cliquez · 4:3 min 800px",
+      photoUploading: "Téléversement…",
       optionGroups: "GROUPES D'OPTIONS",
       addOptionGroup: "+ Groupe d'options",
       options: "options",

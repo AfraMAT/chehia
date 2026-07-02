@@ -213,6 +213,7 @@ export const ar: Dictionary = {
       available: "متوفر",
       photo: "صورة المنتج",
       photoHint: "اسحب أو انقر · 4:3 بحد أدنى 800 بكسل",
+      photoUploading: "جارٍ الرفع…",
       optionGroups: "مجموعات الخيارات",
       addOptionGroup: "+ مجموعة خيارات",
       options: "خيارات",

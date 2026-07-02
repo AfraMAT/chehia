@@ -91,15 +91,19 @@ async function fetchBundle(slug: string, token: string): Promise<VenueBundle | n
   if (restaurantError) throw new Error("network");
   if (!restaurant) return null;
 
-  const { data: table, error: tableError } = await supabase
-    .from("tables")
-    .select("id, label, zone, qr_token")
-    .eq("restaurant_id", restaurant.id)
-    .eq("qr_token", token)
-    .eq("is_active", true)
-    .maybeSingle<Pick<Table, "id" | "label" | "zone" | "qr_token">>();
+  // Resolve the table via a token-scoped RPC (qr_token is a capability and must
+  // not be enumerable). Verify it belongs to this slug's restaurant.
+  const { data: resolved, error: tableError } = await supabase
+    .rpc("resolve_table", { p_qr_token: token })
+    .maybeSingle<{ id: string; restaurant_id: string; label: string; zone: string }>();
   if (tableError) throw new Error("network");
-  if (!table) return null;
+  if (!resolved || resolved.restaurant_id !== restaurant.id) return null;
+  const table: Pick<Table, "id" | "label" | "zone" | "qr_token"> = {
+    id: resolved.id,
+    label: resolved.label,
+    zone: resolved.zone,
+    qr_token: token,
+  };
 
   const [{ data: categories }, { data: items }, { data: groups }, { data: modifiers }] = await Promise.all([
     supabase

@@ -12,7 +12,7 @@
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "tn.chehia.app",
       "supportsTablet": false,
-      "associatedDomains": ["applinks:chehia.tn", "applinks:go.chehia.tn"],
+      "associatedDomains": ["applinks:chahia.app"],
       "infoPlist": {
         "NSCameraUsageDescription": "Chehia utilise la caméra pour scanner le code QR de votre table. / تستخدم شهية الكاميرا لمسح رمز QR الخاص بطاولتك."
       }
@@ -31,8 +31,7 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "chehia.tn", "pathPrefix": "/r" },
-            { "scheme": "https", "host": "go.chehia.tn", "pathPrefix": "/r" }
+            { "scheme": "https", "host": "chahia.app", "pathPrefix": "/r" }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }

@@ -256,7 +256,9 @@ Deno.serve(async (req) => {
   if (error) return errorResponse("db_error", error.message, 500);
 
   const useLlm = Boolean(Deno.env.get("ANTHROPIC_API_KEY"));
-  const today = new Date().toISOString().slice(0, 10);
+  // Use Tunisia local date so the nightly "day" aligns with the venue timezone
+  // (metrics hour-buckets are already computed in the venue's tz).
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Tunis" }).format(new Date());
   const results: Record<string, number> = {};
 
   for (const r of restaurants ?? []) {

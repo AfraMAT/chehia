@@ -213,6 +213,7 @@ export const en: Dictionary = {
       available: "AVAILABLE",
       photo: "Product photo",
       photoHint: "Drag or click · 4:3 min 800px",
+      photoUploading: "Uploading…",
       optionGroups: "OPTION GROUPS",
       addOptionGroup: "+ Option group",
       options: "options",
