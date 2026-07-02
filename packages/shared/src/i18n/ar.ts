@@ -3,7 +3,7 @@ import type { Dictionary } from "./fr";
 /** Arabic — fully mirrored RTL. Western numerals for prices. */
 export const ar: Dictionary = {
   common: {
-    appName: "chehia.",
+    appName: "chahia.",
     tagline: "امسح. اطلب. استمتع.",
     table: "الطاولة",
     total: "المجموع",

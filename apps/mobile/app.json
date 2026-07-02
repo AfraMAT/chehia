@@ -1,24 +1,24 @@
 {
   "expo": {
-    "name": "Chehia",
-    "slug": "chehia",
+    "name": "Chahia",
+    "slug": "chahia",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "chehia",
+    "scheme": "chahia",
     "userInterfaceStyle": "light",
     "backgroundColor": "#FAF6EF",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "tn.chehia.app",
+      "bundleIdentifier": "tn.chahia.app",
       "supportsTablet": false,
       "associatedDomains": ["applinks:chahia.app"],
       "infoPlist": {
-        "NSCameraUsageDescription": "Chehia utilise la caméra pour scanner le code QR de votre table. / تستخدم شهية الكاميرا لمسح رمز QR الخاص بطاولتك."
+        "NSCameraUsageDescription": "Chahia utilise la caméra pour scanner le code QR de votre table. / تستخدم شهية الكاميرا لمسح رمز QR الخاص بطاولتك."
       }
     },
     "android": {
-      "package": "tn.chehia.app",
+      "package": "tn.chahia.app",
       "adaptiveIcon": {
         "backgroundColor": "#BC4B26",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -55,7 +55,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Chehia utilise la caméra pour scanner le code QR de votre table."
+          "cameraPermission": "Chahia utilise la caméra pour scanner le code QR de votre table."
         }
       ]
     ],

@@ -10,7 +10,7 @@ import { colors } from "@/lib/theme";
 
 /**
  * Scan home — the app's front door when opened without a deep link.
- * Scanning a Chehia table QR routes straight to the venue's landing.
+ * Scanning a Chahia table QR routes straight to the venue's landing.
  */
 export default function ScanHome() {
   const { t, lang } = useI18n();

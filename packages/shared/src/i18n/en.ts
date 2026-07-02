@@ -3,7 +3,7 @@ import type { Dictionary } from "./fr";
 /** English — tourists & expats. */
 export const en: Dictionary = {
   common: {
-    appName: "chehia.",
+    appName: "chahia.",
     tagline: "Scan. Order. Enjoy.",
     table: "Table",
     total: "Total",
@@ -260,7 +260,7 @@ export const en: Dictionary = {
       peakHoursSub: "orders / hour",
       topItems: "Top items",
       sales2: "sold",
-      intelligence: "Chehia Intelligence",
+      intelligence: "Chahia Intelligence",
       generatedNightly: "generated nightly · FR / AR / EN",
       noData: "No data yet",
       noDataBody: "Analytics appear with your first orders.",

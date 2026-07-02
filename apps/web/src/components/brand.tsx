@@ -48,7 +48,7 @@ export function Wordmark({
       className="font-display font-extrabold tracking-tight leading-none"
       style={{ fontSize: size, color }}
     >
-      chehia<span style={{ color: dotColor }}>.</span>
+      chahia<span style={{ color: dotColor }}>.</span>
     </span>
   );
 }

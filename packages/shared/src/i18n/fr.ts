@@ -1,7 +1,7 @@
 /** French — default language. This dictionary defines the canonical shape. */
 export const fr = {
   common: {
-    appName: "chehia.",
+    appName: "chahia.",
     tagline: "Scannez. Commandez. Régalez-vous.",
     table: "Table",
     total: "Total",
@@ -258,7 +258,7 @@ export const fr = {
       peakHoursSub: "commandes / heure",
       topItems: "Top articles",
       sales2: "ventes",
-      intelligence: "Chehia Intelligence",
+      intelligence: "Chahia Intelligence",
       generatedNightly: "générées cette nuit · FR / AR / EN",
       noData: "Pas encore de données",
       noDataBody: "Les statistiques apparaissent dès vos premières commandes.",

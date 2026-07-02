@@ -5,7 +5,7 @@
 // never publish an invalid association file.
 export function GET() {
   const teamId = process.env.APPLE_TEAM_ID;
-  const bundleId = process.env.APPLE_BUNDLE_ID ?? "tn.chehia.app";
+  const bundleId = process.env.APPLE_BUNDLE_ID ?? "tn.chahia.app";
   if (!teamId) {
     return new Response("Not configured", { status: 404 });
   }

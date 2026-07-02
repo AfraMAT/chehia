@@ -1,4 +1,4 @@
-# chehia. — شهية
+# chahia. — شهية
 
 **Scannez. Commandez. Régalez-vous.** QR ordering for Tunisian cafés & restaurants — a native customer
 app, a realtime business portal, and an AI insights layer. Android-first, trilingual (FR / AR-RTL / EN),
@@ -110,9 +110,9 @@ only writes the "what should I do" narrative.
    Enable **anonymous sign-ins** (Auth → Providers) and schedule `generate-insights` nightly via
    `pg_cron` + `pg_net` (`net.http_post` to the function with the `x-cron-secret` header). The
    `item-photos` Storage bucket + RLS are created by migration `20260703000002`.
-2. **Vercel** — import the `AfraMAT/chehia` repo. A root `vercel.json` pins the monorepo build
-   (`framework: nextjs`, install `pnpm install --frozen-lockfile`, build `pnpm --filter @chehia/web build`,
-   output `apps/web/.next`), so leave **Root Directory = repo root**. Set env (Production + Preview):
+2. **Vercel** — import the `AfraMAT/chehia` repo and set **Root Directory = `apps/web`** so Vercel
+   auto-detects Next.js; its native pnpm-workspace support installs from the repo root and resolves
+   `@chehia/shared`. Set env (Production + Preview):
    `NEXT_PUBLIC_SUPABASE_URL=https://wpnouppukofzmvsieyeq.supabase.co`,
    `NEXT_PUBLIC_SUPABASE_ANON_KEY=<cloud anon/publishable key>`,
    `NEXT_PUBLIC_BASE_URL=https://chahia.app`.
