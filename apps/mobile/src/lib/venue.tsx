@@ -239,11 +239,13 @@ export function VenueProvider({
   }, [token]);
 
   // Reconcile the hydrated cart when fresh (non-cache) menu data is ready.
+  // Runs exactly once per mount — post-hydration correction, not a render loop.
   const reconciledRef = useRef(false);
   useEffect(() => {
     if (!cartHydrated || reconciledRef.current) return;
     if (state.status !== "ready" || state.fromCache) return;
     reconciledRef.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCart((c) => reconcileCart(c, state.bundle.items, state.bundle.groupsByItem).cart);
   }, [cartHydrated, state]);
 
