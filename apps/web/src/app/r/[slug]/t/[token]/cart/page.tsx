@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -12,18 +12,22 @@ import {
 } from "@chehia/shared";
 import { ensureCustomerSession, functionsUrl, getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
-import { Stepper } from "@/components/ui";
+import { Spinner, Stepper } from "@/components/ui";
 import { useVenue } from "../venue-provider";
 import { OfflineBanner } from "../offline-banner";
 
 /** P4 · Cart — table context re-confirmed, kitchen note, pay-at-counter stated twice. */
 export default function CartPage() {
-  const { restaurant, table, cart, updateQty, setCartNote, clearCart, online } = useVenue();
+  const { restaurant, table, cart, updateQty, setCartNote, clearCart, reconcileNow, online } = useVenue();
   const { t, tr, lang } = useI18n();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [navigating, setNavigating] = useState(false);
   const [queued, setQueued] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Idempotency key: stable across retries of the same submission, so a
+  // lost response + retry can never create a duplicate order server-side.
+  const clientRefRef = useRef<string | null>(null);
 
   const count = cartCount(cart);
   const total = cartTotal(cart);
@@ -33,6 +37,7 @@ export default function CartPage() {
     if (submitting || cart.lines.length === 0) return;
     setSubmitting(true);
     setError(null);
+    clientRefRef.current ??= crypto.randomUUID();
     try {
       await ensureCustomerSession();
       const supabase = getSupabase();
@@ -44,12 +49,16 @@ export default function CartPage() {
           Authorization: `Bearer ${sessionData.session?.access_token}`,
           apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         },
-        body: JSON.stringify(toOrderPayload(cart, lang)),
+        body: JSON.stringify({ ...toOrderPayload(cart, lang), client_ref: clientRefRef.current }),
       });
-      const json = await response.json();
-      if (!response.ok) {
+      // Gateway errors can return non-JSON bodies — never let that masquerade
+      // as a network failure.
+      const json = await response.json().catch(() => null);
+      if (!response.ok || !json?.order) {
         const code = json?.error?.code as string | undefined;
         if (code === "item_unavailable" || code === "unknown_item") {
+          // Actually remove the offending lines so the retry can succeed.
+          reconcileNow();
           setError(t.cart.itemUnavailable);
         } else if (code === "unknown_table") {
           setError(t.errors.unknownTable);
@@ -58,15 +67,26 @@ export default function CartPage() {
         }
         return;
       }
+      clientRefRef.current = null;
+      setNavigating(true);
       clearCart();
       router.push(`${base}/order/${json.order.id}`);
     } catch {
-      // Network failure: keep the cart, let the user retry (P8 behavior).
+      // fetch threw → genuine network failure: keep the cart, offer retry (P8).
       setQueued(true);
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (navigating) {
+    return (
+      <div className="flex flex-col min-h-dvh items-center justify-center gap-3">
+        <Spinner className="text-harissa w-8 h-8" />
+        <span className="text-sm font-semibold text-muted">{t.order.sentToKitchen}</span>
+      </div>
+    );
+  }
 
   if (count === 0 && !submitting) {
     return (
@@ -206,11 +226,12 @@ export default function CartPage() {
 }
 
 function Header({ title, backHref }: { title: string; backHref: string }) {
+  const { t } = useI18n();
   return (
     <header className="px-5 pt-4 flex items-center gap-3">
       <Link
         href={backHref}
-        aria-label="back"
+        aria-label={t.common.back}
         className="w-10 h-10 rounded-full bg-white border-[1.5px] border-line flex items-center justify-center text-ink font-extrabold text-[17px]"
       >
         <span className="rtl:rotate-180 -mt-0.5">‹</span>

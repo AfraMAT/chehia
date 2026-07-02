@@ -33,23 +33,31 @@ export default function OrderTrackingPage({
   const [waiterOpen, setWaiterOpen] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
 
-  // Initial load + realtime subscription on this order row.
+  // Initial load + realtime subscription on this order row. The initial
+  // fetch only fills the empty state (never clobbers a realtime update);
+  // once the channel joins we refetch to close the pre-join gap.
   useEffect(() => {
     const supabase = getSupabase();
     let cancelled = false;
 
-    (async () => {
-      const [{ data: o }, { data: li }] = await Promise.all([
-        supabase.from("orders").select("*").eq("id", orderId).maybeSingle<Order>(),
-        supabase.from("order_items").select("*").eq("order_id", orderId).overrideTypes<OrderItem[], { merge: false }>(),
-      ]);
+    const fetchOrder = async (overwrite: boolean) => {
+      const { data: o } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle<Order>();
       if (cancelled) return;
       if (!o) {
         setLoadFailed(true);
         return;
       }
-      setOrder(o);
-      setLines(li ?? []);
+      setOrder((prev) => (overwrite || !prev ? o : prev));
+    };
+
+    void fetchOrder(false);
+    void (async () => {
+      const { data: li } = await supabase
+        .from("order_items")
+        .select("*")
+        .eq("order_id", orderId)
+        .overrideTypes<OrderItem[], { merge: false }>();
+      if (!cancelled) setLines(li ?? []);
     })();
 
     const channel = supabase
@@ -59,7 +67,9 @@ export default function OrderTrackingPage({
         { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
         (payload) => setOrder((prev) => ({ ...(prev as Order), ...(payload.new as Order) })),
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") void fetchOrder(true);
+      });
 
     return () => {
       cancelled = true;
@@ -158,7 +168,9 @@ export default function OrderTrackingPage({
               ? t.order.servedSubtitle
               : isCancelled
                 ? t.order.cancelledBody
-                : `${interpolate(t.order.remaining, { min: 8 })} · ${t.common.table} ${table.label}`}
+                : order.status === "ready"
+                  ? `${t.order.readyBody} · ${t.common.table} ${table.label}`
+                  : `${interpolate(t.order.remaining, { min: remainingEstimate(order) })} · ${t.common.table} ${table.label}`}
           </p>
         </div>
       </div>
@@ -228,8 +240,9 @@ export default function OrderTrackingPage({
               className="mx-5 mt-3 bg-white border border-line rounded-xl px-4 py-3.5 flex justify-between items-center cursor-pointer"
             >
               <div className="flex flex-col items-start gap-0.5 text-start">
-                <span className="font-extrabold text-sm text-ink" dir="ltr">
-                  {count} {t.common.items} · {millimesToDisplay(order.total_millimes, lang)} {currencyLabel(lang)}
+                <span className="font-extrabold text-sm text-ink">
+                  {count} {t.common.items} ·{" "}
+                  <span dir="ltr">{millimesToDisplay(order.total_millimes, lang)}</span> {currencyLabel(lang)}
                 </span>
                 <span className="text-xs font-semibold text-muted-soft">
                   {lines.map((l) => `${l.qty}× ${tr(l.name_snapshot)}`).join(", ")}
@@ -307,6 +320,12 @@ export default function OrderTrackingPage({
       {waiterOpen && <WaiterSheet onClose={() => setWaiterOpen(false)} />}
     </div>
   );
+}
+
+/** Rough countdown from a ~8 min baseline, clamped so it never claims zero. */
+function remainingEstimate(order: Order): number {
+  const elapsedMin = (Date.now() - new Date(order.created_at).getTime()) / 60000;
+  return Math.max(1, Math.round(8 - elapsedMin));
 }
 
 function TimelineRow({

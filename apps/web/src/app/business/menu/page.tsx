@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-
   millimesToDisplay,
   type Category,
   type Language,
@@ -18,9 +18,10 @@ import { ItemEditor } from "./item-editor";
 
 /** W3 · Menu management — categories, items, availability, trilingual completeness. */
 export default function MenuManagementPage() {
-  const { restaurant } = usePortal();
+  const { restaurant, canManage } = usePortal();
   const { t, tr, lang } = useI18n();
   const supabase = getSupabase();
+  const router = useRouter();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -28,6 +29,13 @@ export default function MenuManagementPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<MenuItem | "new" | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+
+  // Menu management is owner/manager only — RLS silently discards writes
+  // from other roles, so don't even show them the page.
+  useEffect(() => {
+    if (!canManage) router.replace("/business/orders");
+  }, [canManage, router]);
 
   const reload = useCallback(async () => {
     const [{ data: cats }, { data: its }, { data: grps }, { data: mods }] = await Promise.all([
@@ -46,9 +54,13 @@ export default function MenuManagementPage() {
     void reload();
   }, [reload]);
 
-  const flashSaved = () => {
-    setSavedFlash(true);
-    setTimeout(() => setSavedFlash(false), 2000);
+  const flashSaved = (ok: boolean) => {
+    setSaveError(!ok);
+    setSavedFlash(ok);
+    setTimeout(() => {
+      setSavedFlash(false);
+      setSaveError(false);
+    }, 2500);
   };
 
   const visibleItems = useMemo(
@@ -58,28 +70,37 @@ export default function MenuManagementPage() {
 
   const toggleAvailability = async (item: MenuItem, available: boolean) => {
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_available: available } : i)));
-    await supabase.from("items").update({ is_available: available }).eq("id", item.id);
-    flashSaved();
+    const { error } = await supabase
+      .from("items")
+      .update({ is_available: available })
+      .eq("id", item.id)
+      .select("id")
+      .single();
+    if (error) {
+      // RLS or network rejected the write: revert the optimistic flip.
+      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_available: !available } : i)));
+    }
+    flashSaved(!error);
   };
 
   const addCategory = async () => {
     const name = window.prompt(t.portal.menu.categoryName);
     if (!name?.trim()) return;
-    await supabase.from("categories").insert({
+    const { error } = await supabase.from("categories").insert({
       restaurant_id: restaurant.id,
       name_i18n: { [lang]: name.trim() },
       sort_order: categories.length,
     });
     await reload();
-    flashSaved();
+    flashSaved(!error);
   };
 
   const deleteCategory = async (cat: Category) => {
     if (!window.confirm(t.portal.menu.deleteCategoryConfirm)) return;
-    await supabase.from("categories").delete().eq("id", cat.id);
+    const { error } = await supabase.from("categories").delete().eq("id", cat.id);
     if (activeCategory === cat.id) setActiveCategory(null);
     await reload();
-    flashSaved();
+    flashSaved(!error);
   };
 
   const moveItem = async (item: MenuItem, dir: -1 | 1) => {
@@ -102,6 +123,11 @@ export default function MenuManagementPage() {
         {savedFlash && (
           <span className="text-xs font-extrabold text-success-text bg-success-tint rounded-full px-3 py-1.5">
             ✓ {t.portal.menu.published}
+          </span>
+        )}
+        {saveError && (
+          <span className="text-xs font-extrabold text-danger-text bg-danger-tint rounded-full px-3 py-1.5">
+            {t.errors.generic}
           </span>
         )}
         <div className="flex-1" />
@@ -127,8 +153,10 @@ export default function MenuManagementPage() {
         </a>
         <button
           type="button"
+          disabled={!activeCategory}
+          title={!activeCategory ? t.portal.menu.addCategory : undefined}
           onClick={() => setEditingItem("new")}
-          className="text-[13px] font-extrabold text-white bg-harissa rounded-md px-4 py-2.5 shadow-[0_4px_12px_rgba(188,75,38,0.25)] cursor-pointer hover:bg-harissa-pressed transition-colors"
+          className="text-[13px] font-extrabold text-white bg-harissa rounded-md px-4 py-2.5 shadow-[0_4px_12px_rgba(188,75,38,0.25)] cursor-pointer hover:bg-harissa-pressed transition-colors disabled:bg-disabled disabled:shadow-none disabled:cursor-default"
         >
           {t.portal.menu.addItem}
         </button>
@@ -275,17 +303,23 @@ export default function MenuManagementPage() {
           </button>
         </div>
 
-        {/* Editor panel */}
+        {/* Editor panel — keyed so switching items never carries form state across. */}
         {editingItem && activeCategory && (
           <ItemEditor
+            key={editingItem === "new" ? "new" : editingItem.id}
             item={editingItem === "new" ? null : editingItem}
             categoryId={editingItem === "new" ? activeCategory : editingItem.category_id}
             groups={editingItem === "new" ? [] : groups.filter((g) => g.item_id === editingItem.id)}
+            nextSortOrder={
+              editingItem === "new"
+                ? Math.max(0, ...items.filter((i) => i.category_id === activeCategory).map((i) => i.sort_order + 1))
+                : undefined
+            }
             onClose={() => setEditingItem(null)}
-            onSaved={() => {
+            onSaved={(ok) => {
               setEditingItem(null);
               void reload();
-              flashSaved();
+              flashSaved(ok);
             }}
           />
         )}

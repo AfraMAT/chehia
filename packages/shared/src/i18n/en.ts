@@ -254,7 +254,7 @@ export const en: Dictionary = {
       orders: "ORDERS",
       avgBasket: "AVG BASKET",
       medianService: "MEDIAN SERVICE",
-      vsLastWeek: "vs last week",
+      vsLastWeek: "vs previous period",
       peakHours: "Peak hours",
       peakHoursSub: "orders / hour",
       topItems: "Top items",

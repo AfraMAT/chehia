@@ -63,45 +63,56 @@ export function useLiveOrders(restaurantId: string, { sound = false }: { sound?:
     }
   }, []);
 
+  // Monotonic id so a slow, stale reload can never clobber a newer one.
+  const reloadSeqRef = useRef(0);
+
   const reload = useCallback(async () => {
     const supabase = getSupabase();
+    const seq = ++reloadSeqRef.current;
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
-    const [{ data: orders }, { data: items }, { data: tables }, { data: calls }, { data: todays }] =
-      await Promise.all([
-        supabase
-          .from("orders")
-          .select("*")
-          .eq("restaurant_id", restaurantId)
-          .in("status", ["new", "preparing", "ready"])
-          .order("created_at", { ascending: true })
-          .overrideTypes<Order[], { merge: false }>(),
-        supabase
+    const [{ data: orders }, { data: tables }, { data: calls }, { data: todays }] = await Promise.all([
+      supabase
+        .from("orders")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .in("status", ["new", "preparing", "ready"])
+        .order("created_at", { ascending: true })
+        .overrideTypes<Order[], { merge: false }>(),
+      supabase
+        .from("tables")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .eq("is_active", true)
+        .order("sort_order")
+        .overrideTypes<Table[], { merge: false }>(),
+      supabase
+        .from("waiter_calls")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .eq("status", "open")
+        .order("created_at", { ascending: true })
+        .overrideTypes<WaiterCall[], { merge: false }>(),
+      supabase
+        .from("orders")
+        .select("id, total_millimes, status")
+        .eq("restaurant_id", restaurantId)
+        .gte("created_at", startOfDay.toISOString()),
+    ]);
+
+    // Lines only for the open orders — never the venue's full history
+    // (PostgREST caps unbounded queries at max_rows and truncates silently).
+    const openIds = (orders ?? []).map((o) => o.id);
+    const { data: items } = openIds.length
+      ? await supabase
           .from("order_items")
           .select("*")
-          .eq("restaurant_id", restaurantId)
-          .overrideTypes<OrderItem[], { merge: false }>(),
-        supabase
-          .from("tables")
-          .select("*")
-          .eq("restaurant_id", restaurantId)
-          .eq("is_active", true)
-          .order("sort_order")
-          .overrideTypes<Table[], { merge: false }>(),
-        supabase
-          .from("waiter_calls")
-          .select("*")
-          .eq("restaurant_id", restaurantId)
-          .eq("status", "open")
-          .order("created_at", { ascending: true })
-          .overrideTypes<WaiterCall[], { merge: false }>(),
-        supabase
-          .from("orders")
-          .select("id, total_millimes, status")
-          .eq("restaurant_id", restaurantId)
-          .gte("created_at", startOfDay.toISOString()),
-      ]);
+          .in("order_id", openIds)
+          .overrideTypes<OrderItem[], { merge: false }>()
+      : { data: [] as OrderItem[] };
+
+    if (seq !== reloadSeqRef.current) return; // a newer reload superseded this one
 
     const itemsByOrder = new Map<string, OrderItem[]>();
     for (const item of items ?? []) {
@@ -139,11 +150,17 @@ export function useLiveOrders(restaurantId: string, { sound = false }: { sound?:
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "waiter_calls", filter: `restaurant_id=eq.${restaurantId}` },
+        { event: "INSERT", schema: "public", table: "waiter_calls", filter: `restaurant_id=eq.${restaurantId}` },
         () => {
+          // Only NEW calls ring; acknowledgements just refresh below.
           beep();
           void reload();
         },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "waiter_calls", filter: `restaurant_id=eq.${restaurantId}` },
+        () => void reload(),
       )
       .subscribe();
 

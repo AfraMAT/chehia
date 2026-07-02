@@ -28,7 +28,7 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [staff, setStaff] = useState<StaffProfile | null>(null);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [state, setState] = useState<"loading" | "ready" | "unauthenticated" | "no-staff">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "unauthenticated" | "no-staff" | "error">("loading");
 
   const load = useCallback(async () => {
     const supabase = getSupabase();
@@ -38,21 +38,30 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
       setState("unauthenticated");
       return;
     }
-    const { data: staffRow } = await supabase
+    const { data: staffRow, error: staffError } = await supabase
       .from("staff")
       .select("id, restaurant_id, role, display_name")
       .eq("auth_uid", user.id)
       .eq("is_active", true)
       .maybeSingle<StaffProfile>();
+    if (staffError) {
+      // Transient failure ≠ "not staff": offer a retry, don't bounce to login.
+      setState("error");
+      return;
+    }
     if (!staffRow) {
       setState("no-staff");
       return;
     }
-    const { data: resto } = await supabase
+    const { data: resto, error: restoError } = await supabase
       .from("restaurants")
       .select("*")
       .eq("id", staffRow.restaurant_id)
       .maybeSingle<Restaurant>();
+    if (restoError) {
+      setState("error");
+      return;
+    }
     if (!resto) {
       setState("no-staff");
       return;
@@ -66,8 +75,16 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     void load();
   }, [load]);
 
+  // React to session expiry/revocation instead of leaving a zombie portal.
   useEffect(() => {
-    if (state === "unauthenticated" || state === "no-staff") {
+    const { data: sub } = getSupabase().auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") router.replace("/business/login");
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [router]);
+
+  useEffect(() => {
+    if (state === "unauthenticated") {
       router.replace("/business/login");
     }
   }, [state, router]);
@@ -96,6 +113,52 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
         : null,
     [staff, restaurant, refreshRestaurant, signOut],
   );
+
+  if (state === "no-staff") {
+    // Signed in but not staff anywhere (or deactivated): a redirect to login
+    // would just loop, so explain and offer sign-out.
+    return (
+      <div className="min-h-dvh bg-sand flex items-center justify-center p-6" data-pathname={pathname}>
+        <div className="bg-card border border-line rounded-2xl p-8 max-w-[380px] flex flex-col items-center gap-4 text-center">
+          <span className="font-display font-extrabold text-xl text-ink">Accès non autorisé</span>
+          <p className="text-sm text-muted leading-relaxed">
+            Ce compte n&apos;est rattaché à aucun restaurant actif. Contactez le propriétaire de votre établissement.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              void getSupabase()
+                .auth.signOut()
+                .then(() => router.replace("/business/login"));
+            }}
+            className="h-11 px-6 rounded-lg bg-ink text-cream font-extrabold text-sm cursor-pointer"
+          >
+            Se déconnecter
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <div className="min-h-dvh bg-sand flex items-center justify-center p-6" data-pathname={pathname}>
+        <div className="bg-card border border-line rounded-2xl p-8 max-w-[380px] flex flex-col items-center gap-4 text-center">
+          <span className="font-display font-extrabold text-xl text-ink">Une erreur est survenue</span>
+          <button
+            type="button"
+            onClick={() => {
+              setState("loading");
+              void load();
+            }}
+            className="h-11 px-6 rounded-lg bg-harissa text-white font-extrabold text-sm cursor-pointer"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (state !== "ready" || !value) {
     return (

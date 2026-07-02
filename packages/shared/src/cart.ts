@@ -63,23 +63,66 @@ export function buildLine(
   };
 }
 
-/** Add a line; merges with an identical line (same item+modifiers+note). */
+/** Server-enforced per-line quantity cap. */
+export const MAX_LINE_QTY = 20;
+
+/** Add a line; merges with an identical line (same item+modifiers+note), capped at MAX_LINE_QTY. */
 export function addLine(cart: Cart, line: CartLine): Cart {
   const existing = cart.lines.find((l) => l.key === line.key);
   if (existing) {
     return {
       ...cart,
-      lines: cart.lines.map((l) => (l.key === line.key ? { ...l, qty: l.qty + line.qty } : l)),
+      lines: cart.lines.map((l) =>
+        l.key === line.key ? { ...l, qty: Math.min(l.qty + line.qty, MAX_LINE_QTY) } : l,
+      ),
     };
   }
-  return { ...cart, lines: [...cart.lines, line] };
+  return { ...cart, lines: [...cart.lines, { ...line, qty: Math.min(line.qty, MAX_LINE_QTY) }] };
 }
 
 export function setQty(cart: Cart, key: string, qty: number): Cart {
   if (qty <= 0) {
     return { ...cart, lines: cart.lines.filter((l) => l.key !== key) };
   }
-  return { ...cart, lines: cart.lines.map((l) => (l.key === key ? { ...l, qty: Math.min(qty, 20) } : l)) };
+  return {
+    ...cart,
+    lines: cart.lines.map((l) => (l.key === key ? { ...l, qty: Math.min(qty, MAX_LINE_QTY) } : l)),
+  };
+}
+
+/**
+ * Reconcile a persisted cart against a freshly loaded menu:
+ * - drop lines whose item vanished or is no longer available;
+ * - drop lines whose selected modifiers no longer exist;
+ * - reprice every kept line from current data (persisted prices go stale).
+ */
+export function reconcileCart(
+  cart: Cart,
+  items: MenuItem[],
+  groupsByItem: Record<string, ModifierGroup[]>,
+): { cart: Cart; dropped: number } {
+  const itemById = new Map(items.map((i) => [i.id, i]));
+  const kept: CartLine[] = [];
+  let dropped = 0;
+
+  for (const line of cart.lines) {
+    const item = itemById.get(line.itemId);
+    if (!item || !item.is_available) {
+      dropped += 1;
+      continue;
+    }
+    const groups = groupsByItem[item.id] ?? [];
+    const availableModifierIds = new Set(
+      groups.flatMap((g) => g.modifiers.filter((m) => m.is_available).map((m) => m.id)),
+    );
+    if (!line.modifierIds.every((id) => availableModifierIds.has(id))) {
+      dropped += 1;
+      continue;
+    }
+    kept.push(buildLine(item, groups, line.modifierIds, line.qty, line.note));
+  }
+
+  return { cart: { ...cart, lines: kept }, dropped };
 }
 
 export function cartTotal(cart: Cart): number {

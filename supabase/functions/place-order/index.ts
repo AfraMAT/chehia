@@ -17,8 +17,12 @@ type PlaceOrderInput = {
   qr_token: string;
   language?: string;
   note?: string;
+  /** Client-generated idempotency key: retries never duplicate an order. */
+  client_ref?: string;
   lines: OrderLineInput[];
 };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -88,7 +92,10 @@ Deno.serve(async (req) => {
     .from("items")
     .select("id, restaurant_id, name_i18n, price_millimes, is_available")
     .in("id", itemIds);
-  if (itemsErr) return errorResponse("db_error", itemsErr.message, 500);
+  if (itemsErr) {
+    console.error("place-order items query failed:", itemsErr);
+    return errorResponse("db_error", "Could not load the menu", 500);
+  }
 
   const itemById = new Map((items ?? []).map((i) => [i.id, i]));
   for (const id of itemIds) {
@@ -170,42 +177,42 @@ Deno.serve(async (req) => {
       }
     }
 
+    const unitPrice = item.price_millimes + delta;
+    if (unitPrice < 0) {
+      // Negative modifier deltas may not drive a line below zero.
+      return errorResponse("modifier_invalid", "Selected options produce an invalid price");
+    }
     pricedLines.push({
       item_id: line.item_id,
       name_snapshot: item.name_i18n,
       qty: line.qty,
-      unit_price_millimes: item.price_millimes + delta,
+      unit_price_millimes: unitPrice,
       modifiers_snapshot: snapshot,
       note: (line.note ?? "").slice(0, 500),
     });
   }
 
   const total = pricedLines.reduce((sum, l) => sum + l.unit_price_millimes * l.qty, 0);
+  const clientRef = input.client_ref && UUID_RE.test(input.client_ref) ? input.client_ref : null;
 
-  // Insert order, then items; roll the order back if items fail.
-  const { data: order, error: orderErr } = await admin
-    .from("orders")
-    .insert({
-      restaurant_id: table.restaurant_id,
-      table_id: table.id,
-      status: "new",
-      note: (input.note ?? "").slice(0, 500),
-      language: ["fr", "ar", "en"].includes(input.language ?? "") ? input.language : "fr",
-      total_millimes: total,
-      created_by: userId,
-    })
-    .select("id, order_number, status, total_millimes, created_at")
-    .single();
-  if (orderErr || !order) {
-    return errorResponse("db_error", orderErr?.message ?? "Could not create order", 500);
-  }
-
-  const { error: linesErr } = await admin.from("order_items").insert(
-    pricedLines.map((l) => ({ ...l, order_id: order.id, restaurant_id: table.restaurant_id })),
-  );
-  if (linesErr) {
-    await admin.from("orders").delete().eq("id", order.id);
-    return errorResponse("db_error", linesErr.message, 500);
+  // Atomic insert (order + items in one transaction) with a per-tenant
+  // order number, idempotency on client_ref, and an open-order cap.
+  const { data: order, error: txError } = await admin.rpc("place_order_tx", {
+    p_restaurant_id: table.restaurant_id,
+    p_table_id: table.id,
+    p_note: (input.note ?? "").slice(0, 500),
+    p_language: ["fr", "ar", "en"].includes(input.language ?? "") ? input.language : "fr",
+    p_total_millimes: total,
+    p_created_by: userId,
+    p_client_ref: clientRef,
+    p_lines: pricedLines,
+  });
+  if (txError || !order) {
+    if (txError?.message?.includes("too_many_open_orders")) {
+      return errorResponse("too_many_open_orders", "Too many open orders for this session", 429);
+    }
+    console.error("place-order tx failed:", txError);
+    return errorResponse("db_error", "Could not create the order", 500);
   }
 
   return jsonResponse({
@@ -215,6 +222,7 @@ Deno.serve(async (req) => {
       status: order.status,
       total_millimes: order.total_millimes,
       created_at: order.created_at,
+      duplicate: order.duplicate ?? false,
       table_label: table.label,
       table_zone: table.zone,
     },

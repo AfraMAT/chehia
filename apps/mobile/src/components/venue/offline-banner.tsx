@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { formatClock } from "@chehia/shared";
 import { T } from "../ui";
 import { useI18n } from "@/lib/i18n";
 import { colors, rowDir } from "@/lib/theme";
@@ -33,9 +34,7 @@ export function OfflineBanner() {
           {t.offline.unstable}
         </T>
         <T lang={lang} weight="semibold" size={12} color={colors.warningText} style={{ opacity: 0.8, textAlign: isRtl ? "right" : "left" }}>
-          {cachedAt
-            ? `${t.offline.cached} · ${new Date(cachedAt).toLocaleTimeString().slice(0, 5)}`
-            : t.offline.menuAvailable}
+          {cachedAt ? `${t.offline.cached} · ${formatClock(new Date(cachedAt), lang)}` : t.offline.menuAvailable}
         </T>
       </View>
     </View>

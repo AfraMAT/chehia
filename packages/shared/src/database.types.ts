@@ -366,6 +366,7 @@ export type Database = {
         Row: {
           accepted_at: string | null
           cancelled_at: string | null
+          client_ref: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -382,6 +383,7 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           cancelled_at?: string | null
+          client_ref?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -398,6 +400,7 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           cancelled_at?: string | null
+          client_ref?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -442,6 +445,7 @@ export type Database = {
           logo_url: string | null
           name: string
           opening_hours: Json
+          order_seq: number
           phone: string
           plan: string
           slug: string
@@ -462,6 +466,7 @@ export type Database = {
           logo_url?: string | null
           name: string
           opening_hours?: Json
+          order_seq?: number
           phone?: string
           plan?: string
           slug: string
@@ -482,6 +487,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           opening_hours?: Json
+          order_seq?: number
           phone?: string
           plan?: string
           slug?: string
@@ -636,11 +642,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      insights_metrics: {
+        Args: { p_days: number; p_restaurant_id: string }
+        Returns: Json
+      }
+      place_order_tx: {
+        Args: {
+          p_client_ref: string
+          p_created_by: string
+          p_language: string
+          p_lines: Json
+          p_note: string
+          p_restaurant_id: string
+          p_table_id: string
+          p_total_millimes: number
+        }
+        Returns: Json
+      }
+      replace_insights: {
+        Args: { p_generated_for: string; p_restaurant_id: string; p_rows: Json }
+        Returns: number
+      }
       staff_has_role: {
         Args: { roles: Database["public"]["Enums"]["staff_role"][] }
         Returns: boolean
       }
       staff_restaurant_id: { Args: never; Returns: string }
+      stats_summary: {
+        Args: { p_days: number; p_restaurant_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       order_status: "new" | "preparing" | "ready" | "served" | "cancelled"

@@ -91,7 +91,7 @@ export default function OrdersPage() {
             <LegendDot color="bg-disabled" label={t.portal.orders.free} textClass="text-muted" />
             <LegendDot color="bg-harissa" label={t.portal.orders.newOrder} textClass="text-harissa-pressed" />
             <LegendDot color="bg-warning" label={t.order.preparing} textClass="text-warning-text" />
-            <LegendDot color="bg-success" label={t.order.served} textClass="text-success-text" />
+            <LegendDot color="bg-success" label={t.order.ready} textClass="text-success-text" />
           </div>
 
           <div className="flex-1 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 content-start">

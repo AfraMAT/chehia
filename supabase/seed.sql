@@ -313,3 +313,6 @@ insert into public.ai_insights (restaurant_id, generated_for, language, title, b
    'Augmenter la préparation du matin de ~30%',
    'Noté, à suivre',
    '{"stockout_days": 3, "missed_tnd_per_day": 26}');
+
+-- Start per-tenant order numbering above the seeded demo orders.
+update public.restaurants set order_seq = 500;

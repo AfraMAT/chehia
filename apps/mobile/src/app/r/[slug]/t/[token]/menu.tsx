@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,6 +19,11 @@ import { OfflineBanner } from "@/components/venue/offline-banner";
 /** P2/P7 · Menu — category pills, dietary tags, 86'd items visible, persistent cart bar. */
 export default function MenuScreen() {
   const { state } = useVenueState();
+  const { slug, token } = useLocalSearchParams<{ slug: string; token: string }>();
+  if (state.status === "invalid") {
+    // The landing screen renders the proper invalid-QR explanation.
+    return <Redirect href={`/r/${slug}/t/${token}`} />;
+  }
   if (state.status !== "ready") {
     return null;
   }
@@ -37,16 +42,19 @@ function MenuInner() {
   const [openItem, setOpenItem] = useState<MenuItem | null>(null);
 
   const visibleItems = useMemo(() => {
+    // Only items in active categories are on the menu — search included.
+    const activeCategoryIds = new Set(categories.map((c) => c.id));
+    const onMenu = items.filter((i) => activeCategoryIds.has(i.category_id));
     const q = search.trim().toLowerCase();
     if (q) {
-      return items.filter((i) =>
+      return onMenu.filter((i) =>
         Object.values(i.name_i18n)
           .concat(Object.values(i.description_i18n))
           .some((s) => s?.toLowerCase().includes(q)),
       );
     }
-    return items.filter((i) => i.category_id === activeCategory);
-  }, [items, activeCategory, search]);
+    return onMenu.filter((i) => i.category_id === activeCategory);
+  }, [items, categories, activeCategory, search]);
 
   const count = cartCount(cart);
 
@@ -131,7 +139,9 @@ function MenuInner() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={[rowDir(lang), { gap: 8, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4 }]}
+            // RTL: mirror the scroll container and un-mirror each pill —
+            // keeps natural item order while scrolling starts from the right.
+            contentContainerStyle={{ gap: 8, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4, flexDirection: "row" }}
             style={isRtl ? { transform: [{ scaleX: -1 }] } : undefined}
           >
             {categories.map((cat) => {

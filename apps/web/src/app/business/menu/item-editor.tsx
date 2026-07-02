@@ -16,7 +16,8 @@ import { usePortal } from "../portal-provider";
 interface EditableModifier {
   id?: string;
   name_i18n: I18nText;
-  price_delta_millimes: number;
+  /** Kept as typed text so the field is freely editable; parsed at save. */
+  deltaText: string;
 }
 
 interface EditableGroup {
@@ -32,14 +33,17 @@ export function ItemEditor({
   item,
   categoryId,
   groups,
+  nextSortOrder,
   onClose,
   onSaved,
 }: {
   item: MenuItem | null;
   categoryId: string;
   groups: (ModifierGroup & { modifiers: Modifier[] })[];
+  /** Sort position for a newly created item (max of its category + 1). */
+  nextSortOrder?: number;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (ok: boolean) => void;
 }) {
   const { restaurant } = usePortal();
   const { t, tr } = useI18n();
@@ -58,7 +62,11 @@ export function ItemEditor({
       name_i18n: g.name_i18n,
       min_select: g.min_select,
       max_select: g.max_select,
-      modifiers: g.modifiers.map((m) => ({ id: m.id, name_i18n: m.name_i18n, price_delta_millimes: m.price_delta_millimes })),
+      modifiers: g.modifiers.map((m) => ({
+        id: m.id,
+        name_i18n: m.name_i18n,
+        deltaText: (m.price_delta_millimes / 1000).toFixed(3),
+      })),
     })),
   );
   const [saving, setSaving] = useState(false);
@@ -79,6 +87,12 @@ export function ItemEditor({
     }
     setSaving(true);
     setError(null);
+    // Any failed statement below surfaces as an error instead of a phantom "saved".
+    let failed = false;
+    const track = <T,>(result: { error: unknown; data?: T }): T | undefined => {
+      if (result.error) failed = true;
+      return result.data;
+    };
     try {
       let itemId = item?.id;
       const payload = {
@@ -89,12 +103,17 @@ export function ItemEditor({
         is_popular: popular,
       };
       if (itemId) {
-        const { error: e } = await supabase.from("items").update(payload).eq("id", itemId);
+        const { error: e } = await supabase.from("items").update(payload).eq("id", itemId).select("id").single();
         if (e) throw e;
       } else {
         const { data, error: e } = await supabase
           .from("items")
-          .insert({ ...payload, restaurant_id: restaurant.id, category_id: categoryId, sort_order: 999 })
+          .insert({
+            ...payload,
+            restaurant_id: restaurant.id,
+            category_id: categoryId,
+            sort_order: nextSortOrder ?? 0,
+          })
           .select("id")
           .single();
         if (e || !data) throw e ?? new Error("insert failed");
@@ -105,7 +124,7 @@ export function ItemEditor({
       const keptGroupIds = editGroups.map((g) => g.id).filter(Boolean) as string[];
       const removedGroups = groups.filter((g) => !keptGroupIds.includes(g.id));
       for (const g of removedGroups) {
-        await supabase.from("modifier_groups").delete().eq("id", g.id);
+        track(await supabase.from("modifier_groups").delete().eq("id", g.id));
       }
       for (const [gi, group] of editGroups.entries()) {
         let groupId = group.id;
@@ -116,37 +135,49 @@ export function ItemEditor({
           sort_order: gi,
         };
         if (groupId) {
-          await supabase.from("modifier_groups").update(groupPayload).eq("id", groupId);
+          track(await supabase.from("modifier_groups").update(groupPayload).eq("id", groupId));
         } else {
-          const { data } = await supabase
-            .from("modifier_groups")
-            .insert({ ...groupPayload, restaurant_id: restaurant.id, item_id: itemId })
-            .select("id")
-            .single();
-          groupId = data?.id as string;
+          const data = track(
+            await supabase
+              .from("modifier_groups")
+              .insert({ ...groupPayload, restaurant_id: restaurant.id, item_id: itemId })
+              .select("id")
+              .single(),
+          );
+          groupId = (data as { id: string } | undefined)?.id;
         }
-        if (!groupId) continue;
+        if (!groupId) {
+          failed = true;
+          continue;
+        }
 
         const keptModIds = group.modifiers.map((m) => m.id).filter(Boolean) as string[];
         const original = groups.find((g) => g.id === group.id);
         for (const m of original?.modifiers ?? []) {
-          if (!keptModIds.includes(m.id)) await supabase.from("modifiers").delete().eq("id", m.id);
+          if (!keptModIds.includes(m.id)) track(await supabase.from("modifiers").delete().eq("id", m.id));
         }
         for (const [mi, mod] of group.modifiers.entries()) {
+          const parsed = Number(mod.deltaText.replace(",", "."));
           const modPayload = {
             name_i18n: mod.name_i18n,
-            price_delta_millimes: mod.price_delta_millimes,
+            price_delta_millimes: Number.isFinite(parsed) ? Math.round(parsed * 1000) : 0,
             sort_order: mi,
           };
           if (mod.id) {
-            await supabase.from("modifiers").update(modPayload).eq("id", mod.id);
+            track(await supabase.from("modifiers").update(modPayload).eq("id", mod.id));
           } else {
-            await supabase.from("modifiers").insert({ ...modPayload, restaurant_id: restaurant.id, group_id: groupId });
+            track(
+              await supabase.from("modifiers").insert({ ...modPayload, restaurant_id: restaurant.id, group_id: groupId }),
+            );
           }
         }
       }
 
-      onSaved();
+      if (failed) {
+        setError(t.errors.generic);
+        return;
+      }
+      onSaved(true);
     } catch {
       setError(t.errors.generic);
     } finally {
@@ -157,8 +188,8 @@ export function ItemEditor({
   const remove = async () => {
     if (!item) return;
     if (!window.confirm(t.portal.menu.deleteItemConfirm)) return;
-    await supabase.from("items").delete().eq("id", item.id);
-    onSaved();
+    const { error: e } = await supabase.from("items").delete().eq("id", item.id);
+    onSaved(!e);
   };
 
   const inputClass =
@@ -314,24 +345,19 @@ export function ItemEditor({
                   dir="ltr"
                   title={t.portal.menu.priceDelta}
                   className="w-[64px] h-8 rounded-sm border border-line-strong bg-white px-1.5 text-xs font-bold text-center outline-none"
-                  value={(mod.price_delta_millimes / 1000).toFixed(3)}
-                  onChange={(e) => {
-                    const val = Number(e.target.value.replace(",", "."));
+                  value={mod.deltaText}
+                  onChange={(e) =>
                     setEditGroups((prev) =>
                       prev.map((g, i) =>
                         i === gi
                           ? {
                               ...g,
-                              modifiers: g.modifiers.map((m, j) =>
-                                j === mi
-                                  ? { ...m, price_delta_millimes: Number.isFinite(val) ? Math.round(val * 1000) : 0 }
-                                  : m,
-                              ),
+                              modifiers: g.modifiers.map((m, j) => (j === mi ? { ...m, deltaText: e.target.value } : m)),
                             }
                           : g,
                       ),
-                    );
-                  }}
+                    )
+                  }
                 />
                 <button
                   type="button"
@@ -352,7 +378,7 @@ export function ItemEditor({
               onClick={() =>
                 setEditGroups((prev) =>
                   prev.map((g, i) =>
-                    i === gi ? { ...g, modifiers: [...g.modifiers, { name_i18n: {}, price_delta_millimes: 0 }] } : g,
+                    i === gi ? { ...g, modifiers: [...g.modifiers, { name_i18n: {}, deltaText: "0" }] } : g,
                   ),
                 )
               }

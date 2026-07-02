@@ -44,15 +44,13 @@ Deno.serve(async (req) => {
     return errorResponse("unknown_table", "This QR code is not valid", 404);
   }
 
-  // Throttle: one open call per table.
-  const { data: existing } = await admin
-    .from("waiter_calls")
-    .select("id")
-    .eq("table_id", table.id)
-    .eq("status", "open")
-    .limit(1);
-  if (existing && existing.length > 0) {
-    return jsonResponse({ call: { id: existing[0].id, already_open: true } });
+  const { data: restaurant } = await admin
+    .from("restaurants")
+    .select("is_active")
+    .eq("id", table.restaurant_id)
+    .maybeSingle();
+  if (!restaurant?.is_active) {
+    return errorResponse("restaurant_inactive", "This venue is not taking requests", 409);
   }
 
   const { data: call, error: callErr } = await admin
@@ -66,8 +64,19 @@ Deno.serve(async (req) => {
     })
     .select("id, reason, status, created_at")
     .single();
-  if (callErr || !call) {
-    return errorResponse("db_error", callErr?.message ?? "Could not create call", 500);
+  if (callErr) {
+    // Unique partial index enforces one open call per table (race-safe).
+    if (callErr.code === "23505") {
+      const { data: existing } = await admin
+        .from("waiter_calls")
+        .select("id")
+        .eq("table_id", table.id)
+        .eq("status", "open")
+        .maybeSingle();
+      return jsonResponse({ call: { id: existing?.id, already_open: true } });
+    }
+    console.error("call-waiter insert failed:", callErr);
+    return errorResponse("db_error", "Could not create the request", 500);
   }
 
   return jsonResponse({ call });

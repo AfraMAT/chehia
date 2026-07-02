@@ -82,7 +82,11 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
                   <button
                     key={opt.value}
                     type="button"
-                    onClick={() => setReason(opt.value)}
+                    onClick={() => {
+                      setReason(opt.value);
+                      // A note typed under "other" must not ride along with a preset.
+                      if (opt.value !== "other") setNote("");
+                    }}
                     className={`flex items-center gap-3 rounded-lg px-4 py-3 text-start cursor-pointer transition-colors ${
                       active ? "border-2 border-harissa bg-harissa-tint" : "border-[1.5px] border-line-strong bg-white"
                     }`}

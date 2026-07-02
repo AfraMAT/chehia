@@ -5,6 +5,7 @@ import {
   cartCount,
   cartTotal,
   emptyCart,
+  reconcileCart,
   setQty,
   toOrderPayload,
   validateModifiers,
@@ -105,6 +106,40 @@ describe("cart operations", () => {
     cart = addLine(cart, line);
     cart = setQty(cart, line.key, 99);
     expect(cart.lines[0]?.qty).toBe(20);
+  });
+
+  it("caps merged quantities at 20 too", () => {
+    let cart = emptyCart("r1", "tok");
+    cart = addLine(cart, buildLine(cappuccino, [sizeGroup], ["m-s"], 15));
+    cart = addLine(cart, buildLine(cappuccino, [sizeGroup], ["m-s"], 10));
+    expect(cart.lines[0]?.qty).toBe(20);
+  });
+});
+
+describe("reconcileCart", () => {
+  it("reprices kept lines from fresh menu data", () => {
+    let cart = emptyCart("r1", "tok");
+    cart = addLine(cart, buildLine(cappuccino, [sizeGroup], ["m-l"], 2)); // 7300 each
+    const repriced = { ...cappuccino, price_millimes: 6000 }; // price changed since
+    const { cart: next, dropped } = reconcileCart(cart, [repriced], { "item-1": [sizeGroup] });
+    expect(dropped).toBe(0);
+    expect(next.lines[0]?.unitPriceMillimes).toBe(6000 + 1800);
+  });
+
+  it("drops lines whose item vanished or went unavailable", () => {
+    let cart = emptyCart("r1", "tok");
+    cart = addLine(cart, buildLine(cappuccino, [sizeGroup], ["m-s"], 1));
+    const soldOut = { ...cappuccino, is_available: false };
+    expect(reconcileCart(cart, [soldOut], { "item-1": [sizeGroup] }).dropped).toBe(1);
+    expect(reconcileCart(cart, [], {}).dropped).toBe(1);
+  });
+
+  it("drops lines whose selected modifier no longer exists", () => {
+    let cart = emptyCart("r1", "tok");
+    cart = addLine(cart, buildLine(cappuccino, [sizeGroup], ["m-l"], 1));
+    const groupWithoutL = { ...sizeGroup, modifiers: sizeGroup.modifiers.filter((m) => m.id !== "m-l") };
+    const { dropped } = reconcileCart(cart, [cappuccino], { "item-1": [groupWithoutL] });
+    expect(dropped).toBe(1);
   });
 });
 

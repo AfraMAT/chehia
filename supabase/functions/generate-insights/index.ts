@@ -26,74 +26,42 @@ type Metrics = {
   unavailable_items: string[];
 };
 
+/**
+ * Metrics come from the insights_metrics SQL function: aggregation happens in
+ * Postgres (no PostgREST row-cap truncation) with hour buckets computed in
+ * the venue's own timezone.
+ */
 async function computeMetrics(admin: SupabaseClient, restaurantId: string, name: string): Promise<Metrics> {
-  const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
-
-  const { data: orders } = await admin
-    .from("orders")
-    .select("id, total_millimes, created_at, accepted_at, served_at, status")
-    .eq("restaurant_id", restaurantId)
-    .gte("created_at", since)
-    .neq("status", "cancelled");
-
-  const { data: lines } = await admin
-    .from("order_items")
-    .select("name_snapshot, qty, unit_price_millimes, order_id")
-    .eq("restaurant_id", restaurantId);
-
-  const { data: soldOut } = await admin
-    .from("items")
-    .select("name_i18n")
-    .eq("restaurant_id", restaurantId)
-    .eq("is_available", false);
-
-  const orderIds = new Set((orders ?? []).map((o) => o.id));
-  const totalRevenue = (orders ?? []).reduce((s, o) => s + o.total_millimes, 0);
-
-  const byHour = new Map<number, number>();
-  const byWeekday = new Map<string, number>();
-  const serviceTimes: number[] = [];
-  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  for (const o of orders ?? []) {
-    const d = new Date(o.created_at);
-    byHour.set(d.getHours(), (byHour.get(d.getHours()) ?? 0) + 1);
-    byWeekday.set(weekdays[d.getDay()], (byWeekday.get(weekdays[d.getDay()]) ?? 0) + 1);
-    if (o.served_at) {
-      serviceTimes.push((new Date(o.served_at).getTime() - d.getTime()) / 60000);
-    }
+  const { data, error } = await admin.rpc("insights_metrics", {
+    p_restaurant_id: restaurantId,
+    p_days: 7,
+  });
+  if (error || !data) {
+    console.error("insights_metrics failed:", error);
+    throw new Error("metrics unavailable");
   }
-  serviceTimes.sort((a, b) => a - b);
-
-  const itemAgg = new Map<string, { qty: number; revenue: number }>();
-  for (const l of lines ?? []) {
-    if (!orderIds.has(l.order_id)) continue;
-    const name = (l.name_snapshot as Record<string, string>)?.fr ?? "?";
-    const cur = itemAgg.get(name) ?? { qty: 0, revenue: 0 };
-    cur.qty += l.qty;
-    cur.revenue += l.qty * l.unit_price_millimes;
-    itemAgg.set(name, cur);
-  }
-
+  const raw = data as {
+    total_orders: number;
+    total_revenue_millimes: number;
+    median_service_minutes: number | null;
+    orders_by_hour: { hour: number; orders: number }[];
+    orders_by_weekday: { weekday: string; orders: number }[];
+    top_items: { name: string; qty: number; revenue_millimes: number }[];
+    unavailable_items: string[];
+  };
+  const toTnd = (millimes: number) => Math.round(millimes / 100) / 10;
   return {
     restaurant_name: name,
     period_days: 7,
-    total_orders: orders?.length ?? 0,
-    total_revenue_tnd: Math.round(totalRevenue / 100) / 10,
-    avg_basket_tnd: orders?.length
-      ? Math.round(totalRevenue / orders.length / 100) / 10
-      : 0,
-    median_service_minutes: serviceTimes.length
-      ? Math.round(serviceTimes[Math.floor(serviceTimes.length / 2)])
-      : null,
-    orders_by_hour: [...byHour.entries()]
-      .sort((a, b) => a[0] - b[0])
-      .map(([hour, n]) => ({ hour, orders: n })),
-    orders_by_weekday: [...byWeekday.entries()].map(([weekday, n]) => ({ weekday, orders: n })),
-    top_items: [...itemAgg.entries()]
-      .sort((a, b) => b[1].qty - a[1].qty)
-      .slice(0, 5)
-      .map(([n, v]) => ({ name: n, qty: v.qty, revenue_tnd: Math.round(v.revenue / 100) / 10 })),
-    unavailable_items: (soldOut ?? []).map((i) => (i.name_i18n as Record<string, string>)?.fr ?? "?"),
+    total_orders: raw.total_orders,
+    total_revenue_tnd: toTnd(raw.total_revenue_millimes),
+    avg_basket_tnd: raw.total_orders ? toTnd(raw.total_revenue_millimes / raw.total_orders) : 0,
+    median_service_minutes:
+      raw.median_service_minutes === null ? null : Math.round(raw.median_service_minutes),
+    orders_by_hour: raw.orders_by_hour,
+    orders_by_weekday: raw.orders_by_weekday,
+    top_items: raw.top_items.map((t) => ({ name: t.name, qty: t.qty, revenue_tnd: toTnd(t.revenue_millimes) })),
+    unavailable_items: raw.unavailable_items,
   };
 }
 
@@ -292,12 +260,16 @@ Deno.serve(async (req) => {
   const results: Record<string, number> = {};
 
   for (const r of restaurants ?? []) {
-    const metrics = await computeMetrics(admin, r.id, r.name);
+    let metrics: Metrics;
+    try {
+      metrics = await computeMetrics(admin, r.id, r.name);
+    } catch {
+      results[r.id] = -1;
+      continue;
+    }
 
-    // Idempotent: replace today's insights.
-    await admin.from("ai_insights").delete().eq("restaurant_id", r.id).eq("generated_for", today);
-
-    let count = 0;
+    // Build every language's cards first, then swap the day's insights atomically.
+    const rows: Record<string, unknown>[] = [];
     for (const lang of (r.languages as string[]) ?? ["fr"]) {
       let cards: InsightCard[];
       try {
@@ -306,21 +278,29 @@ Deno.serve(async (req) => {
         console.error(`LLM failed for ${r.id}/${lang}, using fallback:`, err);
         cards = templateInsights(metrics, lang);
       }
-      const rows = cards.map((c) => ({
-        restaurant_id: r.id,
-        generated_for: today,
-        language: lang,
-        title: c.title,
-        body: c.body,
-        recommendation: c.recommendation,
-        action_label: c.action_label,
-        metrics: metrics as unknown as Record<string, unknown>,
-      }));
-      const { error: insertErr } = await admin.from("ai_insights").insert(rows);
-      if (insertErr) console.error(insertErr);
-      else count += rows.length;
+      for (const c of cards) {
+        rows.push({
+          language: lang,
+          title: c.title,
+          body: c.body,
+          recommendation: c.recommendation,
+          action_label: c.action_label,
+          metrics: metrics as unknown as Record<string, unknown>,
+        });
+      }
     }
-    results[r.id] = count;
+
+    const { data: replaced, error: replaceErr } = await admin.rpc("replace_insights", {
+      p_restaurant_id: r.id,
+      p_generated_for: today,
+      p_rows: rows,
+    });
+    if (replaceErr) {
+      console.error("replace_insights failed:", replaceErr);
+      results[r.id] = 0;
+    } else {
+      results[r.id] = (replaced as number) ?? rows.length;
+    }
   }
 
   return jsonResponse({ generated: results, llm: useLlm, model: useLlm ? MODEL : "template" });

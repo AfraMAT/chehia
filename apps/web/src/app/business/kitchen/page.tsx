@@ -29,7 +29,8 @@ export default function KitchenPage() {
   ];
 
   const avgMinutes = (() => {
-    const prepping = orders.filter((o) => o.accepted_at);
+    // Only actively-preparing tickets — ready-but-unserved would inflate this.
+    const prepping = orders.filter((o) => o.status === "preparing" && o.accepted_at);
     if (prepping.length === 0) return null;
     const total = prepping.reduce((s, o) => s + (now.getTime() - new Date(o.accepted_at as string).getTime()), 0);
     return Math.max(1, Math.round(total / prepping.length / 60000));

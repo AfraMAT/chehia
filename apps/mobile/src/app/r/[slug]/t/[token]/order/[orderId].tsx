@@ -30,16 +30,25 @@ export default function OrderTrackingScreen() {
   const [waiterOpen, setWaiterOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
+  // Initial fetch only fills empty state; a refetch on channel join closes
+  // the pre-subscription gap so a stale fetch can't mask a newer status.
   useEffect(() => {
     let cancelled = false;
+
+    const fetchOrder = async (overwrite: boolean) => {
+      const { data: o } = await supabase.from("orders").select("*").eq("id", String(orderId)).maybeSingle<Order>();
+      if (cancelled || !o) return;
+      setOrder((prev) => (overwrite || !prev ? o : prev));
+    };
+
+    void fetchOrder(false);
     void (async () => {
-      const [{ data: o }, { data: li }] = await Promise.all([
-        supabase.from("orders").select("*").eq("id", String(orderId)).maybeSingle<Order>(),
-        supabase.from("order_items").select("*").eq("order_id", String(orderId)).overrideTypes<OrderItem[], { merge: false }>(),
-      ]);
-      if (cancelled) return;
-      if (o) setOrder(o);
-      setLines(li ?? []);
+      const { data: li } = await supabase
+        .from("order_items")
+        .select("*")
+        .eq("order_id", String(orderId))
+        .overrideTypes<OrderItem[], { merge: false }>();
+      if (!cancelled) setLines(li ?? []);
     })();
 
     const channel = supabase
@@ -49,7 +58,9 @@ export default function OrderTrackingScreen() {
         { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
         (payload) => setOrder((prev) => ({ ...(prev as Order), ...(payload.new as Order) })),
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") void fetchOrder(true);
+      });
 
     return () => {
       cancelled = true;
@@ -133,7 +144,9 @@ export default function OrderTrackingScreen() {
                 ? t.order.servedSubtitle
                 : isCancelled
                   ? t.order.cancelledBody
-                  : `${interpolate(t.order.remaining, { min: 8 })} · ${t.common.table} ${table.label}`}
+                  : order.status === "ready"
+                    ? `${t.order.readyBody} · ${t.common.table} ${table.label}`
+                    : `${interpolate(t.order.remaining, { min: remainingEstimate(order) })} · ${t.common.table} ${table.label}`}
             </T>
           </View>
         </View>
@@ -329,6 +342,12 @@ export default function OrderTrackingScreen() {
       {waiterOpen && <WaiterSheet onClose={() => setWaiterOpen(false)} />}
     </View>
   );
+}
+
+/** Rough countdown from a ~8 min baseline, clamped so it never claims zero. */
+function remainingEstimate(order: Order): number {
+  const elapsedMin = (Date.now() - new Date(order.created_at).getTime()) / 60000;
+  return Math.max(1, Math.round(8 - elapsedMin));
 }
 
 function TimelineRow({

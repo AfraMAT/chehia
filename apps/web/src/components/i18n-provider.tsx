@@ -9,6 +9,7 @@ import {
   type Language,
   tr as trBase,
 } from "@chehia/shared";
+import { storageGet, storageSet } from "@/lib/storage";
 
 interface I18nContextValue {
   lang: Language;
@@ -34,14 +35,21 @@ export function I18nProvider({
   const [lang, setLangState] = useState<Language>(initial);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(storageKey) as Language | null;
+    const stored = storageGet(storageKey) as Language | null;
     if (stored && ["fr", "ar", "en"].includes(stored)) setLangState(stored);
   }, [storageKey]);
+
+  // Keep the document element in sync so screen readers and the browser
+  // see the active language/direction (the root layout defaults to fr/ltr).
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = isRtl(lang) ? "rtl" : "ltr";
+  }, [lang]);
 
   const setLang = useCallback(
     (next: Language) => {
       setLangState(next);
-      window.localStorage.setItem(storageKey, next);
+      storageSet(storageKey, next);
     },
     [storageKey],
   );

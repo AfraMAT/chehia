@@ -252,7 +252,7 @@ export const fr = {
       orders: "COMMANDES",
       avgBasket: "PANIER MOYEN",
       medianService: "SERVICE MÉDIAN",
-      vsLastWeek: "vs sem. passée",
+      vsLastWeek: "vs période précédente",
       peakHours: "Heures de pointe",
       peakHoursSub: "commandes / heure",
       topItems: "Top articles",

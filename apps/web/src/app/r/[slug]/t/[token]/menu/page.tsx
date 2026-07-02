@@ -23,16 +23,19 @@ export default function MenuPage() {
   const [openItem, setOpenItem] = useState<MenuItem | null>(null);
 
   const visibleItems = useMemo(() => {
+    // Only items in active categories are on the menu — search included.
+    const activeCategoryIds = new Set(categories.map((c) => c.id));
+    const onMenu = items.filter((i) => activeCategoryIds.has(i.category_id));
     const q = search.trim().toLowerCase();
     if (q) {
-      return items.filter((i) =>
+      return onMenu.filter((i) =>
         Object.values(i.name_i18n)
           .concat(Object.values(i.description_i18n))
           .some((s) => s?.toLowerCase().includes(q)),
       );
     }
-    return items.filter((i) => i.category_id === activeCategory);
-  }, [items, activeCategory, search]);
+    return onMenu.filter((i) => i.category_id === activeCategory);
+  }, [items, categories, activeCategory, search]);
 
   const count = cartCount(cart);
 

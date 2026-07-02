@@ -1,5 +1,5 @@
-import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cartCount, cartTotal, currencyLabel, millimesToDisplay } from "@chehia/shared";
@@ -11,7 +11,8 @@ import { OfflineBanner } from "@/components/venue/offline-banner";
 
 /** P4 · Cart — table context re-confirmed, kitchen note, pay-at-counter stated twice. */
 export default function CartScreen() {
-  const { state, cart, updateQty, setCartNote, placeOrder, retryQueued, queuedOrder, online } = useVenueState();
+  const { state, cart, updateQty, setCartNote, placeOrder, retryQueued, queuedOrder, queuedPlacedOrderId, online } =
+    useVenueState();
   const { t, tr, lang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
   const { slug, token } = useLocalSearchParams<{ slug: string; token: string }>();
@@ -19,6 +20,16 @@ export default function CartScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // A queued order that the auto-retry just placed → jump to live tracking.
+  useEffect(() => {
+    if (queuedPlacedOrderId) {
+      router.replace(`/r/${slug}/t/${token}/order/${queuedPlacedOrderId}`);
+    }
+  }, [queuedPlacedOrderId, slug, token]);
+
+  if (state.status === "invalid") {
+    return <Redirect href={`/r/${slug}/t/${token}`} />;
+  }
   if (state.status !== "ready") return null;
   const { restaurant, table } = state.bundle;
 

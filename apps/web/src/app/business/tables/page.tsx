@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { buildTableUrl, interpolate, type Table } from "@chehia/shared";
 import { getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
@@ -11,13 +12,19 @@ import { TableCard } from "./table-card";
 
 /** W4 · Tables & QR — permanent QR per table, printable branded cards. */
 export default function TablesPage() {
-  const { restaurant } = usePortal();
+  const { restaurant, canManage } = usePortal();
   const { t, tr } = useI18n();
   const supabase = getSupabase();
+  const router = useRouter();
 
   const [tables, setTables] = useState<Table[]>([]);
   const [preview, setPreview] = useState<Table | null>(null);
   const [adding, setAdding] = useState(false);
+
+  // Table management is owner/manager only.
+  useEffect(() => {
+    if (!canManage) router.replace("/business/orders");
+  }, [canManage, router]);
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
 
@@ -43,12 +50,14 @@ export default function TablesPage() {
     if (!Number.isInteger(count) || count < 1 || count > 50) return;
     const zone = window.prompt(t.portal.tables.zone, "Salle") ?? "";
     setAdding(true);
-    const startIndex = tables.length;
+    // Continue from the highest existing numeric label (counting rows would
+    // produce duplicates after deactivations).
+    const highest = Math.max(0, ...tables.map((tb) => Number.parseInt(tb.label, 10) || 0));
     const rows = Array.from({ length: count }, (_, i) => ({
       restaurant_id: restaurant.id,
-      label: String(startIndex + i + 1).padStart(2, "0"),
+      label: String(highest + i + 1).padStart(2, "0"),
       zone,
-      sort_order: startIndex + i + 1,
+      sort_order: highest + i + 1,
     }));
     await supabase.from("tables").insert(rows);
     setAdding(false);

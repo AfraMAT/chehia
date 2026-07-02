@@ -18,21 +18,25 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 async function loadBundle(slug: string, token: string): Promise<VenueBundle | null> {
   const supabase = getServerSupabase();
 
-  const { data: restaurant } = await supabase
+  // A transient DB/network failure must NOT render the permanent
+  // "invalid QR" screen — throw so the error boundary offers a retry.
+  const { data: restaurant, error: restaurantError } = await supabase
     .from("restaurants")
     .select("*")
     .eq("slug", slug)
     .eq("is_active", true)
     .maybeSingle<Restaurant>();
+  if (restaurantError) throw new Error("venue load failed");
   if (!restaurant) return null;
 
-  const { data: table } = await supabase
+  const { data: table, error: tableError } = await supabase
     .from("tables")
     .select("id, label, zone, qr_token")
     .eq("restaurant_id", restaurant.id)
     .eq("qr_token", token)
     .eq("is_active", true)
     .maybeSingle<Pick<Table, "id" | "label" | "zone" | "qr_token">>();
+  if (tableError) throw new Error("venue load failed");
   if (!table) return null;
 
   const [{ data: categories }, { data: items }, { data: groups }, { data: modifiers }] = await Promise.all([

@@ -6,8 +6,7 @@ import {
   formatCount,
   millimesToDisplay,
   type AiInsight,
-  type Order,
-  type OrderItem,
+  type I18nText,
 } from "@chehia/shared";
 import { getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
@@ -16,6 +15,21 @@ import { usePortal } from "../portal-provider";
 
 type Range = "today" | "week" | "month";
 
+/**
+ * Aggregates come from the stats_summary SQL function: computed in Postgres
+ * under RLS (no PostgREST row-cap truncation) with hour buckets in the
+ * venue's timezone, and "today" meaning the calendar day there.
+ */
+interface Summary {
+  revenue_millimes: number;
+  prev_revenue_millimes: number;
+  order_count: number;
+  prev_order_count: number;
+  median_service_minutes: number | null;
+  hourly: { hour: number; n: number }[];
+  top_items: { name: I18nText; qty: number; revenue_millimes: number }[];
+}
+
 /** W5 · Analytics — SQL charts (deterministic) + nightly AI insight cards. */
 export default function StatsPage() {
   const { restaurant } = usePortal();
@@ -23,9 +37,7 @@ export default function StatsPage() {
   const supabase = getSupabase();
 
   const [range, setRange] = useState<Range>("week");
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [prevOrders, setPrevOrders] = useState<Order[]>([]);
-  const [lines, setLines] = useState<OrderItem[]>([]);
+  const [summary, setSummary] = useState<Summary | null>(null);
   const [insights, setInsights] = useState<AiInsight[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,26 +45,8 @@ export default function StatsPage() {
 
   const reload = useCallback(async () => {
     setLoading(true);
-    const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
-    const prevSince = new Date(Date.now() - 2 * days * 24 * 3600 * 1000).toISOString();
-
-    const [{ data: current }, { data: previous }, { data: items }, { data: ai }] = await Promise.all([
-      supabase
-        .from("orders")
-        .select("*")
-        .eq("restaurant_id", restaurant.id)
-        .neq("status", "cancelled")
-        .gte("created_at", since)
-        .overrideTypes<Order[], { merge: false }>(),
-      supabase
-        .from("orders")
-        .select("*")
-        .eq("restaurant_id", restaurant.id)
-        .neq("status", "cancelled")
-        .gte("created_at", prevSince)
-        .lt("created_at", since)
-        .overrideTypes<Order[], { merge: false }>(),
-      supabase.from("order_items").select("*").eq("restaurant_id", restaurant.id).overrideTypes<OrderItem[], { merge: false }>(),
+    const [{ data: rpc }, { data: ai }] = await Promise.all([
+      supabase.rpc("stats_summary", { p_restaurant_id: restaurant.id, p_days: days }),
       supabase
         .from("ai_insights")
         .select("*")
@@ -62,10 +56,7 @@ export default function StatsPage() {
         .limit(3)
         .overrideTypes<AiInsight[], { merge: false }>(),
     ]);
-
-    setOrders(current ?? []);
-    setPrevOrders(previous ?? []);
-    setLines(items ?? []);
+    setSummary((rpc as Summary | null) ?? null);
     setInsights(ai ?? []);
     setLoading(false);
   }, [restaurant.id, supabase, days, lang]);
@@ -75,37 +66,29 @@ export default function StatsPage() {
   }, [reload]);
 
   const stats = useMemo(() => {
-    const revenue = orders.reduce((s, o) => s + o.total_millimes, 0);
-    const prevRevenue = prevOrders.reduce((s, o) => s + o.total_millimes, 0);
-    const avgBasket = orders.length ? Math.round(revenue / orders.length) : 0;
-    const prevAvg = prevOrders.length ? Math.round(prevRevenue / prevOrders.length) : 0;
-
-    const served = orders.filter((o) => o.served_at);
-    const serviceTimes = served
-      .map((o) => (new Date(o.served_at as string).getTime() - new Date(o.created_at).getTime()) / 60000)
-      .sort((a, b) => a - b);
-    const medianService = serviceTimes.length ? Math.round(serviceTimes[Math.floor(serviceTimes.length / 2)] ?? 0) : null;
-
     const pct = (cur: number, prev: number) => (prev > 0 ? Math.round(((cur - prev) / prev) * 100) : null);
-
+    const revenue = summary?.revenue_millimes ?? 0;
+    const prevRevenue = summary?.prev_revenue_millimes ?? 0;
+    const count = summary?.order_count ?? 0;
+    const prevCount = summary?.prev_order_count ?? 0;
+    const avgBasket = count ? Math.round(revenue / count) : 0;
+    const prevAvg = prevCount ? Math.round(prevRevenue / prevCount) : 0;
     return {
       revenue,
       revenueDelta: pct(revenue, prevRevenue),
-      count: orders.length,
-      countDelta: pct(orders.length, prevOrders.length),
+      count,
+      countDelta: pct(count, prevCount),
       avgBasket,
       avgDelta: pct(avgBasket, prevAvg),
-      medianService,
+      medianService: summary?.median_service_minutes != null ? Math.round(summary.median_service_minutes) : null,
     };
-  }, [orders, prevOrders]);
+  }, [summary]);
 
   const hourly = useMemo(() => {
-    const byHour = new Map<number, number>();
-    for (const order of orders) {
-      const h = new Date(order.created_at).getHours();
-      byHour.set(h, (byHour.get(h) ?? 0) + 1);
-    }
-    const hours = Array.from({ length: 17 }, (_, i) => i + 7); // 7h → 23h
+    const byHour = new Map((summary?.hourly ?? []).map((h) => [h.hour, h.n]));
+    // 7h→23h baseline; extend earlier only when early-morning data exists.
+    const earliest = Math.min(7, ...[...byHour.keys()].filter((h) => byHour.get(h)! > 0));
+    const hours = Array.from({ length: 24 - earliest }, (_, i) => i + earliest);
     const max = Math.max(1, ...hours.map((h) => byHour.get(h) ?? 0));
     const peak = hours.reduce((best, h) => ((byHour.get(h) ?? 0) > (byHour.get(best) ?? 0) ? h : best), hours[0] ?? 7);
     return hours.map((h) => ({
@@ -114,25 +97,20 @@ export default function StatsPage() {
       pct: Math.round(((byHour.get(h) ?? 0) / max) * 100),
       isPeak: h === peak && (byHour.get(h) ?? 0) > 0,
     }));
-  }, [orders]);
+  }, [summary]);
 
   const topItems = useMemo(() => {
-    const orderIds = new Set(orders.map((o) => o.id));
-    const agg = new Map<string, { qty: number; revenue: number }>();
-    for (const line of lines) {
-      if (!orderIds.has(line.order_id)) continue;
-      const name = tr(line.name_snapshot) || "?";
-      const cur = agg.get(name) ?? { qty: 0, revenue: 0 };
-      cur.qty += line.qty;
-      cur.revenue += line.qty * line.unit_price_millimes;
-      agg.set(name, cur);
-    }
-    const sorted = [...agg.entries()].sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
-    const max = Math.max(1, ...sorted.map(([, v]) => v.qty));
-    return sorted.map(([name, v]) => ({ name, ...v, pct: Math.round((v.qty / max) * 100) }));
-  }, [orders, lines, tr]);
+    const list = summary?.top_items ?? [];
+    const max = Math.max(1, ...list.map((i) => i.qty));
+    return list.map((i) => ({
+      name: tr(i.name) || "?",
+      qty: i.qty,
+      revenue: i.revenue_millimes,
+      pct: Math.round((i.qty / max) * 100),
+    }));
+  }, [summary, tr]);
 
-  const hasData = orders.length > 0;
+  const hasData = (summary?.order_count ?? 0) > 0;
 
   return (
     <div className="flex flex-col min-h-dvh">
