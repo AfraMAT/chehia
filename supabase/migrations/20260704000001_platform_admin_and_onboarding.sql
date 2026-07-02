@@ -16,6 +16,12 @@
 alter table public.restaurants
   add column if not exists onboarding_completed_at timestamptz;
 
+-- Any venue already live at migration time predates onboarding — treat it as
+-- done so its owner is not bounced into the wizard.
+update public.restaurants
+  set onboarding_completed_at = now()
+  where onboarding_completed_at is null and is_active;
+
 -- Freshly provisioned venues start inactive (not taking orders) until
 -- their owner finishes onboarding; the demo/seed venues stay active.
 alter table public.restaurants

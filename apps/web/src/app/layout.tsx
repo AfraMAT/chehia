@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, IBM_Plex_Sans_Arabic, Manrope } from "next/font/google";
 import "./globals.css";
+import { SITE_URL } from "@/lib/site";
 
 const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
@@ -20,7 +21,7 @@ const plexArabic = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL ?? "https://chehia.app"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Chehia — Scannez. Commandez. Régalez-vous.",
     template: "%s · Chehia",

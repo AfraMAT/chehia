@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { buildTableUrl, type Table } from "@chehia/shared";
 import { getSupabase } from "@/lib/supabase";
+import { qrOrigin } from "@/lib/site";
 import { usePortal } from "../../portal-provider";
 import { TableCard } from "../table-card";
 
@@ -22,7 +23,7 @@ function PrintCards() {
   const onlyTable = searchParams.get("table");
   const [tables, setTables] = useState<Table[]>([]);
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const baseUrl = qrOrigin();
 
   useEffect(() => {
     void (async () => {

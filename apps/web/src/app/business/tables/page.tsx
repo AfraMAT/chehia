@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { buildTableUrl, interpolate, type Table } from "@chehia/shared";
 import { getSupabase } from "@/lib/supabase";
+import { qrOrigin } from "@/lib/site";
 import { useI18n } from "@/components/i18n-provider";
 import { usePortal } from "../portal-provider";
 import { QrImage } from "./qr-image";
@@ -26,7 +27,7 @@ export default function TablesPage() {
     if (!canManage) router.replace("/business/orders");
   }, [canManage, router]);
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const baseUrl = qrOrigin();
 
   const reload = useCallback(async () => {
     const { data } = await supabase

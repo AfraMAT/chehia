@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/site";
 
 // The landing page is public; the business portal and per-table customer
 // ordering pages should not be indexed.
 export default function robots(): MetadataRoute.Robots {
-  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://chehia.app";
   return {
     rules: [{ userAgent: "*", allow: "/", disallow: ["/business", "/r/"] }],
-    sitemap: `${base}/sitemap.xml`,
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }
