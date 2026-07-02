@@ -19,7 +19,9 @@ packages/
 supabase/
   migrations/    Postgres schema + multi-tenant RLS policies
   seed.sql       Demo venue (Café El Marsa) with trilingual menu, tables, staff, sample orders
-  functions/     Edge functions: place-order, call-waiter, generate-insights (nightly AI)
+  functions/     Edge functions: place-order, call-waiter, generate-insights (nightly AI),
+                 admin-provision-business (platform admin creates a venue + owner),
+                 create-staff (owner/manager adds a team member)
 ```
 
 ## Local development
@@ -52,6 +54,7 @@ pnpm dev:mobile         # Expo (press i for the iOS simulator)
 | Owner login | `owner@elmarsa.tn` / `chehia-demo` |
 | Kitchen login | `cuisine@elmarsa.tn` / `chehia-demo` |
 | Second tenant (isolation testing) | `owner@lezink.tn` / `chehia-demo` |
+| Platform admin | http://localhost:3000/admin · `admin@chehia.app` / `chehia-demo` |
 
 Every table has a permanent QR token (`demo-elmarsa-t01`…`t14`). The printed QR encodes
 `https://{host}/r/{slug}/t/{token}`; with the app installed, universal/app links open the app
@@ -85,6 +88,17 @@ only writes the "what should I do" narrative.
 - **Multi-tenancy** — single Postgres; every domain table carries `restaurant_id`, enforced with RLS
   keyed to the authenticated staff user (`staff_restaurant_id()`); owners/managers manage the menu,
   all active staff advance orders. Verified by integration tests.
+- **Platform admin** — the `platform_admins` table + `is_platform_admin()` gate a super-admin who
+  operates across tenants. The admin portal (`/admin`) lists every venue with live counts
+  (`admin_venue_overview()` RPC), toggles active/paused, and provisions a new venue + owner account
+  via the `admin-provision-business` edge function (service role; returns a one-time starter password).
+  RLS grants the admin cross-tenant *read* + the activate toggle only; provisioning writes go through
+  the edge function. The privilege table itself is unreadable/unwritable via the API (RLS + no write
+  policy) — admins are seeded server-side.
+- **Owner onboarding** — a provisioned venue starts `is_active = false` with `onboarding_completed_at
+  = null`; the owner is routed into `/business/onboarding` (profile → hours → menu → tables/QR →
+  staff) and the venue goes live on finish. Other staff see a "setup in progress" screen until then.
+  Post-onboarding, hours and staff are managed from Settings (`create-staff` edge function).
 - **Customers are anonymous** — Supabase anonymous auth; the table's `qr_token` is the ordering
   capability. Orders are inserted only by the `place-order` edge function, which **recomputes all
   prices server-side** and validates modifier min/max rules. Customers can read/subscribe to only
