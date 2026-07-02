@@ -10,7 +10,7 @@ import {
   millimesToDisplay,
   toOrderPayload,
 } from "@chehia/shared";
-import { ensureCustomerSession, functionsUrl, getSupabase } from "@/lib/supabase";
+import { callFunction, ensureCustomerSession } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
 import { Spinner, Stepper } from "@/components/ui";
 import { useVenue } from "../venue-provider";
@@ -40,22 +40,15 @@ export default function CartPage() {
     clientRefRef.current ??= crypto.randomUUID();
     try {
       await ensureCustomerSession();
-      const supabase = getSupabase();
-      const { data: sessionData } = await supabase.auth.getSession();
-      const response = await fetch(functionsUrl("place-order"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionData.session?.access_token}`,
-          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        },
-        body: JSON.stringify({ ...toOrderPayload(cart, lang), client_ref: clientRefRef.current }),
-      });
-      // Gateway errors can return non-JSON bodies — never let that masquerade
-      // as a network failure.
-      const json = await response.json().catch(() => null);
-      if (!response.ok || !json?.order) {
-        const code = json?.error?.code as string | undefined;
+      // callFunction resolves the apikey/URL for the active environment (prod on
+      // production, dev on previews) and surfaces gateway errors as ok=false
+      // rather than letting a non-JSON body masquerade as a network failure.
+      const { ok, data: json } = await callFunction<{
+        order?: { id: string };
+        error?: { code?: string };
+      }>("place-order", { ...toOrderPayload(cart, lang), client_ref: clientRefRef.current });
+      if (!ok || !json?.order) {
+        const code = json?.error?.code;
         if (code === "item_unavailable" || code === "unknown_item") {
           // Actually remove the offending lines so the retry can succeed.
           reconcileNow();

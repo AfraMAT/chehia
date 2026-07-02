@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { WaiterCallReason } from "@chehia/shared";
-import { ensureCustomerSession, functionsUrl, getSupabase } from "@/lib/supabase";
+import { callFunction, ensureCustomerSession } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
 import { Spinner } from "@/components/ui";
 import { useVenue } from "../../venue-provider";
@@ -34,18 +34,12 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
     setState("sending");
     try {
       await ensureCustomerSession();
-      const supabase = getSupabase();
-      const { data: sessionData } = await supabase.auth.getSession();
-      const response = await fetch(functionsUrl("call-waiter"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionData.session?.access_token}`,
-          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        },
-        body: JSON.stringify({ qr_token: table.qr_token, reason, note }),
+      const { ok } = await callFunction("call-waiter", {
+        qr_token: table.qr_token,
+        reason,
+        note,
       });
-      if (!response.ok) throw new Error("failed");
+      if (!ok) throw new Error("failed");
       setState("sent");
       setTimeout(onClose, 1600);
     } catch {
