@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Manrope:wght@400..800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#EDE7DB;font-family:Manrope,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.dv-turn{padding:44px 48px 36px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 24px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#221A13;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 Manrope,system-ui,sans-serif;color:#221A13}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(34,26,19,.08);color:#221A13;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 Manrope,system-ui,sans-serif;color:rgba(34,26,19,.55)}
+.dv-opt:target > .dv-olabel .dv-oid{background:#BC4B26;color:#fff}
+.dv-next{margin:26px 0 0;font:12px/1.5 Manrope,system-ui,sans-serif;color:rgba(34,26,19,.5)}
+.dv-cap{font:500 10px/1.5 ui-monospace,Menlo,monospace;color:rgba(34,26,19,.45);letter-spacing:.02em}
+@keyframes chPulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes chPing{0%{transform:scale(1);opacity:.55}80%,100%{transform:scale(1.9);opacity:0}}
+@keyframes chBar{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.55)}}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Chehia — full product system v1 · brand → customer app (AR/FR/EN) → business portal</span></div>
+
+<!-- ================= DESIGN BRIEF ================= -->
+<div style="background:#FFFDF9;border:1px solid rgba(60,40,20,.09);border-radius:20px;box-shadow:0 2px 10px rgba(60,35,15,.05);padding:24px 28px;margin:0 0 28px;max-width:1560px">
+  <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px">
+    <span style="font:600 10px ui-monospace,Menlo,monospace;color:#BC4B26;letter-spacing:.08em">DESIGN BRIEF</span>
+    <span style="font:600 15px 'Bricolage Grotesque',sans-serif;color:#221A13">Why it looks like this</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-weight:700;font-size:12px;color:#221A13">Positioning</div>
+      <div style="font-size:12px;line-height:1.55;color:#6E6257">The only Tunisian QR-ordering with a true native app + AI. Design must feel a full class above Scanny / Digital Menu TN — premium, appetizing, trustworthy for owners.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-weight:700;font-size:12px;color:#221A13">Direction — “Harissa &amp; Sidi Bou”</div>
+      <div style="font-size:12px;line-height:1.55;color:#6E6257">Warm terracotta (appetite, craft) × deep Mediterranean teal (trust, Sidi Bou Saïd). Warm cream neutrals, an 8-point zellige star as the mark. No gradients, no clutter.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-weight:700;font-size:12px;color:#221A13">Type &amp; language</div>
+      <div style="font-size:12px;line-height:1.55;color:#6E6257">Bricolage Grotesque (display) + Manrope (UI) + IBM Plex Sans Arabic. French default, full RTL mirroring, Arabic headings ~10% larger, Western numerals for prices.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-weight:700;font-size:12px;color:#221A13">Principles</div>
+      <div style="font-size:12px;line-height:1.55;color:#6E6257">Android-first at 412px · 48px touch targets · order-only, pay at counter (stated, never hidden) · designed offline states · dark mode where it earns it (kitchen) · demo venue: Café El Marsa, La Marsa.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 1a · BRAND FOUNDATION ================= -->
+<div class="dv-opt" id="1a" style="width:max-content">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Brand foundation — logo, palette, type, core components</div>
+<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch">
+
+  <!-- Logo board -->
+  <div style="width:470px;background:#FFFDF9;border:1px solid rgba(60,40,20,.09);border-radius:20px;box-shadow:0 2px 10px rgba(60,35,15,.05);padding:28px;display:flex;flex-direction:column;gap:22px;box-sizing:border-box">
+    <div class="dv-cap">A1 · LOGO &amp; MARK</div>
+    <div style="display:flex;align-items:center;gap:18px">
+      <div style="width:76px;height:76px;border-radius:20px;background:#BC4B26;position:relative;flex:none;box-shadow:0 6px 16px rgba(188,75,38,.28)">
+        <div style="position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;background:#FFFDF9;border-radius:5px"></div>
+        <div style="position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;background:#FFFDF9;border-radius:5px;transform:rotate(45deg)"></div>
+        <div style="position:absolute;left:50%;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;background:#BC4B26;border-radius:50%"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <div style="display:flex;align-items:baseline;gap:10px">
+          <span style="font:800 40px/1 'Bricolage Grotesque',sans-serif;color:#221A13;letter-spacing:-.02em">chehia<span style="color:#BC4B26">.</span></span>
+          <span style="font:600 24px/1 'IBM Plex Sans Arabic',sans-serif;color:#10606A">شهية</span>
+        </div>
+        <div style="font-size:13px;color:#6E6257;font-weight:500">Scannez. Commandez. Régalez-vous.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px">
+      <div style="flex:1;background:#221A13;border-radius:14px;padding:16px;display:flex;align-items:center;justify-content:center;gap:8px">
+        <span style="font:800 20px/1 'Bricolage Grotesque',sans-serif;color:#FAF6EF">chehia<span style="color:#E08D6B">.</span></span>
+      </div>
+      <div style="flex:1;background:#10606A;border-radius:14px;padding:16px;display:flex;align-items:center;justify-content:center">
+        <span style="font:800 20px/1 'Bricolage Grotesque',sans-serif;color:#FAF6EF">chehia<span style="color:#F2C7A8">.</span></span>
+      </div>
+      <div style="flex:1;background:#FAF6EF;border:1px solid #EDE4D8;border-radius:14px;padding:16px;display:flex;align-items:center;justify-content:center">
+        <span style="font:800 20px/1 'Bricolage Grotesque',sans-serif;color:#BC4B26">chehia.</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:14px">
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+        <div style="width:64px;height:64px;border-radius:16px;background:#BC4B26;position:relative">
+          <div style="position:absolute;left:50%;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;background:#FFFDF9;border-radius:4px"></div>
+          <div style="position:absolute;left:50%;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;background:#FFFDF9;border-radius:4px;transform:rotate(45deg)"></div>
+          <div style="position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;background:#BC4B26;border-radius:50%"></div>
+        </div>
+        <span class="dv-cap">app icon</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+        <div style="width:44px;height:44px;border-radius:12px;background:#221A13;position:relative">
+          <div style="position:absolute;left:50%;top:50%;width:19px;height:19px;margin:-9.5px 0 0 -9.5px;background:#FAF6EF;border-radius:3px"></div>
+          <div style="position:absolute;left:50%;top:50%;width:19px;height:19px;margin:-9.5px 0 0 -9.5px;background:#FAF6EF;border-radius:3px;transform:rotate(45deg)"></div>
+          <div style="position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;background:#221A13;border-radius:50%"></div>
+        </div>
+        <span class="dv-cap">dark</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+        <div style="width:28px;height:28px;border-radius:8px;background:#BC4B26;position:relative">
+          <div style="position:absolute;left:50%;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;background:#FFFDF9;border-radius:2px"></div>
+          <div style="position:absolute;left:50%;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;background:#FFFDF9;border-radius:2px;transform:rotate(45deg)"></div>
+        </div>
+        <span class="dv-cap">favicon</span>
+      </div>
+      <div style="flex:1;font-size:11.5px;line-height:1.5;color:#9A8D80;padding-bottom:4px">The mark is two overlapping squares — an 8-point zellige star, the geometry of Tunisian tilework. It doubles as a scan target on printed QR cards.</div>
+    </div>
+  </div>
+
+  <!-- Color board -->
+  <div style="width:470px;background:#FFFDF9;border:1px solid rgba(60,40,20,.09);border-radius:20px;box-shadow:0 2px 10px rgba(60,35,15,.05);padding:28px;display:flex;flex-direction:column;gap:18px;box-sizing:border-box">
+    <div class="dv-cap">A2 · COLOR — WARM, APPETIZING, CONFIDENT</div>
+    <div style="display:flex;gap:12px">
+      <div style="flex:1.4;display:flex;flex-direction:column;gap:0;border-radius:14px;overflow:hidden;border:1px solid #EDE4D8">
+        <div style="background:#BC4B26;height:84px;padding:12px;display:flex;flex-direction:column;justify-content:flex-end">
+          <div style="color:#FFF;font-weight:800;font-size:13px">Harissa</div>
+          <div style="color:rgba(255,255,255,.75);font:500 10px ui-monospace,Menlo,monospace">#BC4B26 · primary, CTAs</div>
+        </div>
+        <div style="background:#A03D1D;height:30px;padding:0 12px;display:flex;align-items:center"><span style="color:rgba(255,255,255,.8);font:500 10px ui-monospace,Menlo,monospace">#A03D1D · pressed</span></div>
+        <div style="background:#F7E7DE;height:30px;padding:0 12px;display:flex;align-items:center"><span style="color:#A03D1D;font:500 10px ui-monospace,Menlo,monospace">#F7E7DE · tint</span></div>
+      </div>
+      <div style="flex:1.4;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;border:1px solid #EDE4D8">
+        <div style="background:#10606A;height:84px;padding:12px;display:flex;flex-direction:column;justify-content:flex-end">
+          <div style="color:#FFF;font-weight:800;font-size:13px">Sidi Bou</div>
+          <div style="color:rgba(255,255,255,.75);font:500 10px ui-monospace,Menlo,monospace">#10606A · secondary, info</div>
+        </div>
+        <div style="background:#0B4A52;height:30px;padding:0 12px;display:flex;align-items:center"><span style="color:rgba(255,255,255,.8);font:500 10px ui-monospace,Menlo,monospace">#0B4A52 · pressed</span></div>
+        <div style="background:#E1EEEE;height:30px;padding:0 12px;display:flex;align-items:center"><span style="color:#0B4A52;font:500 10px ui-monospace,Menlo,monospace">#E1EEEE · tint</span></div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;border:1px solid #EDE4D8">
+        <div style="background:#221A13;height:48px;padding:10px;display:flex;flex-direction:column;justify-content:flex-end"><span style="color:rgba(255,255,255,.8);font:500 9.5px ui-monospace,Menlo,monospace">#221A13 encre</span></div>
+        <div style="background:#6E6257;height:32px;padding:0 10px;display:flex;align-items:center"><span style="color:rgba(255,255,255,.85);font:500 9.5px ui-monospace,Menlo,monospace">#6E6257 muted</span></div>
+        <div style="background:#FAF6EF;height:32px;padding:0 10px;display:flex;align-items:center"><span style="color:#6E6257;font:500 9.5px ui-monospace,Menlo,monospace">#FAF6EF crème</span></div>
+        <div style="background:#FFFDF9;height:32px;padding:0 10px;display:flex;align-items:center;border-top:1px solid #EDE4D8"><span style="color:#6E6257;font:500 9.5px ui-monospace,Menlo,monospace">#FFFDF9 carte</span></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="dv-cap">ORDER STATUS — NEVER COLOR-ONLY (LABEL + DOT)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span style="display:inline-flex;align-items:center;gap:7px;background:#E1EEEE;color:#0B4A52;font-weight:700;font-size:12px;padding:7px 12px;border-radius:100px"><span style="width:7px;height:7px;border-radius:50%;background:#10606A"></span>Reçue</span>
+        <span style="display:inline-flex;align-items:center;gap:7px;background:#F7EDDC;color:#8A5E12;font-weight:700;font-size:12px;padding:7px 12px;border-radius:100px"><span style="width:7px;height:7px;border-radius:50%;background:#B97F1E;animation:chPulse 1.6s infinite"></span>En préparation</span>
+        <span style="display:inline-flex;align-items:center;gap:7px;background:#E4F0E7;color:#1F5A36;font-weight:700;font-size:12px;padding:7px 12px;border-radius:100px"><span style="width:7px;height:7px;border-radius:50%;background:#2E7D4F"></span>Servie</span>
+        <span style="display:inline-flex;align-items:center;gap:7px;background:#F7E3E0;color:#8A2020;font-weight:700;font-size:12px;padding:7px 12px;border-radius:100px"><span style="width:7px;height:7px;border-radius:50%;background:#B02E2E"></span>Alerte / erreur</span>
+      </div>
+    </div>
+    <div style="font-size:11.5px;line-height:1.5;color:#9A8D80">Semantic colors are reserved for order state. Harissa is never used for errors — appetite and alarm stay separate. All pairings pass WCAG AA on cream.</div>
+  </div>
+
+  <!-- Type board -->
+  <div style="width:470px;background:#FFFDF9;border:1px solid rgba(60,40,20,.09);border-radius:20px;box-shadow:0 2px 10px rgba(60,35,15,.05);padding:28px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box">
+    <div class="dv-cap">A3 · TYPE — TRILINGUAL BY DESIGN</div>
+    <div style="border-bottom:1px solid #EDE4D8;padding-bottom:14px">
+      <div style="font:800 30px/1.15 'Bricolage Grotesque',sans-serif;color:#221A13;letter-spacing:-.015em">Commandez en 30 secondes, sans appeler personne.</div>
+      <div class="dv-cap" style="margin-top:8px">DISPLAY · BRICOLAGE GROTESQUE 800 · headlines, prices XL, empty states</div>
+    </div>
+    <div style="border-bottom:1px solid #EDE4D8;padding-bottom:14px;display:flex;flex-direction:column;gap:6px">
+      <div style="font-size:16px;font-weight:700;color:#221A13">Cappuccino — lait entier, sans sucre</div>
+      <div style="font-size:14px;font-weight:500;color:#221A13">Manrope porte toute l’interface : listes, boutons, formulaires.</div>
+      <div style="font-size:12.5px;color:#6E6257">Corps 14–15 px minimum sur mobile · chiffres tabulaires pour les prix : 12,50 TND</div>
+      <div class="dv-cap" style="margin-top:4px">UI · MANROPE 400–800 · everything else</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div dir="rtl" style="font:700 22px/1.5 'IBM Plex Sans Arabic',sans-serif;color:#221A13">اطلب في ثلاثين ثانية، من طاولتك مباشرة</div>
+      <div dir="rtl" style="font:400 14px/1.7 'IBM Plex Sans Arabic',sans-serif;color:#6E6257">القائمة كاملة بالعربية، مع اتجاه من اليمين إلى اليسار في كل الشاشات</div>
+      <div class="dv-cap" style="margin-top:4px">ARABIC · IBM PLEX SANS ARABIC · sized +10% vs latin, taller line-height, western numerals for prices</div>
+    </div>
+  </div>
+
+  <!-- Components board -->
+  <div style="width:560px;background:#FFFDF9;border:1px solid rgba(60,40,20,.09);border-radius:20px;box-shadow:0 2px 10px rgba(60,35,15,.05);padding:28px;display:flex;flex-direction:column;gap:20px;box-sizing:border-box">
+    <div class="dv-cap">A4 · CORE COMPONENTS — 4/8 GRID, 48PX TARGETS</div>
+    <div style="display:flex;gap:20px">
+      <div style="flex:1.15;display:flex;flex-direction:column;gap:10px">
+        <div class="dv-cap">BUTTONS</div>
+        <div style="height:52px;border-radius:14px;background:#BC4B26;color:#FFF;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(188,75,38,.25);cursor:pointer" style-hover="background:#A03D1D">Envoyer la commande</div>
+        <div style="height:48px;border-radius:14px;background:#F7E7DE;color:#A03D1D;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:#F2DCCE">Ajouter au panier · 7,3 TND</div>
+        <div style="display:flex;gap:10px">
+          <div style="flex:1;height:44px;border-radius:12px;border:1.5px solid #E3D9CB;background:#FFFDF9;color:#221A13;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="border-color:#BC4B26;color:#A03D1D">Modifier</div>
+          <div style="flex:1;height:44px;border-radius:12px;background:transparent;color:#B02E2E;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:#F7E3E0">Annuler</div>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+        <div class="dv-cap">FIELDS &amp; STEPPER</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <span style="font-size:12px;font-weight:700;color:#6E6257">Note pour la cuisine</span>
+          <div style="height:46px;border-radius:12px;border:1.5px solid #E3D9CB;background:#FFF;display:flex;align-items:center;padding:0 14px;color:#221A13;font-size:14px">Sans coriandre, svp</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="display:flex;align-items:center;gap:0;border:1.5px solid #E3D9CB;border-radius:100px;background:#FFF">
+            <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:#BC4B26;font-weight:800;font-size:20px;cursor:pointer">−</div>
+            <div style="width:26px;text-align:center;font-weight:800;font-size:16px;color:#221A13">2</div>
+            <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:#BC4B26;font-weight:800;font-size:20px;cursor:pointer">+</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:46px;height:28px;border-radius:100px;background:#2E7D4F;position:relative;cursor:pointer"><div style="position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:#FFF;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div></div>
+            <span style="font-size:12px;font-weight:700;color:#221A13">Disponible</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:#221A13;border-radius:12px;padding:11px 14px">
+          <span style="width:8px;height:8px;border-radius:50%;background:#5FBF87"></span>
+          <span style="color:#FAF6EF;font-size:13px;font-weight:600">Commande envoyée à la cuisine</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:20px">
+      <div style="flex:1.15;display:flex;flex-direction:column;gap:10px">
+        <div class="dv-cap">DIETARY &amp; MENU TAGS</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span style="display:inline-flex;align-items:center;gap:6px;border:1.5px solid #BCD8C5;color:#1F5A36;font-weight:700;font-size:12px;padding:6px 11px;border-radius:100px"><span style="width:6px;height:6px;border-radius:50%;background:#2E7D4F"></span>Végétarien</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;border:1.5px solid #E3CFA5;color:#8A5E12;font-weight:700;font-size:12px;padding:6px 11px;border-radius:100px"><span style="width:6px;height:6px;border-radius:50%;background:#B97F1E"></span>Épicé</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;border:1.5px solid #E3D9CB;color:#6E6257;font-weight:700;font-size:12px;padding:6px 11px;border-radius:100px">Sans gluten</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#F7E7DE;color:#A03D1D;font-weight:800;font-size:12px;padding:6px 11px;border-radius:100px">Populaire</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:#F1EAE0;color:#9A8D80;font-weight:700;font-size:12px;padding:6px 11px;border-radius:100px;text-decoration:line-through">Épuisé</span>
+        </div>
+        <div class="dv-cap" style="margin-top:6px">STATUS · TRILINGUAL</div>
+        <div style="display:grid;grid-template-columns:auto auto auto;gap:6px 14px;align-items:center">
+          <span style="font-size:12.5px;font-weight:700;color:#0B4A52">Reçue</span>
+          <span dir="rtl" style="font:600 13.5px 'IBM Plex Sans Arabic',sans-serif;color:#0B4A52">تم الاستلام</span>
+          <span style="font-size:12.5px;font-weight:700;color:#0B4A52">Received</span>
+          <span style="font-size:12.5px;font-weight:700;color:#8A5E12">En préparation</span>
+          <span dir="rtl" style="font:600 13.5px 'IBM Plex Sans Arabic',sans-serif;color:#8A5E12">قيد التحضير</span>
+          <span style="font-size:12.5px;font-weight:700;color:#8A5E12">Preparing</span>
+          <span style="font-size:12.5px;font-weight:700;color:#1F5A36">Servie</span>
+          <span dir="rtl" style="font:600 13.5px 'IBM Plex Sans Arabic',sans-serif;color:#1F5A36">تم التقديم</span>
+          <span style="font-size:12.5px;font-weight:700;color:#1F5A36">Served</span>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+        <div class="dv-cap">MENU ITEM CARD</div>
+        <div style="background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center;box-shadow:0 1px 4px rgba(60,35,15,.04)">
+          <div style="width:64px;height:64px;border-radius:12px;flex:none;background:repeating-linear-gradient(45deg,#F2E5D4,#F2E5D4 6px,#EBDCC7 6px,#EBDCC7 12px);display:flex;align-items:center;justify-content:center"><span style="font:600 8.5px ui-monospace,Menlo,monospace;color:#B49F86;text-align:center">photo<br>produit</span></div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:800;font-size:15px;color:#221A13">Cappuccino</span><span style="font-weight:800;font-size:15px;color:#221A13;white-space:nowrap">5,5 <span style="font-size:11px;color:#9A8D80">TND</span></span></div>
+            <div style="font-size:12.5px;color:#6E6257;line-height:1.4">Espresso, lait vapeur, mousse fine</div>
+          </div>
+          <div style="width:40px;height:40px;border-radius:12px;background:#F7E7DE;color:#A03D1D;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;flex:none;cursor:pointer" style-hover="background:#BC4B26;color:#FFF">+</div>
+        </div>
+        <div style="font-size:11.5px;line-height:1.5;color:#9A8D80">Cards on #FFF over crème background · radius 16 · price always with small TND unit · “+” target 40–48px.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ================= 1b · CUSTOMER APP ================= -->
+<div class="dv-opt" id="1b" style="width:max-content;margin-top:34px">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Customer app — Android-first · scan → menu → order → track · FR default, AR mirrored, EN</div>
+<div style="display:flex;flex-wrap:wrap;gap:30px;align-items:flex-start;max-width:2330px;zoom:{{ frameZoom }}">
+
+  <!-- P1 · Scan landing -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" bg="#FAF6EF" hint-size="428px,908px">
+      <div style="height:100%;display:flex;flex-direction:column;font-family:Manrope,sans-serif;background:#FAF6EF">
+        <div style="height:340px;position:relative;flex:none;background:repeating-linear-gradient(45deg,#EFE2CE,#EFE2CE 10px,#E7D6BC 10px,#E7D6BC 20px)">
+          <span style="position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);font:600 10px ui-monospace,Menlo,monospace;color:#A88F6C;background:rgba(255,253,249,.7);padding:4px 8px;border-radius:6px">photo du lieu — terrasse</span>
+          <div style="position:absolute;top:14px;left:16px;display:flex;align-items:center;gap:7px;background:rgba(34,26,19,.82);border-radius:100px;padding:7px 13px 7px 8px">
+            <div style="width:20px;height:20px;border-radius:6px;background:#BC4B26;position:relative"><div style="position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;background:#FFF;border-radius:1.5px"></div><div style="position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;background:#FFF;border-radius:1.5px;transform:rotate(45deg)"></div></div>
+            <span style="font:800 13px 'Bricolage Grotesque',sans-serif;color:#FAF6EF">chehia.</span>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;background:#FAF6EF;border-radius:24px 24px 0 0;margin-top:-28px;padding:24px 20px 18px;position:relative">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font:800 28px/1.1 'Bricolage Grotesque',sans-serif;color:#221A13">Café El Marsa</span>
+            <span style="font-size:13.5px;font-weight:600;color:#6E6257">Corniche, La Marsa · ouvert jusqu’à 23h</span>
+          </div>
+          <div style="margin-top:16px;background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(60,35,15,.04)">
+            <div style="width:44px;height:44px;border-radius:12px;background:#F7E7DE;display:flex;align-items:center;justify-content:center;font:800 17px 'Bricolage Grotesque',sans-serif;color:#A03D1D;flex:none">12</div>
+            <div style="display:flex;flex-direction:column;gap:1px">
+              <span style="font-weight:800;font-size:15px;color:#221A13">Table 12 · Terrasse</span>
+              <span style="font-size:12.5px;color:#6E6257">Votre commande sera servie ici</span>
+            </div>
+          </div>
+          <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:12px;font-weight:700;color:#9A8D80;letter-spacing:.04em">LANGUE · اللغة</span>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1;height:44px;border-radius:12px;background:#221A13;color:#FAF6EF;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center">Français</div>
+              <div style="flex:1;height:44px;border-radius:12px;border:1.5px solid #E3D9CB;color:#221A13;font:600 15px 'IBM Plex Sans Arabic',sans-serif;display:flex;align-items:center;justify-content:center">العربية</div>
+              <div style="flex:1;height:44px;border-radius:12px;border:1.5px solid #E3D9CB;color:#221A13;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center">English</div>
+            </div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:12px">
+            <span style="width:7px;height:7px;border-radius:50%;background:#10606A"></span>
+            <span style="font-size:13px;font-weight:600;color:#0B4A52">Vous payez au comptoir, comme d’habitude</span>
+          </div>
+          <div style="height:56px;border-radius:16px;background:#BC4B26;color:#FFF;font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(188,75,38,.3);cursor:pointer" style-hover="background:#A03D1D">Voir le menu</div>
+        </div>
+      </div>
+    </x-import>
+    <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}"><span class="dv-cap" id="p1">P1 · SCAN LANDING — venue + table context from QR deep-link · language switch up front · pay-at-counter stated immediately</span></sc-if>
+  </div>
+
+  <!-- P2 · Menu FR -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" bg="#FAF6EF" hint-size="428px,908px">
+      <div style="height:100%;display:flex;flex-direction:column;font-family:Manrope,sans-serif;background:#FAF6EF;position:relative">
+        <div style="padding:14px 20px 0;display:flex;align-items:center;gap:10px">
+          <div style="width:30px;height:30px;border-radius:9px;background:#BC4B26;position:relative;flex:none"><div style="position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;background:#FFF;border-radius:2px"></div><div style="position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;background:#FFF;border-radius:2px;transform:rotate(45deg)"></div></div>
+          <div style="flex:1;display:flex;flex-direction:column">
+            <span style="font-weight:800;font-size:16px;color:#221A13;line-height:1.2">Café El Marsa</span>
+            <span style="font-size:11.5px;font-weight:600;color:#9A8D80">Menu · Français</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;background:#F7E7DE;border-radius:100px;padding:7px 12px"><span style="font-weight:800;font-size:13px;color:#A03D1D">Table 12</span></div>
+        </div>
+        <div style="padding:14px 20px 0">
+          <div style="height:46px;border-radius:14px;background:#FFF;border:1.5px solid #EDE4D8;display:flex;align-items:center;gap:10px;padding:0 14px">
+            <div style="width:15px;height:15px;border:2px solid #9A8D80;border-radius:50%;position:relative"><div style="position:absolute;width:2px;height:6px;background:#9A8D80;bottom:-5px;right:-2px;transform:rotate(-45deg)"></div></div>
+            <span style="font-size:14px;color:#9A8D80;font-weight:500">Rechercher un plat, une boisson…</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;padding:14px 20px 4px;overflow:hidden">
+          <span style="flex:none;height:38px;display:inline-flex;align-items:center;padding:0 16px;border-radius:100px;background:#221A13;color:#FAF6EF;font-weight:800;font-size:13.5px">Cafés</span>
+          <span style="flex:none;height:38px;display:inline-flex;align-items:center;padding:0 16px;border-radius:100px;background:#FFF;border:1.5px solid #EDE4D8;color:#6E6257;font-weight:700;font-size:13.5px">Petit-déjeuner</span>
+          <span style="flex:none;height:38px;display:inline-flex;align-items:center;padding:0 16px;border-radius:100px;background:#FFF;border:1.5px solid #EDE4D8;color:#6E6257;font-weight:700;font-size:13.5px">Jus &amp; citronnades</span>
+          <span style="flex:none;height:38px;display:inline-flex;align-items:center;padding:0 16px;border-radius:100px;background:#FFF;border:1.5px solid #EDE4D8;color:#6E6257;font-weight:700;font-size:13.5px">Pâtisseries</span>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:10px 20px 0;display:flex;flex-direction:column;gap:10px">
+          <div style="background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center">
+            <div style="width:68px;height:68px;border-radius:12px;flex:none;background:repeating-linear-gradient(45deg,#F2E5D4,#F2E5D4 7px,#EBDCC7 7px,#EBDCC7 14px)"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:800;font-size:15.5px;color:#221A13">Express</span><span style="font-weight:800;font-size:15.5px;color:#221A13;white-space:nowrap">2,8 <span style="font-size:11px;color:#9A8D80">TND</span></span></div>
+              <div style="font-size:12.5px;color:#6E6257;line-height:1.4">Court, intense, torréfaction locale</div>
+            </div>
+            <div style="width:42px;height:42px;border-radius:12px;background:#F7E7DE;color:#A03D1D;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;flex:none">+</div>
+          </div>
+          <div style="background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center">
+            <div style="width:68px;height:68px;border-radius:12px;flex:none;background:repeating-linear-gradient(45deg,#F2E5D4,#F2E5D4 7px,#EBDCC7 7px,#EBDCC7 14px)"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:800;font-size:15.5px;color:#221A13">Direct</span><span style="font-weight:800;font-size:15.5px;color:#221A13;white-space:nowrap">3,8 <span style="font-size:11px;color:#9A8D80">TND</span></span></div>
+              <div style="font-size:12.5px;color:#6E6257;line-height:1.4">Café au lait à la tunisienne</div>
+            </div>
+            <div style="width:42px;height:42px;border-radius:12px;background:#F7E7DE;color:#A03D1D;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;flex:none">+</div>
+          </div>
+          <div style="background:#FFF;border:1.5px solid #BC4B26;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center;box-shadow:0 2px 8px rgba(188,75,38,.1)">
+            <div style="width:68px;height:68px;border-radius:12px;flex:none;background:repeating-linear-gradient(45deg,#F2E5D4,#F2E5D4 7px,#EBDCC7 7px,#EBDCC7 14px);position:relative">
+              <span style="position:absolute;top:-7px;left:-7px;background:#BC4B26;color:#FFF;font-weight:800;font-size:10px;padding:3px 8px;border-radius:100px">Populaire</span>
+            </div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:800;font-size:15.5px;color:#221A13">Cappuccino</span><span style="font-weight:800;font-size:15.5px;color:#221A13;white-space:nowrap">5,5 <span style="font-size:11px;color:#9A8D80">TND</span></span></div>
+              <div style="font-size:12.5px;color:#6E6257;line-height:1.4">Espresso, lait vapeur, mousse fine</div>
+              <div style="display:flex;gap:5px;margin-top:2px"><span style="font-size:10.5px;font-weight:700;color:#1F5A36;border:1px solid #BCD8C5;border-radius:100px;padding:2px 7px">Végétarien</span><span style="font-size:10.5px;font-weight:700;color:#6E6257;border:1px solid #E3D9CB;border-radius:100px;padding:2px 7px">3 tailles</span></div>
+            </div>
+            <div style="width:42px;height:42px;border-radius:12px;background:#BC4B26;color:#FFF;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;flex:none;box-shadow:0 3px 8px rgba(188,75,38,.3)">+</div>
+          </div>
+          <div style="background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center">
+            <div style="width:68px;height:68px;border-radius:12px;flex:none;background:repeating-linear-gradient(45deg,#F2E5D4,#F2E5D4 7px,#EBDCC7 7px,#EBDCC7 14px)"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:800;font-size:15.5px;color:#221A13">Café turc</span><span style="font-weight:800;font-size:15.5px;color:#221A13;white-space:nowrap">3,5 <span style="font-size:11px;color:#9A8D80">TND</span></span></div>
+              <div style="font-size:12.5px;color:#6E6257;line-height:1.4">Moulu fin, servi avec eau de fleur</div>
+            </div>
+            <div style="width:42px;height:42px;border-radius:12px;background:#F7E7DE;color:#A03D1D;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;flex:none">+</div>
+          </div>
+          <div style="background:#F6F1E8;border:1px solid #EDE4D8;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center;opacity:.66">
+            <div style="width:68px;height:68px;border-radius:12px;flex:none;background:repeating-linear-gradient(45deg,#EEE7DA,#EEE7DA 7px,#E6DccA 7px,#E6DCCA 14px)"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:800;font-size:15.5px;color:#6E6257;text-decoration:line-through">Café glacé</span><span style="font-weight:700;font-size:13px;color:#9A8D80;white-space:nowrap">6,5 TND</span></div>
+              <span style="font-size:11px;font-weight:800;color:#9A8D80;background:#EDE4D8;border-radius:100px;padding:2px 8px;align-self:flex-start">Épuisé aujourd’hui</span>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute;left:16px;right:16px;bottom:14px;height:58px;border-radius:18px;background:#221A13;display:flex;align-items:center;padding:0 8px 0 18px;box-shadow:0 10px 26px rgba(34,26,19,.35);cursor:pointer">
+          <span style="width:24px;height:24px;border-radius:8px;background:#BC4B26;color:#FFF;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center">2</span>
+          <span style="flex:1;margin-left:12px;color:#FAF6EF;font-weight:800;font-size:15px">Voir le panier</span>
+          <span style="color:#FAF6EF;font-weight:800;font-size:15px;background:rgba(255,255,255,.12);border-radius:12px;padding:9px 14px">13,3 TND</span>
+        </div>
+      </div>
+    </x-import>
+    <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}"><span class="dv-cap" id="p2">P2 · MENU — category pills · dietary tags · 86’d item stays visible (struck, “épuisé”) · persistent cart bar</span></sc-if>
+  </div>
+
+<!-- P3 · Item detail -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" bg="#FAF6EF" hint-size="428px,908px">
+      <div style="height:100%;display:flex;flex-direction:column;font-family:Manrope,sans-serif;background:#FAF6EF">
+        <div style="height:216px;position:relative;flex:none;background:repeating-linear-gradient(45deg,#F2E5D4,#F2E5D4 10px,#EBDCC7 10px,#EBDCC7 20px)">
+          <span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:600 10px ui-monospace,Menlo,monospace;color:#A88F6C;background:rgba(255,253,249,.7);padding:4px 8px;border-radius:6px">photo produit — cappuccino</span>
+          <div style="position:absolute;top:14px;left:16px;width:40px;height:40px;border-radius:50%;background:rgba(34,26,19,.82);display:flex;align-items:center;justify-content:center"><span style="color:#FAF6EF;font-size:18px;font-weight:800;margin-top:-2px">‹</span></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;padding:18px 20px 0;gap:14px;overflow:hidden">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+              <span style="font:800 26px/1.1 'Bricolage Grotesque',sans-serif;color:#221A13">Cappuccino</span>
+              <span style="font:800 22px/1 'Bricolage Grotesque',sans-serif;color:#221A13;white-space:nowrap">5,5 <span style="font:700 12px Manrope,sans-serif;color:#9A8D80">TND</span></span>
+            </div>
+            <span style="font-size:13.5px;color:#6E6257;line-height:1.5">Espresso double origine, lait vapeur, mousse fine. Servi bien chaud.</span>
+            <div style="display:flex;gap:6px;margin-top:2px"><span style="font-size:11px;font-weight:700;color:#1F5A36;border:1px solid #BCD8C5;border-radius:100px;padding:3px 9px">Végétarien</span><span style="font-size:11px;font-weight:700;color:#6E6257;border:1px solid #E3D9CB;border-radius:100px;padding:3px 9px">Allergène : lait</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-weight:800;font-size:14px;color:#221A13">Taille</span><span style="font-size:11px;font-weight:700;color:#A03D1D;background:#F7E7DE;border-radius:100px;padding:3px 9px">Obligatoire</span></div>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1;height:52px;border-radius:14px;border:1.5px solid #E3D9CB;background:#FFF;display:flex;flex-direction:column;align-items:center;justify-content:center"><span style="font-weight:800;font-size:14px;color:#221A13">S</span><span style="font-size:11px;color:#9A8D80;font-weight:600">inclus</span></div>
+              <div style="flex:1;height:52px;border-radius:14px;border:1.5px solid #E3D9CB;background:#FFF;display:flex;flex-direction:column;align-items:center;justify-content:center"><span style="font-weight:800;font-size:14px;color:#221A13">M</span><span style="font-size:11px;color:#9A8D80;font-weight:600">+1,0</span></div>
+              <div style="flex:1;height:52px;border-radius:14px;border:2px solid #BC4B26;background:#F7E7DE;display:flex;flex-direction:column;align-items:center;justify-content:center"><span style="font-weight:800;font-size:14px;color:#A03D1D">L</span><span style="font-size:11px;color:#A03D1D;font-weight:700">+1,8</span></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-weight:800;font-size:14px;color:#221A13">Sucre</span>
+            <div style="display:flex;gap:7px;flex-wrap:wrap">
+              <span style="height:38px;display:inline-flex;align-items:center;padding:0 15px;border-radius:100px;background:#221A13;color:#FAF6EF;font-weight:800;font-size:13px">Sans</span>
+              <span style="height:38px;display:inline-flex;align-items:center;padding:0 15px;border-radius:100px;border:1.5px solid #E3D9CB;background:#FFF;color:#6E6257;font-weight:700;font-size:13px">Léger</span>
+              <span style="height:38px;display:inline-flex;align-items:center;padding:0 15px;border-radius:100px;border:1.5px solid #E3D9CB;background:#FFF;color:#6E6257;font-weight:700;font-size:13px">Normal</span>
+              <span style="height:38px;display:inline-flex;align-items:center;padding:0 15px;border-radius:100px;border:1.5px solid #E3D9CB;background:#FFF;color:#6E6257;font-weight:700;font-size:13px">Extra</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-weight:800;font-size:14px;color:#221A13">Extras <span style="font-weight:600;font-size:12px;color:#9A8D80">· optionnel</span></span>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="display:flex;align-items:center;gap:11px;background:#FFF;border:1.5px solid #E3D9CB;border-radius:13px;padding:11px 13px"><div style="width:21px;height:21px;border-radius:7px;border:2px solid #C9BFB2"></div><span style="flex:1;font-weight:700;font-size:13.5px;color:#221A13">Double shot</span><span style="font-size:12.5px;font-weight:700;color:#6E6257">+1,2</span></div>
+              <div style="display:flex;align-items:center;gap:11px;background:#FFF;border:1.5px solid #E3D9CB;border-radius:13px;padding:11px 13px"><div style="width:21px;height:21px;border-radius:7px;border:2px solid #C9BFB2"></div><span style="flex:1;font-weight:700;font-size:13.5px;color:#221A13">Lait d’amande</span><span style="font-size:12.5px;font-weight:700;color:#6E6257">+1,5</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:none;display:flex;gap:12px;padding:12px 16px 14px;background:#FFFDF9;border-top:1px solid #EDE4D8">
+          <div style="display:flex;align-items:center;border:1.5px solid #E3D9CB;border-radius:100px;background:#FFF">
+            <div style="width:46px;height:52px;display:flex;align-items:center;justify-content:center;color:#BC4B26;font-weight:800;font-size:22px">−</div>
+            <div style="width:22px;text-align:center;font-weight:800;font-size:17px;color:#221A13">1</div>
+            <div style="width:46px;height:52px;display:flex;align-items:center;justify-content:center;color:#BC4B26;font-weight:800;font-size:22px">+</div>
+          </div>
+          <div style="flex:1;height:52px;border-radius:16px;background:#BC4B26;color:#FFF;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 16px rgba(188,75,38,.3)">Ajouter · 7,3 TND</div>
+        </div>
+      </div>
+    </x-import>
+    <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}"><span class="dv-cap" id="p3">P3 · ITEM DETAIL — required vs optional modifier groups · live price in CTA · allergens declared</span></sc-if>
+  </div>
+
+  <!-- P4 · Cart -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" bg="#FAF6EF" hint-size="428px,908px">
+      <div style="height:100%;display:flex;flex-direction:column;font-family:Manrope,sans-serif;background:#FAF6EF">
+        <div style="padding:16px 20px 0;display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:50%;background:#FFF;border:1.5px solid #EDE4D8;display:flex;align-items:center;justify-content:center"><span style="color:#221A13;font-size:17px;font-weight:800;margin-top:-2px">‹</span></div>
+          <span style="font:800 22px 'Bricolage Grotesque',sans-serif;color:#221A13">Votre commande</span>
+        </div>
+        <div style="margin:14px 20px 0;background:#E1EEEE;border-radius:14px;padding:12px 15px;display:flex;align-items:center;gap:10px">
+          <span style="width:8px;height:8px;border-radius:50%;background:#10606A;flex:none"></span>
+          <span style="font-size:13px;font-weight:700;color:#0B4A52">Table 12 · Terrasse — Café El Marsa</span>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:16px 20px 0;display:flex;flex-direction:column;gap:10px">
+          <div style="background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:13px 14px;display:flex;gap:12px">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:800;font-size:15px;color:#221A13">Cappuccino</span><span style="font-weight:800;font-size:15px;color:#221A13">14,6</span></div>
+              <span style="font-size:12px;color:#6E6257;line-height:1.45">Grande · sans sucre</span>
+              <div style="display:flex;align-items:center;gap:0;border:1.5px solid #E3D9CB;border-radius:100px;background:#FFF;align-self:flex-start;margin-top:6px">
+                <div style="width:38px;height:34px;display:flex;align-items:center;justify-content:center;color:#BC4B26;font-weight:800;font-size:17px">−</div>
+                <div style="width:18px;text-align:center;font-weight:800;font-size:14px;color:#221A13">2</div>
+                <div style="width:38px;height:34px;display:flex;align-items:center;justify-content:center;color:#BC4B26;font-weight:800;font-size:17px">+</div>
+              </div>
+            </div>
+          </div>
+          <div style="background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:13px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:800;font-size:15px;color:#221A13">Citronnade fraîche</span><span style="font-size:12px;color:#6E6257">Menthe · peu de glace</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="font-size:12.5px;font-weight:700;color:#9A8D80">× 1</span><span style="font-weight:800;font-size:15px;color:#221A13">6,0</span></div>
+          </div>
+          <div style="background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:13px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:800;font-size:15px;color:#221A13">Bambalouni</span><span style="font-size:12px;color:#6E6257">Sucre fin</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="font-size:12.5px;font-weight:700;color:#9A8D80">× 2</span><span style="font-weight:800;font-size:15px;color:#221A13">7,0</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px">
+            <span style="font-size:12px;font-weight:700;color:#6E6257">Note pour la cuisine</span>
+            <div style="min-height:46px;border-radius:12px;border:1.5px solid #E3D9CB;background:#FFF;display:flex;align-items:center;padding:10px 14px;color:#221A13;font-size:13.5px">Bambalouni bien chauds, svp</div>
+          </div>
+          <div style="border-top:1px dashed #E3D9CB;margin-top:6px;padding-top:12px;display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:600;color:#6E6257">Sous-total · 5 articles</span><span style="font-size:13px;font-weight:700;color:#221A13">27,6 TND</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-weight:800;font-size:16px;color:#221A13">Total</span><span style="font:800 24px 'Bricolage Grotesque',sans-serif;color:#221A13">27,6 <span style="font:700 12px Manrope,sans-serif;color:#9A8D80">TND</span></span></div>
+          </div>
+        </div>
+        <div style="flex:none;padding:10px 16px 14px;display:flex;flex-direction:column;gap:9px;background:#FFFDF9;border-top:1px solid #EDE4D8">
+          <div style="display:flex;align-items:center;gap:8px;justify-content:center"><span style="width:7px;height:7px;border-radius:50%;background:#10606A"></span><span style="font-size:12.5px;font-weight:600;color:#0B4A52">Paiement au comptoir — aucune carte requise</span></div>
+          <div style="height:54px;border-radius:16px;background:#BC4B26;color:#FFF;font-weight:800;font-size:16.5px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(188,75,38,.3)">Envoyer la commande</div>
+        </div>
+      </div>
+    </x-import>
+    <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}"><span class="dv-cap" id="p4">P4 · CART — table context re-confirmed · kitchen note · no payment friction, stated twice</span></sc-if>
+  </div>
+
+<!-- P5 · Order tracking -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" bg="#FAF6EF" hint-size="428px,908px">
+      <div style="height:100%;display:flex;flex-direction:column;font-family:Manrope,sans-serif;background:#FAF6EF">
+        <div style="padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between">
+          <div style="width:40px;height:40px;border-radius:50%;background:#FFF;border:1.5px solid #EDE4D8;display:flex;align-items:center;justify-content:center"><span style="color:#221A13;font-size:17px;font-weight:800;margin-top:-2px">‹</span></div>
+          <span style="font-size:13px;font-weight:800;color:#9A8D80;letter-spacing:.05em">COMMANDE #A-207</span>
+          <div style="width:40px"></div>
+        </div>
+        <div style="padding:26px 20px 22px;display:flex;flex-direction:column;align-items:center;gap:12px">
+          <div style="width:88px;height:88px;border-radius:50%;background:#F7EDDC;display:flex;align-items:center;justify-content:center;position:relative">
+            <div style="position:absolute;inset:0;border-radius:50%;border:2px solid #B97F1E;animation:chPing 1.8s infinite"></div>
+            <div style="display:flex;gap:5px;align-items:flex-end">
+              <span style="width:9px;height:22px;border-radius:4px;background:#B97F1E;animation:chBar 1.1s infinite"></span>
+              <span style="width:9px;height:30px;border-radius:4px;background:#B97F1E;animation:chBar 1.1s .18s infinite"></span>
+              <span style="width:9px;height:16px;border-radius:4px;background:#B97F1E;animation:chBar 1.1s .36s infinite"></span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+            <span style="font:800 30px 'Bricolage Grotesque',sans-serif;color:#221A13">En préparation</span>
+            <span style="font-size:14px;font-weight:600;color:#6E6257">Encore ~8 min · Table 12</span>
+          </div>
+        </div>
+        <div style="margin:0 20px;background:#FFF;border:1px solid #EDE4D8;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:0">
+          <div style="display:flex;gap:14px">
+            <div style="display:flex;flex-direction:column;align-items:center"><div style="width:26px;height:26px;border-radius:50%;background:#10606A;color:#FFF;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800">✓</div><div style="width:2px;flex:1;background:#10606A;margin:4px 0"></div></div>
+            <div style="padding-bottom:18px;display:flex;flex-direction:column;gap:1px"><span style="font-weight:800;font-size:14.5px;color:#221A13">Reçue</span><span style="font-size:12.5px;color:#9A8D80;font-weight:600">14:32 — transmise à la cuisine</span></div>
+          </div>
+          <div style="display:flex;gap:14px">
+            <div style="display:flex;flex-direction:column;align-items:center"><div style="width:26px;height:26px;border-radius:50%;background:#B97F1E;display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:50%;background:#FFF;animation:chPulse 1.4s infinite"></span></div><div style="width:2px;flex:1;background:#E3D9CB;margin:4px 0"></div></div>
+            <div style="padding-bottom:18px;display:flex;flex-direction:column;gap:1px"><span style="font-weight:800;font-size:14.5px;color:#8A5E12">En préparation</span><span style="font-size:12.5px;color:#9A8D80;font-weight:600">La cuisine s’en occupe</span></div>
+          </div>
+          <div style="display:flex;gap:14px">
+            <div style="display:flex;flex-direction:column;align-items:center"><div style="width:26px;height:26px;border-radius:50%;border:2px solid #E3D9CB;box-sizing:border-box"></div></div>
+            <div style="display:flex;flex-direction:column;gap:1px"><span style="font-weight:800;font-size:14.5px;color:#C9BFB2">Servie</span><span style="font-size:12.5px;color:#C9BFB2;font-weight:600">On vous l’apporte à table</span></div>
+          </div>
+        </div>
+        <div style="margin:12px 20px 0;background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;flex-direction:column;gap:1px"><span style="font-weight:800;font-size:14px;color:#221A13">5 articles · 27,6 TND</span><span style="font-size:12px;color:#9A8D80;font-weight:600">2× Cappuccino, 1× Citronnade, 2× Bambalouni</span></div>
+          <span style="color:#9A8D80;font-weight:800;font-size:16px">⌄</span>
+        </div>
+        <div style="flex:1"></div>
+        <div style="flex:none;padding:10px 16px 14px;display:flex;flex-direction:column;gap:9px">
+          <div style="height:52px;border-radius:16px;border:2px solid #221A13;color:#221A13;font-weight:800;font-size:15.5px;display:flex;align-items:center;justify-content:center;gap:9px;background:#FFFDF9"><span style="width:8px;height:8px;border-radius:50%;background:#BC4B26"></span>Appeler le serveur</div>
+          <div style="height:46px;border-radius:14px;color:#A03D1D;font-weight:800;font-size:14.5px;display:flex;align-items:center;justify-content:center;background:#F7E7DE">Ajouter des articles</div>
+        </div>
+      </div>
+    </x-import>
+    <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}"><span class="dv-cap" id="p5">P5 · TRACKING — live via realtime subscribe · animated “preparing” state · summary collapsed · waiter one tap away</span></sc-if>
+  </div>
+
+  <!-- P6 · Call waiter sheet -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" bg="#FAF6EF" hint-size="428px,908px">
+      <div style="height:100%;display:flex;flex-direction:column;font-family:Manrope,sans-serif;background:#FAF6EF;position:relative">
+        <div style="padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;opacity:.45">
+          <div style="width:40px;height:40px;border-radius:50%;background:#FFF;border:1.5px solid #EDE4D8;display:flex;align-items:center;justify-content:center"><span style="color:#221A13;font-size:17px;font-weight:800;margin-top:-2px">‹</span></div>
+          <span style="font-size:13px;font-weight:800;color:#9A8D80;letter-spacing:.05em">COMMANDE #A-207</span>
+          <div style="width:40px"></div>
+        </div>
+        <div style="padding:26px 20px 22px;display:flex;flex-direction:column;align-items:center;gap:12px;opacity:.45">
+          <div style="width:88px;height:88px;border-radius:50%;background:#F7EDDC;display:flex;align-items:center;justify-content:center">
+            <div style="display:flex;gap:5px;align-items:flex-end"><span style="width:9px;height:22px;border-radius:4px;background:#B97F1E"></span><span style="width:9px;height:30px;border-radius:4px;background:#B97F1E"></span><span style="width:9px;height:16px;border-radius:4px;background:#B97F1E"></span></div>
+          </div>
+          <span style="font:800 30px 'Bricolage Grotesque',sans-serif;color:#221A13">En préparation</span>
+        </div>
+        <div style="position:absolute;inset:0;background:rgba(34,26,19,.45)"></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;background:#FFFDF9;border-radius:26px 26px 0 0;padding:12px 20px 18px;box-shadow:0 -12px 40px rgba(34,26,19,.3)">
+          <div style="width:44px;height:5px;border-radius:3px;background:#E3D9CB;margin:0 auto 16px"></div>
+          <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:16px">
+            <span style="font:800 23px 'Bricolage Grotesque',sans-serif;color:#221A13">Appeler le serveur</span>
+            <span style="font-size:13px;color:#6E6257;font-weight:600;line-height:1.5">Le personnel reçoit votre demande avec votre numéro de table.</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:12px;border:2px solid #BC4B26;background:#F7E7DE;border-radius:14px;padding:13px 15px"><div style="width:20px;height:20px;border-radius:50%;border:6px solid #BC4B26;box-sizing:border-box;background:#FFF"></div><span style="font-weight:800;font-size:14.5px;color:#A03D1D">L’addition, s’il vous plaît</span></div>
+            <div style="display:flex;align-items:center;gap:12px;border:1.5px solid #E3D9CB;background:#FFF;border-radius:14px;padding:13px 15px"><div style="width:20px;height:20px;border-radius:50%;border:2px solid #C9BFB2;box-sizing:border-box"></div><span style="font-weight:700;font-size:14.5px;color:#221A13">De l’eau</span></div>
+            <div style="display:flex;align-items:center;gap:12px;border:1.5px solid #E3D9CB;background:#FFF;border-radius:14px;padding:13px 15px"><div style="width:20px;height:20px;border-radius:50%;border:2px solid #C9BFB2;box-sizing:border-box"></div><span style="font-weight:700;font-size:14.5px;color:#221A13">Couverts / serviettes</span></div>
+            <div style="display:flex;align-items:center;gap:12px;border:1.5px solid #E3D9CB;background:#FFF;border-radius:14px;padding:13px 15px"><div style="width:20px;height:20px;border-radius:50%;border:2px solid #C9BFB2;box-sizing:border-box"></div><span style="font-weight:700;font-size:14.5px;color:#221A13">Autre demande…</span></div>
+          </div>
+          <div style="height:54px;border-radius:16px;background:#221A13;color:#FAF6EF;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center">Envoyer la demande</div>
+        </div>
+      </div>
+    </x-import>
+    <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}"><span class="dv-cap" id="p6">P6 · CALL WAITER — bottom sheet, reason presets · lands on staff devices with table number</span></sc-if>
+  </div>
+
+<!-- P7 · Arabic RTL menu -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" bg="#FAF6EF" hint-size="428px,908px">
+      <div dir="rtl" style="height:100%;display:flex;flex-direction:column;font-family:'IBM Plex Sans Arabic',sans-serif;background:#FAF6EF;position:relative">
+        <div style="padding:14px 20px 0;display:flex;align-items:center;gap:10px">
+          <div style="width:30px;height:30px;border-radius:9px;background:#BC4B26;position:relative;flex:none"><div style="position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;background:#FFF;border-radius:2px"></div><div style="position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;background:#FFF;border-radius:2px;transform:rotate(45deg)"></div></div>
+          <div style="flex:1;display:flex;flex-direction:column">
+            <span style="font-weight:700;font-size:17px;color:#221A13;line-height:1.3">مقهى المرسى</span>
+            <span style="font-size:12px;font-weight:500;color:#9A8D80">القائمة · العربية</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;background:#F7E7DE;border-radius:100px;padding:7px 12px"><span style="font-weight:700;font-size:13.5px;color:#A03D1D">الطاولة 12</span></div>
+        </div>
+        <div style="padding:14px 20px 0">
+          <div style="height:46px;border-radius:14px;background:#FFF;border:1.5px solid #EDE4D8;display:flex;align-items:center;gap:10px;padding:0 14px">
+            <div style="width:15px;height:15px;border:2px solid #9A8D80;border-radius:50%;position:relative;flex:none"><div style="position:absolute;width:2px;height:6px;background:#9A8D80;bottom:-5px;left:-2px;transform:rotate(45deg)"></div></div>
+            <span style="font-size:14px;color:#9A8D80;font-weight:400">ابحث عن طبق أو مشروب…</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;padding:14px 20px 4px;overflow:hidden">
+          <span style="flex:none;height:40px;display:inline-flex;align-items:center;padding:0 17px;border-radius:100px;background:#221A13;color:#FAF6EF;font-weight:700;font-size:14.5px">القهوة</span>
+          <span style="flex:none;height:40px;display:inline-flex;align-items:center;padding:0 17px;border-radius:100px;background:#FFF;border:1.5px solid #EDE4D8;color:#6E6257;font-weight:600;font-size:14.5px">الفطور</span>
+          <span style="flex:none;height:40px;display:inline-flex;align-items:center;padding:0 17px;border-radius:100px;background:#FFF;border:1.5px solid #EDE4D8;color:#6E6257;font-weight:600;font-size:14.5px">عصائر</span>
+          <span style="flex:none;height:40px;display:inline-flex;align-items:center;padding:0 17px;border-radius:100px;background:#FFF;border:1.5px solid #EDE4D8;color:#6E6257;font-weight:600;font-size:14.5px">حلويات</span>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:10px 20px 0;display:flex;flex-direction:column;gap:10px">
+          <div style="background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center">
+            <div style="width:68px;height:68px;border-radius:12px;flex:none;background:repeating-linear-gradient(-45deg,#F2E5D4,#F2E5D4 7px,#EBDCC7 7px,#EBDCC7 14px)"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:700;font-size:16.5px;color:#221A13">اكسبرس</span><span style="font-weight:700;font-size:15.5px;color:#221A13;white-space:nowrap;direction:ltr">2,8 <span style="font-size:11.5px;color:#9A8D80">د.ت</span></span></div>
+              <div style="font-size:13px;color:#6E6257;line-height:1.6">قصير ومركّز، تحميص محلي</div>
+            </div>
+            <div style="width:42px;height:42px;border-radius:12px;background:#F7E7DE;color:#A03D1D;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;flex:none">+</div>
+          </div>
+          <div style="background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center">
+            <div style="width:68px;height:68px;border-radius:12px;flex:none;background:repeating-linear-gradient(-45deg,#F2E5D4,#F2E5D4 7px,#EBDCC7 7px,#EBDCC7 14px)"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:700;font-size:16.5px;color:#221A13">دايركت</span><span style="font-weight:700;font-size:15.5px;color:#221A13;white-space:nowrap;direction:ltr">3,8 <span style="font-size:11.5px;color:#9A8D80">د.ت</span></span></div>
+              <div style="font-size:13px;color:#6E6257;line-height:1.6">قهوة بالحليب على الطريقة التونسية</div>
+            </div>
+            <div style="width:42px;height:42px;border-radius:12px;background:#F7E7DE;color:#A03D1D;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;flex:none">+</div>
+          </div>
+          <div style="background:#FFF;border:1.5px solid #BC4B26;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center;box-shadow:0 2px 8px rgba(188,75,38,.1)">
+            <div style="width:68px;height:68px;border-radius:12px;flex:none;background:repeating-linear-gradient(-45deg,#F2E5D4,#F2E5D4 7px,#EBDCC7 7px,#EBDCC7 14px);position:relative">
+              <span style="position:absolute;top:-7px;right:-7px;background:#BC4B26;color:#FFF;font-weight:700;font-size:11px;padding:3px 9px;border-radius:100px">الأكثر طلباً</span>
+            </div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:700;font-size:16.5px;color:#221A13">كابوتشينو</span><span style="font-weight:700;font-size:15.5px;color:#221A13;white-space:nowrap;direction:ltr">5,5 <span style="font-size:11.5px;color:#9A8D80">د.ت</span></span></div>
+              <div style="font-size:13px;color:#6E6257;line-height:1.6">إسبريسو، حليب مبخّر، رغوة ناعمة</div>
+              <div style="display:flex;gap:5px;margin-top:2px"><span style="font-size:11px;font-weight:600;color:#1F5A36;border:1px solid #BCD8C5;border-radius:100px;padding:2px 8px">نباتي</span><span style="font-size:11px;font-weight:600;color:#6E6257;border:1px solid #E3D9CB;border-radius:100px;padding:2px 8px">3 أحجام</span></div>
+            </div>
+            <div style="width:42px;height:42px;border-radius:12px;background:#BC4B26;color:#FFF;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;flex:none;box-shadow:0 3px 8px rgba(188,75,38,.3)">+</div>
+          </div>
+          <div style="background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center">
+            <div style="width:68px;height:68px;border-radius:12px;flex:none;background:repeating-linear-gradient(-45deg,#F2E5D4,#F2E5D4 7px,#EBDCC7 7px,#EBDCC7 14px)"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:700;font-size:16.5px;color:#221A13">قهوة تركية</span><span style="font-weight:700;font-size:15.5px;color:#221A13;white-space:nowrap;direction:ltr">3,5 <span style="font-size:11.5px;color:#9A8D80">د.ت</span></span></div>
+              <div style="font-size:13px;color:#6E6257;line-height:1.6">مطحونة ناعم، تقدَّم مع ماء الزهر</div>
+            </div>
+            <div style="width:42px;height:42px;border-radius:12px;background:#F7E7DE;color:#A03D1D;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;flex:none">+</div>
+          </div>
+        </div>
+        <div style="position:absolute;left:16px;right:16px;bottom:14px;height:58px;border-radius:18px;background:#221A13;display:flex;align-items:center;padding:0 18px 0 8px;box-shadow:0 10px 26px rgba(34,26,19,.35)">
+          <span style="width:24px;height:24px;border-radius:8px;background:#BC4B26;color:#FFF;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;margin-left:12px;order:2">2</span>
+          <span style="flex:1;color:#FAF6EF;font-weight:700;font-size:15.5px;order:1;margin-right:10px">عرض السلة</span>
+          <span style="color:#FAF6EF;font-weight:700;font-size:15px;background:rgba(255,255,255,.12);border-radius:12px;padding:9px 14px;direction:ltr;order:0">13,3 د.ت</span>
+        </div>
+      </div>
+    </x-import>
+    <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}"><span class="dv-cap" id="p7">P7 · ARABIC RTL — full mirror (photos, chips, “+”, cart) · western numerals stay LTR · type +10%, taller leading</span></sc-if>
+  </div>
+
+  <!-- P8 · Offline / queued -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" bg="#FAF6EF" hint-size="428px,908px">
+      <div style="height:100%;display:flex;flex-direction:column;font-family:Manrope,sans-serif;background:#FAF6EF">
+        <div style="margin:12px 16px 0;background:#F7EDDC;border:1.5px solid #E3CFA5;border-radius:14px;padding:12px 15px;display:flex;align-items:center;gap:11px">
+          <span style="width:9px;height:9px;border-radius:50%;background:#B97F1E;animation:chPulse 1.4s infinite;flex:none"></span>
+          <div style="display:flex;flex-direction:column;gap:1px">
+            <span style="font-weight:800;font-size:13.5px;color:#8A5E12">Connexion instable</span>
+            <span style="font-size:12px;font-weight:600;color:#8A5E12;opacity:.8">Le menu reste consultable hors-ligne</span>
+          </div>
+        </div>
+        <div style="margin:12px 16px 0;background:#221A13;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 8px 22px rgba(34,26,19,.25)">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;flex:none">
+              <div style="display:flex;gap:3px"><span style="width:5px;height:5px;border-radius:50%;background:#E08D6B;animation:chPulse 1.2s infinite"></span><span style="width:5px;height:5px;border-radius:50%;background:#E08D6B;animation:chPulse 1.2s .2s infinite"></span><span style="width:5px;height:5px;border-radius:50%;background:#E08D6B;animation:chPulse 1.2s .4s infinite"></span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:1px">
+              <span style="font-weight:800;font-size:15px;color:#FAF6EF">Commande en file d’attente</span>
+              <span style="font-size:12.5px;font-weight:600;color:rgba(250,246,239,.65);line-height:1.45">3 articles · 16,8 TND — envoi automatique dès le retour du réseau</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:9px">
+            <div style="flex:1;height:42px;border-radius:12px;background:#BC4B26;color:#FFF;font-weight:800;font-size:13.5px;display:flex;align-items:center;justify-content:center">Réessayer maintenant</div>
+            <div style="height:42px;padding:0 16px;border-radius:12px;border:1.5px solid rgba(250,246,239,.25);color:#FAF6EF;font-weight:700;font-size:13.5px;display:flex;align-items:center;justify-content:center">Modifier</div>
+          </div>
+        </div>
+        <div style="padding:18px 20px 6px;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-weight:800;font-size:14px;color:#221A13">Menu — consulté hors-ligne</span>
+          <span style="font-size:11px;font-weight:800;color:#6E6257;background:#EDE4D8;border-radius:100px;padding:4px 10px">EN CACHE · 14:29</span>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:6px 20px 0;display:flex;flex-direction:column;gap:10px">
+          <div style="background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center">
+            <div style="width:68px;height:68px;border-radius:12px;flex:none;background:repeating-linear-gradient(45deg,#F2E5D4,#F2E5D4 7px,#EBDCC7 7px,#EBDCC7 14px)"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:800;font-size:15.5px;color:#221A13">Express</span><span style="font-weight:800;font-size:15.5px;color:#221A13">2,8 <span style="font-size:11px;color:#9A8D80">TND</span></span></div>
+              <div style="font-size:12.5px;color:#6E6257">Court, intense, torréfaction locale</div>
+            </div>
+            <div style="width:42px;height:42px;border-radius:12px;background:#F7E7DE;color:#A03D1D;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;flex:none">+</div>
+          </div>
+          <div style="background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center">
+            <div style="width:68px;height:68px;border-radius:12px;flex:none;background:repeating-linear-gradient(45deg,#F2E5D4,#F2E5D4 7px,#EBDCC7 7px,#EBDCC7 14px)"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:800;font-size:15.5px;color:#221A13">Direct</span><span style="font-weight:800;font-size:15.5px;color:#221A13">3,8 <span style="font-size:11px;color:#9A8D80">TND</span></span></div>
+              <div style="font-size:12.5px;color:#6E6257">Café au lait à la tunisienne</div>
+            </div>
+            <div style="width:42px;height:42px;border-radius:12px;background:#F7E7DE;color:#A03D1D;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;flex:none">+</div>
+          </div>
+          <div style="background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center;opacity:.7">
+            <div style="width:68px;height:68px;border-radius:12px;flex:none;background:#F1EAE0;animation:chPulse 1.6s infinite"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:7px">
+              <div style="height:13px;border-radius:6px;background:#F1EAE0;width:55%;animation:chPulse 1.6s infinite"></div>
+              <div style="height:10px;border-radius:5px;background:#F1EAE0;width:80%;animation:chPulse 1.6s .2s infinite"></div>
+            </div>
+          </div>
+          <div style="background:#FFF;border:1px solid #EDE4D8;border-radius:16px;padding:12px;display:flex;gap:12px;align-items:center;opacity:.45">
+            <div style="width:68px;height:68px;border-radius:12px;flex:none;background:#F1EAE0;animation:chPulse 1.6s .3s infinite"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:7px">
+              <div style="height:13px;border-radius:6px;background:#F1EAE0;width:45%;animation:chPulse 1.6s .4s infinite"></div>
+              <div style="height:10px;border-radius:5px;background:#F1EAE0;width:70%;animation:chPulse 1.6s .5s infinite"></div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:none;padding:10px 16px 14px">
+          <div style="height:50px;border-radius:14px;border:2px solid #221A13;color:#221A13;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;background:#FFFDF9">Voir la file d’attente</div>
+        </div>
+      </div>
+    </x-import>
+    <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}"><span class="dv-cap" id="p8">P8 · POOR CONNECTION — cached menu, queued order with auto-retry, skeletons while loading · designed for entry-level Android on 3G</span></sc-if>
+  </div>
+
+  <!-- P9 · Served (EN) -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" bg="#FAF6EF" hint-size="428px,908px">
+      <div style="height:100%;display:flex;flex-direction:column;font-family:Manrope,sans-serif;background:#FAF6EF">
+        <div style="padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between">
+          <div style="width:40px;height:40px;border-radius:50%;background:#FFF;border:1.5px solid #EDE4D8;display:flex;align-items:center;justify-content:center"><span style="color:#221A13;font-size:17px;font-weight:800;margin-top:-2px">‹</span></div>
+          <span style="font-size:13px;font-weight:800;color:#9A8D80;letter-spacing:.05em">ORDER #A-207</span>
+          <div style="width:40px"></div>
+        </div>
+        <div style="padding:30px 20px 24px;display:flex;flex-direction:column;align-items:center;gap:14px">
+          <div style="width:92px;height:92px;border-radius:50%;background:#E4F0E7;display:flex;align-items:center;justify-content:center">
+            <div style="width:56px;height:56px;border-radius:50%;background:#2E7D4F;display:flex;align-items:center;justify-content:center;color:#FFF;font-size:26px;font-weight:800">✓</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <span style="font:800 32px 'Bricolage Grotesque',sans-serif;color:#221A13">Served — Sahha!</span>
+            <span style="font-size:14px;font-weight:600;color:#6E6257;text-align:center;line-height:1.5">Enjoy your order. Pay at the counter<br>whenever you’re ready.</span>
+          </div>
+        </div>
+        <div style="margin:0 20px;background:#FFF;border:1px solid #EDE4D8;border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed #E3D9CB;padding-bottom:10px">
+            <span style="font-weight:800;font-size:13px;color:#9A8D80;letter-spacing:.04em">TABLE 12 · 2:41 PM</span>
+            <span style="font-size:11px;font-weight:800;color:#1F5A36;background:#E4F0E7;border-radius:100px;padding:4px 10px">SERVED IN 9 MIN</span>
+          </div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:700;color:#221A13">2× Cappuccino <span style="color:#9A8D80;font-weight:600">— large, no sugar</span></span><span style="font-size:14px;font-weight:700;color:#221A13">14.6</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:700;color:#221A13">1× Fresh lemonade</span><span style="font-size:14px;font-weight:700;color:#221A13">6.0</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:700;color:#221A13">2× Bambalouni</span><span style="font-size:14px;font-weight:700;color:#221A13">7.0</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px dashed #E3D9CB;padding-top:11px"><span style="font-weight:800;font-size:15px;color:#221A13">Total</span><span style="font:800 22px 'Bricolage Grotesque',sans-serif;color:#221A13">27.6 <span style="font:700 12px Manrope,sans-serif;color:#9A8D80">TND</span></span></div>
+        </div>
+        <div style="flex:1"></div>
+        <div style="flex:none;padding:10px 16px 14px;display:flex;flex-direction:column;gap:9px">
+          <div style="height:54px;border-radius:16px;background:#BC4B26;color:#FFF;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(188,75,38,.3)">Order something else</div>
+          <div style="height:48px;border-radius:14px;border:2px solid #221A13;color:#221A13;font-weight:800;font-size:14.5px;display:flex;align-items:center;justify-content:center;background:#FFFDF9">Call a waiter</div>
+        </div>
+      </div>
+    </x-import>
+    <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}"><span class="dv-cap" id="p9">P9 · SERVED (EN) — end state, receipt-style recap, “Sahha!” voice moment · same layout, third language</span></sc-if>
+  </div>
+</div>
+</div>
+
+<!-- ================= 1c · BUSINESS PORTAL ================= -->
+<div class="dv-opt" id="1c" style="width:max-content;margin-top:34px">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Business portal — business.chehia.tn · realtime floor, kitchen display, menu, QR cards, analytics + AI</div>
+<div style="display:flex;flex-wrap:wrap;gap:30px;align-items:flex-start;max-width:2790px;zoom:{{ frameZoom }}">
+
+  <!-- W1 · Live orders / floor -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="{{ 1360 }}" height="{{ 830 }}" url="business.chehia.tn/commandes" hint-size="1360px,830px">
+      <div style="height:100%;display:flex;font-family:Manrope,sans-serif;background:#F6F1E8">
+        <div style="width:218px;flex:none;background:#FFFDF9;border-right:1px solid #EDE4D8;display:flex;flex-direction:column;padding:18px 14px">
+          <div style="display:flex;align-items:center;gap:9px;padding:0 8px 18px">
+            <div style="width:30px;height:30px;border-radius:9px;background:#BC4B26;position:relative;flex:none"><div style="position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;background:#FFF;border-radius:2px"></div><div style="position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;background:#FFF;border-radius:2px;transform:rotate(45deg)"></div></div>
+            <span style="font:800 19px 'Bricolage Grotesque',sans-serif;color:#221A13">chehia<span style="color:#BC4B26">.</span></span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;align-items:center;gap:11px;background:#F7E7DE;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#BC4B26"></span><span style="font-weight:800;font-size:13.5px;color:#A03D1D">Commandes</span><span style="margin-left:auto;background:#BC4B26;color:#FFF;font-weight:800;font-size:11px;border-radius:100px;padding:2px 8px">2</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px" style-hover="background:#F6F1E8"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Cuisine</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px" style-hover="background:#F6F1E8"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Menu</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px" style-hover="background:#F6F1E8"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Tables &amp; QR</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px" style-hover="background:#F6F1E8"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Statistiques</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px" style-hover="background:#F6F1E8"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Réglages</span></div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="background:#F6F1E8;border-radius:13px;padding:12px;display:flex;flex-direction:column;gap:2px">
+            <span style="font-weight:800;font-size:13px;color:#221A13">Café El Marsa</span>
+            <span style="font-size:11.5px;font-weight:600;color:#9A8D80">Plan Pro · Sana B. — gérante</span>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+          <div style="flex:none;display:flex;align-items:center;gap:14px;padding:18px 24px 14px">
+            <span style="font:800 24px 'Bricolage Grotesque',sans-serif;color:#221A13">Commandes en direct</span>
+            <span style="display:inline-flex;align-items:center;gap:7px;background:#E4F0E7;color:#1F5A36;font-weight:800;font-size:12px;padding:6px 12px;border-radius:100px"><span style="width:7px;height:7px;border-radius:50%;background:#2E7D4F;animation:chPulse 1.4s infinite"></span>En direct</span>
+            <div style="flex:1"></div>
+            <span style="font-size:12.5px;font-weight:700;color:#6E6257;background:#FFFDF9;border:1px solid #EDE4D8;border-radius:100px;padding:8px 14px">Aujourd’hui · 96 commandes · 1 284 TND</span>
+            <span style="display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;color:#221A13;background:#FFFDF9;border:1px solid #EDE4D8;border-radius:100px;padding:8px 14px"><span style="width:34px;height:20px;border-radius:100px;background:#2E7D4F;position:relative"><span style="position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:#FFF"></span></span>Son</span>
+          </div>
+          <div style="flex:1;display:flex;gap:18px;padding:4px 24px 22px;min-height:0">
+            <div style="width:352px;flex:none;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+              <div style="background:#FFFDF9;border:2px solid #BC4B26;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 8px 24px rgba(188,75,38,.16);position:relative">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="width:44px;height:44px;border-radius:12px;background:#BC4B26;color:#FFF;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none"><span style="font-size:9px;font-weight:800;opacity:.8;letter-spacing:.05em">TABLE</span><span style="font:800 17px 'Bricolage Grotesque',sans-serif;line-height:1">03</span></div>
+                  <div style="display:flex;flex-direction:column;gap:1px"><span style="font-weight:800;font-size:14.5px;color:#221A13">#A-212 · Nouvelle</span><span style="font-size:12px;font-weight:700;color:#A03D1D">il y a 8 secondes</span></div>
+                  <span style="margin-left:auto;width:10px;height:10px;border-radius:50%;background:#BC4B26;animation:chPulse 1.1s infinite"></span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;border-top:1px dashed #EDE4D8;padding-top:11px">
+                  <div style="display:flex;justify-content:space-between"><span style="font-size:13.5px;font-weight:700;color:#221A13">1× Ojja merguez <span style="color:#9A8D80;font-weight:600">— bien cuite</span></span><span style="font-size:13.5px;font-weight:700;color:#221A13">14,5</span></div>
+                  <div style="display:flex;justify-content:space-between"><span style="font-size:13.5px;font-weight:700;color:#221A13">1× Citronnade fraîche</span><span style="font-size:13.5px;font-weight:700;color:#221A13">6,0</span></div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px"><span style="font-size:11.5px;font-weight:800;color:#8A5E12;background:#F7EDDC;border-radius:100px;padding:3px 9px">Note : sans coriandre</span><span style="font-weight:800;font-size:14px;color:#221A13">20,5 TND</span></div>
+                </div>
+                <div style="height:44px;border-radius:12px;background:#BC4B26;color:#FFF;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:#A03D1D">Accepter → en préparation</div>
+              </div>
+              <div style="background:#FFFDF9;border:1px solid #EDE4D8;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:11px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="width:44px;height:44px;border-radius:12px;background:#F7EDDC;color:#8A5E12;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none"><span style="font-size:9px;font-weight:800;opacity:.8;letter-spacing:.05em">TABLE</span><span style="font:800 17px 'Bricolage Grotesque',sans-serif;line-height:1">06</span></div>
+                  <div style="display:flex;flex-direction:column;gap:1px"><span style="font-weight:800;font-size:14.5px;color:#221A13">#A-211 · En préparation</span><span style="font-size:12px;font-weight:700;color:#8A5E12">depuis 4 min 12 s</span></div>
+                  <span style="margin-left:auto;font-size:12px;font-weight:800;color:#8A5E12;background:#F7EDDC;border-radius:100px;padding:4px 10px">4 articles</span>
+                </div>
+                <div style="height:42px;border-radius:12px;border:2px solid #221A13;color:#221A13;font-weight:800;font-size:13.5px;display:flex;align-items:center;justify-content:center;cursor:pointer">Marquer servie</div>
+              </div>
+              <div style="background:#FFFDF9;border:1px solid #EDE4D8;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:10px;opacity:.62">
+                <div style="width:38px;height:38px;border-radius:11px;background:#E4F0E7;color:#1F5A36;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex:none">✓</div>
+                <div style="display:flex;flex-direction:column;gap:1px"><span style="font-weight:800;font-size:13.5px;color:#221A13">#A-209 · Table 07 · Servie</span><span style="font-size:11.5px;font-weight:700;color:#9A8D80">3 articles · 19,8 TND · servie en 7 min</span></div>
+              </div>
+            </div>
+            <div style="flex:1;background:#FFFDF9;border:1px solid #EDE4D8;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0">
+              <div style="display:flex;align-items:center;gap:14px">
+                <span style="font-weight:800;font-size:15px;color:#221A13">Plan de salle</span>
+                <span style="font-size:11.5px;font-weight:700;color:#9A8D80">14 tables · 3 zones</span>
+                <div style="flex:1"></div>
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#6E6257"><span style="width:8px;height:8px;border-radius:50%;background:#C9BFB2"></span>Libre</span>
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#A03D1D"><span style="width:8px;height:8px;border-radius:50%;background:#BC4B26"></span>Nouvelle</span>
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#8A5E12"><span style="width:8px;height:8px;border-radius:50%;background:#B97F1E"></span>En préparation</span>
+                <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#1F5A36"><span style="width:8px;height:8px;border-radius:50%;background:#2E7D4F"></span>Servie</span>
+              </div>
+              <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-content:start">
+                <sc-for list="{{ floorTables }}" as="tb" hint-placeholder-count="14">
+                  <div style="border-radius:14px;border:1.5px solid {{ tb.bd }};background:{{ tb.bg }};padding:13px 14px;display:flex;flex-direction:column;gap:6px;min-height:86px;box-sizing:border-box">
+                    <div style="display:flex;align-items:center;justify-content:space-between">
+                      <span style="font:800 17px 'Bricolage Grotesque',sans-serif;color:#221A13">T{{ tb.n }}</span>
+                      <span style="width:9px;height:9px;border-radius:50%;background:{{ tb.dot }};animation:{{ tb.anim }}"></span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:1px">
+                      <span style="font-size:11.5px;font-weight:800;color:{{ tb.fg }}">{{ tb.label }}</span>
+                      <span style="font-size:10.5px;font-weight:600;color:#9A8D80">{{ tb.zone }} <sc-if value="{{ tb.t }}" hint-placeholder-val="{{ false }}">· {{ tb.t }}</sc-if></span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;background:#F6F1E8;border-radius:12px;padding:11px 14px">
+                <span style="width:8px;height:8px;border-radius:50%;background:#BC4B26;animation:chPulse 1.2s infinite"></span>
+                <span style="font-size:12.5px;font-weight:700;color:#221A13">Table 09 — demande serveur : <span style="color:#A03D1D">l’addition</span> · il y a 31 s</span>
+                <span style="margin-left:auto;font-size:12px;font-weight:800;color:#FFF;background:#221A13;border-radius:100px;padding:6px 13px;cursor:pointer">Pris en charge</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </x-import>
+    <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}"><span class="dv-cap" id="w1">W1 · LIVE ORDERS — Supabase Realtime feed · new order rings + sound · floor map mirrors table states · waiter calls surface here</span></sc-if>
+  </div>
+
+  <!-- W2 · Kitchen display (dark) -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="{{ 1360 }}" height="{{ 830 }}" url="business.chehia.tn/cuisine" hint-size="1360px,830px">
+      <div style="height:100%;display:flex;flex-direction:column;font-family:Manrope,sans-serif;background:#171310">
+        <div style="flex:none;display:flex;align-items:center;gap:16px;padding:18px 26px;border-bottom:1px solid #2E261F">
+          <div style="width:32px;height:32px;border-radius:9px;background:#BC4B26;position:relative;flex:none"><div style="position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;background:#FFF;border-radius:2px"></div><div style="position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;background:#FFF;border-radius:2px;transform:rotate(45deg)"></div></div>
+          <span style="font:800 22px 'Bricolage Grotesque',sans-serif;color:#F4EDE4">Cuisine — Café El Marsa</span>
+          <div style="flex:1"></div>
+          <span style="font-size:13px;font-weight:800;color:#B8A996;background:#211B16;border:1px solid #372E26;border-radius:100px;padding:8px 15px">3 tickets ouverts</span>
+          <span style="font-size:13px;font-weight:800;color:#B8A996;background:#211B16;border:1px solid #372E26;border-radius:100px;padding:8px 15px">Temps moyen · 6 min</span>
+          <span style="font:800 26px 'Bricolage Grotesque',sans-serif;color:#F4EDE4;font-variant-numeric:tabular-nums">14:41</span>
+        </div>
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;padding:20px 26px;min-height:0">
+          <div style="display:flex;flex-direction:column;gap:12px;min-height:0">
+            <div style="display:flex;align-items:center;gap:9px"><span style="width:9px;height:9px;border-radius:50%;background:#E08D6B"></span><span style="font-weight:800;font-size:14px;color:#F4EDE4;letter-spacing:.03em">À PRÉPARER · 1</span></div>
+            <div style="background:#211B16;border:2px solid #BC4B26;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:13px;box-shadow:0 10px 30px rgba(188,75,38,.15)">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span style="font:800 30px 'Bricolage Grotesque',sans-serif;color:#F4EDE4">T03</span>
+                <span style="font-size:13px;font-weight:800;color:#E08D6B;background:rgba(188,75,38,.16);border-radius:100px;padding:6px 13px;font-variant-numeric:tabular-nums">0:12</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:9px;border-top:1px dashed #372E26;padding-top:13px">
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:17px;font-weight:800;color:#F4EDE4">1 × Ojja merguez</span><span style="font-size:13.5px;font-weight:600;color:#CBB89E;padding-left:16px">— bien cuite · sans coriandre</span></div>
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:17px;font-weight:800;color:#F4EDE4">1 × Citronnade fraîche</span><span style="font-size:13.5px;font-weight:600;color:#CBB89E;padding-left:16px">— menthe, peu de glace</span></div>
+              </div>
+              <div style="height:52px;border-radius:13px;background:#BC4B26;color:#FFF;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:#A03D1D">Commencer</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;min-height:0">
+            <div style="display:flex;align-items:center;gap:9px"><span style="width:9px;height:9px;border-radius:50%;background:#D9A83C"></span><span style="font-weight:800;font-size:14px;color:#F4EDE4;letter-spacing:.03em">EN COURS · 2</span></div>
+            <div style="background:#211B16;border:1px solid #372E26;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:13px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span style="font:800 30px 'Bricolage Grotesque',sans-serif;color:#F4EDE4">T06</span>
+                <span style="font-size:13px;font-weight:800;color:#F1CE7E;background:rgba(217,168,60,.14);border-radius:100px;padding:6px 13px;font-variant-numeric:tabular-nums">4:12</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:9px;border-top:1px dashed #372E26;padding-top:13px">
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:17px;font-weight:800;color:#F4EDE4">2 × Cappuccino</span><span style="font-size:13.5px;font-weight:600;color:#CBB89E;padding-left:16px">— grande · sans sucre</span></div>
+                <span style="font-size:17px;font-weight:800;color:#F4EDE4">1 × Citronnade fraîche</span>
+                <span style="font-size:17px;font-weight:800;color:#F4EDE4">2 × Bambalouni <span style="font-size:13px;color:#CBB89E;font-weight:600">— bien chauds</span></span>
+              </div>
+              <div style="height:52px;border-radius:13px;background:#2E7D4F;color:#FFF;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer">Marquer prête</div>
+            </div>
+            <div style="background:#211B16;border:1px solid #6E3D1E;border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span style="font:800 24px 'Bricolage Grotesque',sans-serif;color:#F4EDE4">T04</span>
+                <span style="font-size:13px;font-weight:800;color:#FF9D7E;background:rgba(176,46,46,.2);border-radius:100px;padding:6px 13px;font-variant-numeric:tabular-nums;animation:chPulse 1.3s infinite">8:05 — en retard</span>
+              </div>
+              <span style="font-size:16px;font-weight:800;color:#F4EDE4">1 × Plateau petit-déjeuner tunisien</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;min-height:0">
+            <div style="display:flex;align-items:center;gap:9px"><span style="width:9px;height:9px;border-radius:50%;background:#5FBF87"></span><span style="font-weight:800;font-size:14px;color:#F4EDE4;letter-spacing:.03em">PRÊTES · 1</span></div>
+            <div style="background:#211B16;border:1px solid #2E5A3E;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:13px;opacity:.9">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span style="font:800 30px 'Bricolage Grotesque',sans-serif;color:#F4EDE4">T12</span>
+                <span style="font-size:13px;font-weight:800;color:#8FD9AE;background:rgba(46,125,79,.16);border-radius:100px;padding:6px 13px">prête · appeler serveur</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:9px;border-top:1px dashed #372E26;padding-top:13px">
+                <span style="font-size:17px;font-weight:800;color:#F4EDE4">1 × Café turc</span>
+                <span style="font-size:17px;font-weight:800;color:#F4EDE4">1 × Bambalouni</span>
+              </div>
+              <div style="height:52px;border-radius:13px;border:2px solid #5FBF87;color:#8FD9AE;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer">Servie ✓</div>
+            </div>
+            <div style="flex:1;border:1.5px dashed #372E26;border-radius:18px;display:flex;align-items:center;justify-content:center;min-height:120px">
+              <span style="font-size:13px;font-weight:700;color:#6E6257">Les tickets servis disparaissent ici</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </x-import>
+    <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}"><span class="dv-cap" id="w2">W2 · KITCHEN DISPLAY — dark by design (glare, grease, distance) · 3-column flow · timers escalate green→amber→red · tap targets sized for busy hands</span></sc-if>
+  </div>
+
+<!-- W3 · Menu management -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="{{ 1360 }}" height="{{ 830 }}" url="business.chehia.tn/menu" hint-size="1360px,830px">
+      <div style="height:100%;display:flex;font-family:Manrope,sans-serif;background:#F6F1E8">
+        <div style="width:218px;flex:none;background:#FFFDF9;border-right:1px solid #EDE4D8;display:flex;flex-direction:column;padding:18px 14px">
+          <div style="display:flex;align-items:center;gap:9px;padding:0 8px 18px">
+            <div style="width:30px;height:30px;border-radius:9px;background:#BC4B26;position:relative;flex:none"><div style="position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;background:#FFF;border-radius:2px"></div><div style="position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;background:#FFF;border-radius:2px;transform:rotate(45deg)"></div></div>
+            <span style="font:800 19px 'Bricolage Grotesque',sans-serif;color:#221A13">chehia<span style="color:#BC4B26">.</span></span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Commandes</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Cuisine</span></div>
+            <div style="display:flex;align-items:center;gap:11px;background:#F7E7DE;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#BC4B26"></span><span style="font-weight:800;font-size:13.5px;color:#A03D1D">Menu</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Tables &amp; QR</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Statistiques</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Réglages</span></div>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+          <div style="flex:none;display:flex;align-items:center;gap:12px;padding:18px 24px 14px">
+            <span style="font:800 24px 'Bricolage Grotesque',sans-serif;color:#221A13">Menu</span>
+            <span style="font-size:12px;font-weight:800;color:#8A5E12;background:#F7EDDC;border-radius:100px;padding:6px 12px">2 modifications non publiées</span>
+            <div style="flex:1"></div>
+            <span style="font-size:13px;font-weight:800;color:#221A13;border:1.5px solid #E3D9CB;background:#FFFDF9;border-radius:12px;padding:10px 16px;cursor:pointer">Aperçu client</span>
+            <span style="font-size:13px;font-weight:800;color:#FFF;background:#BC4B26;border-radius:12px;padding:10px 16px;box-shadow:0 4px 12px rgba(188,75,38,.25);cursor:pointer" style-hover="background:#A03D1D">Publier les modifications</span>
+          </div>
+          <div style="flex:1;display:flex;gap:16px;padding:4px 24px 22px;min-height:0">
+            <div style="width:200px;flex:none;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;justify-content:space-between;background:#221A13;border-radius:12px;padding:12px 14px"><span style="font-weight:800;font-size:13px;color:#FAF6EF">Cafés</span><span style="font-size:11.5px;font-weight:800;color:rgba(250,246,239,.6)">6</span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;background:#FFFDF9;border:1px solid #EDE4D8;border-radius:12px;padding:12px 14px"><span style="font-weight:700;font-size:13px;color:#6E6257">Petit-déjeuner</span><span style="font-size:11.5px;font-weight:800;color:#C9BFB2">5</span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;background:#FFFDF9;border:1px solid #EDE4D8;border-radius:12px;padding:12px 14px"><span style="font-weight:700;font-size:13px;color:#6E6257">Jus &amp; citronnades</span><span style="font-size:11.5px;font-weight:800;color:#C9BFB2">7</span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;background:#FFFDF9;border:1px solid #EDE4D8;border-radius:12px;padding:12px 14px"><span style="font-weight:700;font-size:13px;color:#6E6257">Pâtisseries</span><span style="font-size:11.5px;font-weight:800;color:#C9BFB2">4</span></div>
+              <div style="display:flex;align-items:center;justify-content:center;border:1.5px dashed #D8CCBA;border-radius:12px;padding:12px 14px;color:#9A8D80;font-weight:800;font-size:12.5px;cursor:pointer">+ Catégorie</div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px;min-width:0">
+              <div style="display:flex;align-items:center;padding:0 14px;gap:12px"><span style="flex:1;font-size:11px;font-weight:800;color:#9A8D80;letter-spacing:.05em">ARTICLE</span><span style="width:120px;font-size:11px;font-weight:800;color:#9A8D80;letter-spacing:.05em">LANGUES</span><span style="width:70px;font-size:11px;font-weight:800;color:#9A8D80;letter-spacing:.05em;text-align:right">PRIX</span><span style="width:100px;font-size:11px;font-weight:800;color:#9A8D80;letter-spacing:.05em;text-align:center">DISPONIBLE</span></div>
+              <div style="background:#FFFDF9;border:1px solid #EDE4D8;border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:12px">
+                <span style="color:#C9BFB2;font-weight:800;letter-spacing:1px;cursor:grab">⋮⋮</span>
+                <div style="width:44px;height:44px;border-radius:10px;background:repeating-linear-gradient(45deg,#F2E5D4,#F2E5D4 6px,#EBDCC7 6px,#EBDCC7 12px);flex:none"></div>
+                <span style="flex:1;font-weight:800;font-size:14px;color:#221A13">Express</span>
+                <div style="width:120px;display:flex;gap:4px"><span style="font-size:10px;font-weight:800;color:#0B4A52;background:#E1EEEE;border-radius:5px;padding:3px 6px">FR</span><span style="font-size:10px;font-weight:800;color:#0B4A52;background:#E1EEEE;border-radius:5px;padding:3px 6px">AR</span><span style="font-size:10px;font-weight:800;color:#0B4A52;background:#E1EEEE;border-radius:5px;padding:3px 6px">EN</span></div>
+                <span style="width:70px;text-align:right;font-weight:800;font-size:14px;color:#221A13">2,8</span>
+                <div style="width:100px;display:flex;justify-content:center"><div style="width:42px;height:26px;border-radius:100px;background:#2E7D4F;position:relative"><div style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#FFF"></div></div></div>
+              </div>
+              <div style="background:#FFFDF9;border:2px solid #BC4B26;border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 6px 18px rgba(188,75,38,.12)">
+                <span style="color:#C9BFB2;font-weight:800;letter-spacing:1px;cursor:grab">⋮⋮</span>
+                <div style="width:44px;height:44px;border-radius:10px;background:repeating-linear-gradient(45deg,#F2E5D4,#F2E5D4 6px,#EBDCC7 6px,#EBDCC7 12px);flex:none"></div>
+                <div style="flex:1;display:flex;flex-direction:column"><span style="font-weight:800;font-size:14px;color:#221A13">Cappuccino</span><span style="font-size:11.5px;font-weight:700;color:#A03D1D">en cours d’édition…</span></div>
+                <div style="width:120px;display:flex;gap:4px"><span style="font-size:10px;font-weight:800;color:#0B4A52;background:#E1EEEE;border-radius:5px;padding:3px 6px">FR</span><span style="font-size:10px;font-weight:800;color:#0B4A52;background:#E1EEEE;border-radius:5px;padding:3px 6px">AR</span><span style="font-size:10px;font-weight:800;color:#0B4A52;background:#E1EEEE;border-radius:5px;padding:3px 6px">EN</span></div>
+                <span style="width:70px;text-align:right;font-weight:800;font-size:14px;color:#221A13">5,5</span>
+                <div style="width:100px;display:flex;justify-content:center"><div style="width:42px;height:26px;border-radius:100px;background:#2E7D4F;position:relative"><div style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#FFF"></div></div></div>
+              </div>
+              <div style="background:#FFFDF9;border:1px solid #EDE4D8;border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:12px">
+                <span style="color:#C9BFB2;font-weight:800;letter-spacing:1px;cursor:grab">⋮⋮</span>
+                <div style="width:44px;height:44px;border-radius:10px;background:repeating-linear-gradient(45deg,#F2E5D4,#F2E5D4 6px,#EBDCC7 6px,#EBDCC7 12px);flex:none"></div>
+                <span style="flex:1;font-weight:800;font-size:14px;color:#221A13">Café turc</span>
+                <div style="width:120px;display:flex;gap:4px"><span style="font-size:10px;font-weight:800;color:#0B4A52;background:#E1EEEE;border-radius:5px;padding:3px 6px">FR</span><span style="font-size:10px;font-weight:800;color:#0B4A52;background:#E1EEEE;border-radius:5px;padding:3px 6px">AR</span><span style="font-size:10px;font-weight:800;color:#8A5E12;background:#F7EDDC;border-radius:5px;padding:3px 6px">EN ?</span></div>
+                <span style="width:70px;text-align:right;font-weight:800;font-size:14px;color:#221A13">3,5</span>
+                <div style="width:100px;display:flex;justify-content:center"><div style="width:42px;height:26px;border-radius:100px;background:#2E7D4F;position:relative"><div style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#FFF"></div></div></div>
+              </div>
+              <div style="background:#F6F1E8;border:1px solid #EDE4D8;border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:12px;opacity:.75">
+                <span style="color:#C9BFB2;font-weight:800;letter-spacing:1px;cursor:grab">⋮⋮</span>
+                <div style="width:44px;height:44px;border-radius:10px;background:repeating-linear-gradient(45deg,#EEE7DA,#EEE7DA 6px,#E6DCCA 6px,#E6DCCA 12px);flex:none"></div>
+                <div style="flex:1;display:flex;align-items:center;gap:8px"><span style="font-weight:800;font-size:14px;color:#6E6257;text-decoration:line-through">Café glacé</span><span style="font-size:10.5px;font-weight:800;color:#9A8D80;background:#EDE4D8;border-radius:100px;padding:3px 8px">Épuisé aujourd’hui</span></div>
+                <div style="width:120px;display:flex;gap:4px"><span style="font-size:10px;font-weight:800;color:#0B4A52;background:#E1EEEE;border-radius:5px;padding:3px 6px">FR</span><span style="font-size:10px;font-weight:800;color:#0B4A52;background:#E1EEEE;border-radius:5px;padding:3px 6px">AR</span><span style="font-size:10px;font-weight:800;color:#0B4A52;background:#E1EEEE;border-radius:5px;padding:3px 6px">EN</span></div>
+                <span style="width:70px;text-align:right;font-weight:800;font-size:14px;color:#6E6257">6,5</span>
+                <div style="width:100px;display:flex;justify-content:center"><div style="width:42px;height:26px;border-radius:100px;background:#D8CCBA;position:relative"><div style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#FFF"></div></div></div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:center;border:1.5px dashed #D8CCBA;border-radius:14px;padding:13px;color:#9A8D80;font-weight:800;font-size:13px;cursor:pointer">+ Ajouter un article aux Cafés</div>
+            </div>
+            <div style="width:320px;flex:none;background:#FFFDF9;border:1px solid #EDE4D8;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:13px;overflow:hidden">
+              <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-weight:800;font-size:15px;color:#221A13">Modifier — Cappuccino</span><span style="color:#9A8D80;font-weight:800;cursor:pointer">✕</span></div>
+              <div style="display:flex;gap:6px">
+                <span style="flex:1;height:34px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;background:#221A13;color:#FAF6EF;font-weight:800;font-size:12px">Français</span>
+                <span style="flex:1;height:34px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;border:1.5px solid #E3D9CB;color:#6E6257;font-weight:700;font-size:12px">العربية</span>
+                <span style="flex:1;height:34px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;border:1.5px solid #E3D9CB;color:#6E6257;font-weight:700;font-size:12px">English</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;font-weight:800;color:#9A8D80">NOM</span><div style="height:40px;border-radius:10px;border:1.5px solid #E3D9CB;background:#FFF;display:flex;align-items:center;padding:0 12px;font-weight:700;font-size:13.5px;color:#221A13">Cappuccino</div></div>
+              <div style="display:flex;gap:10px">
+                <div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;font-weight:800;color:#9A8D80">PRIX (TND)</span><div style="height:40px;border-radius:10px;border:1.5px solid #E3D9CB;background:#FFF;display:flex;align-items:center;padding:0 12px;font-weight:800;font-size:13.5px;color:#221A13">5,500</div></div>
+                <div style="width:110px;display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;font-weight:800;color:#9A8D80">DISPONIBLE</span><div style="height:40px;display:flex;align-items:center"><div style="width:42px;height:26px;border-radius:100px;background:#2E7D4F;position:relative"><div style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#FFF"></div></div></div></div>
+              </div>
+              <div style="border:1.5px dashed #D8CCBA;border-radius:12px;padding:14px;display:flex;align-items:center;gap:11px">
+                <div style="width:42px;height:42px;border-radius:10px;background:repeating-linear-gradient(45deg,#F2E5D4,#F2E5D4 6px,#EBDCC7 6px,#EBDCC7 12px);flex:none"></div>
+                <div style="display:flex;flex-direction:column;gap:1px"><span style="font-weight:800;font-size:12.5px;color:#221A13">Photo du produit</span><span style="font-size:11.5px;font-weight:600;color:#9A8D80">Glissez ou cliquez · 4:3 min 800px</span></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:11px;font-weight:800;color:#9A8D80">GROUPES D’OPTIONS</span>
+                <div style="display:flex;align-items:center;justify-content:space-between;background:#F6F1E8;border-radius:10px;padding:10px 12px"><span style="font-weight:800;font-size:12.5px;color:#221A13">Taille <span style="color:#A03D1D;font-size:11px">· obligatoire</span></span><span style="font-size:11.5px;font-weight:700;color:#9A8D80">3 options ›</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;background:#F6F1E8;border-radius:10px;padding:10px 12px"><span style="font-weight:800;font-size:12.5px;color:#221A13">Sucre</span><span style="font-size:11.5px;font-weight:700;color:#9A8D80">4 options ›</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;background:#F6F1E8;border-radius:10px;padding:10px 12px"><span style="font-weight:800;font-size:12.5px;color:#221A13">Extras</span><span style="font-size:11.5px;font-weight:700;color:#9A8D80">3 options ›</span></div>
+                <div style="display:flex;align-items:center;justify-content:center;border:1.5px dashed #D8CCBA;border-radius:10px;padding:9px;color:#9A8D80;font-weight:800;font-size:12px;cursor:pointer">+ Groupe d’options</div>
+              </div>
+              <div style="margin-top:auto;height:44px;border-radius:12px;background:#221A13;color:#FAF6EF;font-weight:800;font-size:13.5px;display:flex;align-items:center;justify-content:center;cursor:pointer">Enregistrer</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </x-import>
+    <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}"><span class="dv-cap" id="w3">W3 · MENU MANAGEMENT — drag to reorder · 1-tap 86-ing · trilingual completeness surfaced (EN ?) · draft → publish, with client preview</span></sc-if>
+  </div>
+
+  <!-- W4 · Tables & QR -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="{{ 1360 }}" height="{{ 830 }}" url="business.chehia.tn/tables" hint-size="1360px,830px">
+      <div style="height:100%;display:flex;font-family:Manrope,sans-serif;background:#F6F1E8">
+        <div style="width:218px;flex:none;background:#FFFDF9;border-right:1px solid #EDE4D8;display:flex;flex-direction:column;padding:18px 14px">
+          <div style="display:flex;align-items:center;gap:9px;padding:0 8px 18px">
+            <div style="width:30px;height:30px;border-radius:9px;background:#BC4B26;position:relative;flex:none"><div style="position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;background:#FFF;border-radius:2px"></div><div style="position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;background:#FFF;border-radius:2px;transform:rotate(45deg)"></div></div>
+            <span style="font:800 19px 'Bricolage Grotesque',sans-serif;color:#221A13">chehia<span style="color:#BC4B26">.</span></span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Commandes</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Cuisine</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Menu</span></div>
+            <div style="display:flex;align-items:center;gap:11px;background:#F7E7DE;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#BC4B26"></span><span style="font-weight:800;font-size:13.5px;color:#A03D1D">Tables &amp; QR</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Statistiques</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Réglages</span></div>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+          <div style="flex:none;display:flex;align-items:center;gap:12px;padding:18px 24px 14px">
+            <span style="font:800 24px 'Bricolage Grotesque',sans-serif;color:#221A13">Tables &amp; QR</span>
+            <span style="font-size:12.5px;font-weight:700;color:#6E6257;background:#FFFDF9;border:1px solid #EDE4D8;border-radius:100px;padding:7px 13px">14 tables · QR permanents</span>
+            <div style="flex:1"></div>
+            <span style="font-size:13px;font-weight:800;color:#221A13;border:1.5px solid #E3D9CB;background:#FFFDF9;border-radius:12px;padding:10px 16px;cursor:pointer">+ Ajouter des tables</span>
+            <span style="font-size:13px;font-weight:800;color:#FFF;background:#BC4B26;border-radius:12px;padding:10px 16px;box-shadow:0 4px 12px rgba(188,75,38,.25);cursor:pointer" style-hover="background:#A03D1D">Imprimer 14 cartes (PDF)</span>
+          </div>
+          <div style="flex:1;display:flex;gap:18px;padding:4px 24px 22px;min-height:0">
+            <div style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-content:start;min-width:0">
+              <sc-for list="{{ qrTables }}" as="qt" hint-placeholder-count="6">
+                <div style="background:#FFFDF9;border:1px solid #EDE4D8;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px">
+                  <div style="display:flex;align-items:center;gap:11px">
+                    <div style="width:58px;height:58px;border-radius:10px;background:#FFF;border:1.5px solid #EDE4D8;flex:none;position:relative;background-image:radial-gradient(#221A13 1.3px,transparent 1.4px);background-size:7px 7px;background-position:3px 3px">
+                      <div style="position:absolute;top:5px;left:5px;width:13px;height:13px;border:3px solid #221A13;background:#FFF;box-sizing:border-box"></div>
+                      <div style="position:absolute;top:5px;right:5px;width:13px;height:13px;border:3px solid #221A13;background:#FFF;box-sizing:border-box"></div>
+                      <div style="position:absolute;bottom:5px;left:5px;width:13px;height:13px;border:3px solid #221A13;background:#FFF;box-sizing:border-box"></div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:1px">
+                      <span style="font-weight:800;font-size:15px;color:#221A13">Table {{ qt.n }}</span>
+                      <span style="font-size:11.5px;font-weight:700;color:#9A8D80">{{ qt.zone }} · {{ qt.scans }}</span>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:7px">
+                    <span style="flex:1;height:34px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;border:1.5px solid #E3D9CB;color:#221A13;font-weight:800;font-size:11.5px;cursor:pointer">Télécharger</span>
+                    <span style="flex:1;height:34px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;border:1.5px solid #E3D9CB;color:#221A13;font-weight:800;font-size:11.5px;cursor:pointer">Tester</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="width:390px;flex:none;background:#FFFDF9;border:1px solid #EDE4D8;border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px;align-items:center">
+              <div style="align-self:stretch;display:flex;align-items:center;justify-content:space-between"><span style="font-weight:800;font-size:14px;color:#221A13">Carte de table imprimable</span><span style="font-size:11px;font-weight:800;color:#0B4A52;background:#E1EEEE;border-radius:100px;padding:4px 10px">A6 · recto</span></div>
+              <div style="width:270px;background:#FAF6EF;border:1px solid #EDE4D8;border-radius:20px;padding:24px 22px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 14px 34px rgba(60,35,15,.14)">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:24px;height:24px;border-radius:7px;background:#BC4B26;position:relative"><div style="position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;background:#FFF;border-radius:1.5px"></div><div style="position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;background:#FFF;border-radius:1.5px;transform:rotate(45deg)"></div></div>
+                  <span style="font:800 16px 'Bricolage Grotesque',sans-serif;color:#221A13">chehia<span style="color:#BC4B26">.</span></span>
+                </div>
+                <div style="width:150px;height:150px;border-radius:14px;background:#FFF;border:1.5px solid #EDE4D8;position:relative;background-image:radial-gradient(#221A13 2px,transparent 2.1px);background-size:11px 11px;background-position:6px 6px">
+                  <div style="position:absolute;top:9px;left:9px;width:28px;height:28px;border:6px solid #221A13;background:#FFF;box-sizing:border-box"></div>
+                  <div style="position:absolute;top:9px;right:9px;width:28px;height:28px;border:6px solid #221A13;background:#FFF;box-sizing:border-box"></div>
+                  <div style="position:absolute;bottom:9px;left:9px;width:28px;height:28px;border:6px solid #221A13;background:#FFF;box-sizing:border-box"></div>
+                  <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:9px;background:#BC4B26;display:flex;align-items:center;justify-content:center"><div style="width:14px;height:14px;background:#FFF;border-radius:2px;transform:rotate(45deg)"></div></div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <span style="font:800 19px 'Bricolage Grotesque',sans-serif;color:#221A13">Scannez pour commander</span>
+                  <span dir="rtl" style="font:600 15px 'IBM Plex Sans Arabic',sans-serif;color:#6E6257">امسح واطلب من طاولتك</span>
+                  <span style="font-size:11px;font-weight:700;color:#9A8D80;letter-spacing:.04em">SCAN TO ORDER</span>
+                </div>
+                <div style="align-self:stretch;border-top:1px dashed #E3D9CB;padding-top:12px;display:flex;align-items:center;justify-content:space-between">
+                  <div style="display:flex;flex-direction:column"><span style="font-size:10px;font-weight:800;color:#9A8D80;letter-spacing:.06em">TABLE</span><span style="font:800 30px/1 'Bricolage Grotesque',sans-serif;color:#BC4B26">12</span></div>
+                  <span style="font-size:11px;font-weight:700;color:#6E6257;text-align:right">Café El Marsa<br>Corniche, La Marsa</span>
+                </div>
+              </div>
+              <span style="font-size:11.5px;line-height:1.55;color:#9A8D80;text-align:center">Le QR est permanent — la destination reste dynamique.<br>App installée → ouverture directe sur la table. Sinon → web.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </x-import>
+    <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}"><span class="dv-cap" id="w4">W4 · TABLES &amp; QR — permanent QR per table, deep-link → app or web fallback · print-ready branded table cards (the white-glove onboarding artifact)</span></sc-if>
+  </div>
+
+<!-- W5 · Analytics + AI -->
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="{{ 1360 }}" height="{{ 830 }}" url="business.chehia.tn/statistiques" hint-size="1360px,830px">
+      <div style="height:100%;display:flex;font-family:Manrope,sans-serif;background:#F6F1E8">
+        <div style="width:218px;flex:none;background:#FFFDF9;border-right:1px solid #EDE4D8;display:flex;flex-direction:column;padding:18px 14px">
+          <div style="display:flex;align-items:center;gap:9px;padding:0 8px 18px">
+            <div style="width:30px;height:30px;border-radius:9px;background:#BC4B26;position:relative;flex:none"><div style="position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;background:#FFF;border-radius:2px"></div><div style="position:absolute;left:50%;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;background:#FFF;border-radius:2px;transform:rotate(45deg)"></div></div>
+            <span style="font:800 19px 'Bricolage Grotesque',sans-serif;color:#221A13">chehia<span style="color:#BC4B26">.</span></span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Commandes</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Cuisine</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Menu</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Tables &amp; QR</span></div>
+            <div style="display:flex;align-items:center;gap:11px;background:#F7E7DE;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#BC4B26"></span><span style="font-weight:800;font-size:13.5px;color:#A03D1D">Statistiques</span></div>
+            <div style="display:flex;align-items:center;gap:11px;border-radius:11px;padding:11px 12px"><span style="width:8px;height:8px;border-radius:2.5px;background:#C9BFB2"></span><span style="font-weight:700;font-size:13.5px;color:#6E6257">Réglages</span></div>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden">
+          <div style="flex:none;display:flex;align-items:center;gap:12px;padding:18px 24px 12px">
+            <span style="font:800 24px 'Bricolage Grotesque',sans-serif;color:#221A13">Statistiques</span>
+            <div style="flex:1"></div>
+            <div style="display:flex;background:#FFFDF9;border:1px solid #EDE4D8;border-radius:11px;padding:3px;gap:2px">
+              <span style="padding:7px 13px;border-radius:8px;font-weight:700;font-size:12.5px;color:#6E6257">Aujourd’hui</span>
+              <span style="padding:7px 13px;border-radius:8px;background:#221A13;color:#FAF6EF;font-weight:800;font-size:12.5px">7 jours</span>
+              <span style="padding:7px 13px;border-radius:8px;font-weight:700;font-size:12.5px;color:#6E6257">30 jours</span>
+            </div>
+          </div>
+          <div style="flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:4px 24px 0">
+            <div style="background:#FFFDF9;border:1px solid #EDE4D8;border-radius:16px;padding:15px 17px;display:flex;flex-direction:column;gap:3px">
+              <span style="font-size:11.5px;font-weight:800;color:#9A8D80;letter-spacing:.03em">VENTES</span>
+              <span style="font:800 27px 'Bricolage Grotesque',sans-serif;color:#221A13">8 942 <span style="font:700 13px Manrope,sans-serif;color:#9A8D80">TND</span></span>
+              <span style="font-size:12px;font-weight:800;color:#1F5A36">▲ +12% vs sem. passée</span>
+            </div>
+            <div style="background:#FFFDF9;border:1px solid #EDE4D8;border-radius:16px;padding:15px 17px;display:flex;flex-direction:column;gap:3px">
+              <span style="font-size:11.5px;font-weight:800;color:#9A8D80;letter-spacing:.03em">COMMANDES</span>
+              <span style="font:800 27px 'Bricolage Grotesque',sans-serif;color:#221A13">671</span>
+              <span style="font-size:12px;font-weight:800;color:#1F5A36">▲ +8%</span>
+            </div>
+            <div style="background:#FFFDF9;border:1px solid #EDE4D8;border-radius:16px;padding:15px 17px;display:flex;flex-direction:column;gap:3px">
+              <span style="font-size:11.5px;font-weight:800;color:#9A8D80;letter-spacing:.03em">PANIER MOYEN</span>
+              <span style="font:800 27px 'Bricolage Grotesque',sans-serif;color:#221A13">13,3 <span style="font:700 13px Manrope,sans-serif;color:#9A8D80">TND</span></span>
+              <span style="font-size:12px;font-weight:800;color:#1F5A36">▲ +4%</span>
+            </div>
+            <div style="background:#FFFDF9;border:1px solid #EDE4D8;border-radius:16px;padding:15px 17px;display:flex;flex-direction:column;gap:3px">
+              <span style="font-size:11.5px;font-weight:800;color:#9A8D80;letter-spacing:.03em">SERVICE MÉDIAN</span>
+              <span style="font:800 27px 'Bricolage Grotesque',sans-serif;color:#221A13">7 <span style="font:700 13px Manrope,sans-serif;color:#9A8D80">min</span></span>
+              <span style="font-size:12px;font-weight:800;color:#1F5A36">▼ −1 min</span>
+            </div>
+          </div>
+          <div style="flex:none;display:flex;gap:12px;padding:12px 24px 0">
+            <div style="flex:1.35;background:#FFFDF9;border:1px solid #EDE4D8;border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:800;font-size:14px;color:#221A13">Heures de pointe</span><span style="font-size:11.5px;font-weight:700;color:#9A8D80">commandes / heure · moyenne 7 j</span></div>
+              <div style="display:flex;align-items:flex-end;gap:7px;height:118px">
+                <sc-for list="{{ hours }}" as="hr" hint-placeholder-count="16">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end">
+                    <div style="width:100%;border-radius:5px 5px 2px 2px;background:{{ hr.bg }};height:{{ hr.v }}%"></div>
+                    <span style="font-size:9.5px;font-weight:700;color:{{ hr.fg }}">{{ hr.h }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="flex:1;background:#FFFDF9;border:1px solid #EDE4D8;border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-weight:800;font-size:14px;color:#221A13">Top articles</span><span style="font-size:11.5px;font-weight:700;color:#9A8D80">7 jours</span></div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{ topItems }}" as="ti" hint-placeholder-count="5">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="width:16px;font-size:11px;font-weight:800;color:#9A8D80">{{ ti.rk }}</span>
+                    <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+                      <div style="display:flex;justify-content:space-between"><span style="font-size:12.5px;font-weight:800;color:#221A13">{{ ti.name }}</span><span style="font-size:11.5px;font-weight:700;color:#9A8D80">{{ ti.n }} · {{ ti.rev }}</span></div>
+                      <div style="height:6px;border-radius:3px;background:#F1EAE0;overflow:hidden"><div style="height:100%;border-radius:3px;background:#10606A;width:{{ ti.w }}"></div></div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="flex:1;margin:12px 24px 20px;background:#0B4A52;border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;min-height:0">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:26px;height:26px;border-radius:8px;background:#FAF6EF;position:relative;flex:none"><div style="position:absolute;left:50%;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;background:#0B4A52;border-radius:1.5px"></div><div style="position:absolute;left:50%;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;background:#0B4A52;border-radius:1.5px;transform:rotate(45deg)"></div></div>
+              <span style="font:800 16px 'Bricolage Grotesque',sans-serif;color:#FAF6EF">Chehia Intelligence</span>
+              <span style="font-size:11px;font-weight:800;color:rgba(250,246,239,.65);background:rgba(255,255,255,.1);border-radius:100px;padding:4px 10px">générées cette nuit · FR / AR / EN</span>
+            </div>
+            <div style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;min-height:0">
+              <div style="background:#FFFDF9;border-radius:14px;padding:15px 16px;display:flex;flex-direction:column;gap:8px">
+                <span style="font-weight:800;font-size:13.5px;color:#221A13">Vos cappuccinos tirent les matinées</span>
+                <span style="font-size:12px;line-height:1.55;color:#6E6257;flex:1">Entre 8h et 10h, le cappuccino est dans 41% des commandes — mais 23% de ces clients ne prennent rien à manger.</span>
+                <span style="font-size:12px;font-weight:800;color:#0B4A52">Formule « cappuccino + bambalouni » à 8,0 TND → panier +14% estimé</span>
+                <span style="align-self:flex-start;font-size:12px;font-weight:800;color:#FFF;background:#BC4B26;border-radius:100px;padding:7px 14px;cursor:pointer">Créer la promotion</span>
+              </div>
+              <div style="background:#FFFDF9;border-radius:14px;padding:15px 16px;display:flex;flex-direction:column;gap:8px">
+                <span style="font-weight:800;font-size:13.5px;color:#221A13">Le jeudi soir décroche</span>
+                <span style="font-size:12px;line-height:1.55;color:#6E6257;flex:1">Votre pic 18h–20h chute de 35% le jeudi, seul jour sans affluence en terrasse.</span>
+                <span style="font-size:12px;font-weight:800;color:#0B4A52">Tester une happy hour citronnade 17h–19h le jeudi</span>
+                <span style="align-self:flex-start;font-size:12px;font-weight:800;color:#0B4A52;border:1.5px solid #0B4A52;border-radius:100px;padding:6px 14px;cursor:pointer">Planifier</span>
+              </div>
+              <div style="background:#FFFDF9;border-radius:14px;padding:15px 16px;display:flex;flex-direction:column;gap:8px">
+                <span style="font-weight:800;font-size:13.5px;color:#221A13">Le café glacé part trop tôt</span>
+                <span style="font-size:12px;line-height:1.55;color:#6E6257;flex:1">Épuisé avant 15h, 3 jours sur 7 la semaine dernière — environ 26 TND/jour de ventes manquées.</span>
+                <span style="font-size:12px;font-weight:800;color:#0B4A52">Augmenter la préparation du matin de ~30%</span>
+                <span style="align-self:flex-start;font-size:12px;font-weight:800;color:#0B4A52;border:1.5px solid #0B4A52;border-radius:100px;padding:6px 14px;cursor:pointer">Noté, à suivre</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </x-import>
+    <sc-if value="{{ showAnnotations }}" hint-placeholder-val="{{ true }}"><span class="dv-cap" id="w5">W5 · ANALYTICS + AI — SQL charts (cheap, deterministic) · LLM only for the nightly “what should I do” cards · each insight ends in an action</span></sc-if>
+  </div>
+</div>
+</div>
+
+<p class="dv-next">Try next: “riff 2–3 variations of <a class="dv-oid" href="#p2">P2</a> (menu) in different visual directions” · “dark mode for the customer app” · “design the owner onboarding + sales one-pager” · “make <a class="dv-oid" href="#w1">W1</a> a working prototype”</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showAnnotations&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;section&quot;:&quot;Canvas&quot;,&quot;tsType&quot;:&quot;boolean&quot;},&quot;compactFrames&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;section&quot;:&quot;Canvas&quot;,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const showAnnotations = this.props.showAnnotations ?? true;
+    const frameZoom = this.props.compactFrames ? 0.82 : 1;
+
+    const floorTables = [
+      { n: '01', zone: 'Terrasse', st: 'libre' },
+      { n: '02', zone: 'Terrasse', st: 'servie', t: '11 min' },
+      { n: '03', zone: 'Terrasse', st: 'nouvelle', t: '8 s' },
+      { n: '04', zone: 'Terrasse', st: 'prep', t: '6 min' },
+      { n: '05', zone: 'Terrasse', st: 'libre' },
+      { n: '06', zone: 'Terrasse', st: 'prep', t: '4 min' },
+      { n: '07', zone: 'Salle', st: 'servie', t: '14 min' },
+      { n: '08', zone: 'Salle', st: 'libre' },
+      { n: '09', zone: 'Salle', st: 'nouvelle', t: '31 s' },
+      { n: '10', zone: 'Salle', st: 'libre' },
+      { n: '11', zone: 'Salle', st: 'servie', t: '22 min' },
+      { n: '12', zone: 'Salle', st: 'prep', t: '2 min' },
+      { n: '13', zone: 'Bar', st: 'libre' },
+      { n: '14', zone: 'Bar', st: 'libre' },
+    ].map(t => {
+      const M = {
+        libre:    { bg: '#FFFDF9', bd: '#EDE4D8', dot: '#C9BFB2', label: 'Libre',          fg: '#9A8D80', anim: 'none' },
+        nouvelle: { bg: '#F7E7DE', bd: '#BC4B26', dot: '#BC4B26', label: 'Nouvelle',       fg: '#A03D1D', anim: 'chPulse 1.2s infinite' },
+        prep:     { bg: '#F7EDDC', bd: '#E3CFA5', dot: '#B97F1E', label: 'En préparation', fg: '#8A5E12', anim: 'none' },
+        servie:   { bg: '#E4F0E7', bd: '#BCD8C5', dot: '#2E7D4F', label: 'Servie',         fg: '#1F5A36', anim: 'none' },
+      }[t.st];
+      return Object.assign({}, t, M);
+    });
+
+    const hours = [
+      { h: '8h', v: 22 }, { h: '9h', v: 38 }, { h: '10h', v: 61 }, { h: '11h', v: 47 },
+      { h: '12h', v: 78 }, { h: '13h', v: 92, peak: true }, { h: '14h', v: 63 }, { h: '15h', v: 41 },
+      { h: '16h', v: 52 }, { h: '17h', v: 74 }, { h: '18h', v: 88, peak: true }, { h: '19h', v: 71 },
+      { h: '20h', v: 56 }, { h: '21h', v: 64 }, { h: '22h', v: 49 }, { h: '23h', v: 18 },
+    ].map(x => Object.assign({}, x, {
+      hpx: Math.round(x.v * 1.15),
+      bg: x.peak ? '#BC4B26' : '#E8D9C8',
+      fg: x.peak ? '#A03D1D' : '#9A8D80',
+    }));
+
+    const topItems = [
+      { rk: '1', name: 'Cappuccino', n: '214 ventes', rev: '1 177 TND', w: '100%' },
+      { rk: '2', name: 'Citronnade fraîche', n: '187 ventes', rev: '1 122 TND', w: '87%' },
+      { rk: '3', name: 'Bambalouni', n: '152 ventes', rev: '532 TND', w: '71%' },
+      { rk: '4', name: 'Ojja merguez', n: '96 ventes', rev: '1 392 TND', w: '45%' },
+      { rk: '5', name: 'Café turc', n: '89 ventes', rev: '312 TND', w: '42%' },
+    ];
+
+    const qrTables = [
+      { n: '01', zone: 'Terrasse', scans: '312 scans / 30 j' },
+      { n: '02', zone: 'Terrasse', scans: '287 scans / 30 j' },
+      { n: '03', zone: 'Terrasse', scans: '351 scans / 30 j' },
+      { n: '07', zone: 'Salle', scans: '198 scans / 30 j' },
+      { n: '09', zone: 'Salle', scans: '176 scans / 30 j' },
+      { n: '13', zone: 'Bar', scans: '92 scans / 30 j' },
+    ];
+
+    // simple deterministic pseudo-QR pattern (7x7), varies per table
+    const qrCells = (seed) => {
+      const cells = [];
+      let s = seed;
+      for (let i = 0; i < 49; i++) {
+        s = (s * 137 + 71) % 251;
+        const r = Math.floor(i / 7), c = i % 7;
+        const corner = (r < 2 && c < 2) || (r < 2 && c > 4) || (r > 4 && c < 2);
+        cells.push({ on: corner || s % 3 === 0 ? '#221A13' : 'transparent' });
+      }
+      return cells;
+    };
+    const qrTablesFull = qrTables.map((t, i) => Object.assign({}, t, { cells: qrCells(i + 3) }));
+
+    return { showAnnotations, frameZoom, floorTables, hours, topItems, qrTables: qrTablesFull, bigQr: qrCells(5) };
+  }
+}
+</script>
+</body>
+</html>

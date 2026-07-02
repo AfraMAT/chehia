@@ -1,0 +1,24 @@
+{
+  "name": "chehia",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Chehia — QR ordering for Tunisian cafés & restaurants. Native app + web + AI insights.",
+  "scripts": {
+    "dev:web": "pnpm --filter @chehia/web dev",
+    "dev:mobile": "pnpm --filter @chehia/mobile start",
+    "build:web": "pnpm --filter @chehia/web build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:types": "supabase gen types typescript --local > packages/shared/src/database.types.ts",
+    "test:integration": "pnpm --filter @chehia/integration test",
+    "test:unit": "pnpm --filter @chehia/shared test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.6.1"
+}
