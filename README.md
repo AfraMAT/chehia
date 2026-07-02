@@ -61,7 +61,7 @@ directly on that table, otherwise the web experience serves the same flow.
 
 ```bash
 pnpm --filter @chehia/shared test        # 46 unit tests (money, cart, reconcile, i18n parity, status machine, deep links)
-pnpm --filter @chehia/integration test   # 27 integration tests (RLS isolation, table-token scoping, order flow, idempotency, abuse caps)
+pnpm --filter @chehia/integration test   # 30 integration tests (RLS isolation, table-token scoping, storage RLS, order flow, idempotency, abuse caps)
 pnpm typecheck                           # all workspaces
 ```
 

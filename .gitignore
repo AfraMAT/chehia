@@ -16,3 +16,6 @@ coverage/
 .turbo/
 supabase/.temp/
 supabase/.branches/
+
+# Vercel CLI
+.vercel
