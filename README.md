@@ -60,7 +60,7 @@ directly on that table, otherwise the web experience serves the same flow.
 ### Tests
 
 ```bash
-pnpm --filter @chehia/shared test        # 42 unit tests (money, cart, i18n parity, status machine, deep links)
+pnpm --filter @chehia/shared test        # 46 unit tests (money, cart, reconcile, i18n parity, status machine, deep links)
 pnpm --filter @chehia/integration test   # 25 integration tests (RLS isolation, order flow, idempotency, abuse caps)
 pnpm typecheck                           # all workspaces
 ```
