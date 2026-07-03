@@ -30,11 +30,18 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
   const [touched, setTouched] = useState(false);
 
   useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus?.();
     };
-  }, []);
+  }, [onClose]);
 
   const validation = validateModifiers(groups, selected);
   const line = buildLine(item, groups, selected, qty);

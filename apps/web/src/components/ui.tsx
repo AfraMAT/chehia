@@ -139,7 +139,7 @@ export function Toggle({
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative w-[42px] h-[26px] rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
+      className={`relative w-[42px] h-[26px] rounded-full transition-colors cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-harissa focus-visible:ring-offset-2 ${
         checked ? "bg-success" : "bg-line-dashed"
       }`}
     >
@@ -163,7 +163,7 @@ export function Card({ children, className = "" }: { children: React.ReactNode; 
 export function PhotoPlaceholder({ className = "", src, alt = "" }: { className?: string; src?: string | null; alt?: string }) {
   if (src) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={alt} className={`object-cover ${className}`} />;
+    return <img src={src} alt={alt} loading="lazy" decoding="async" className={`object-cover ${className}`} />;
   }
   return <div aria-hidden className={`photo-placeholder ${className}`} />;
 }

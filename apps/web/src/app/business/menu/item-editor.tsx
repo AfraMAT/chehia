@@ -12,6 +12,7 @@ import { getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
 import { PhotoPlaceholder, Toggle } from "@/components/ui";
 import { usePortal } from "../portal-provider";
+import { ConfirmDialog } from "../confirm-dialog";
 
 interface EditableModifier {
   id?: string;
@@ -73,6 +74,7 @@ export function ItemEditor({
   const [error, setError] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(item?.photo_url ?? null);
   const [uploading, setUploading] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const parsePrice = (value: string): number | null => {
@@ -215,7 +217,7 @@ export function ItemEditor({
 
   const remove = async () => {
     if (!item) return;
-    if (!window.confirm(t.portal.menu.deleteItemConfirm)) return;
+    setConfirmingDelete(false);
     const { error: e } = await supabase.from("items").delete().eq("id", item.id);
     onSaved(!e);
   };
@@ -459,13 +461,21 @@ export function ItemEditor({
         {item && (
           <button
             type="button"
-            onClick={() => void remove()}
+            onClick={() => setConfirmingDelete(true)}
             className="h-9 rounded-md text-danger-text font-bold text-[12.5px] hover:bg-danger-tint transition-colors cursor-pointer"
           >
             {t.common.delete}
           </button>
         )}
       </div>
+
+      {confirmingDelete && (
+        <ConfirmDialog
+          body={t.portal.menu.deleteItemConfirm}
+          onConfirm={() => void remove()}
+          onCancel={() => setConfirmingDelete(false)}
+        />
+      )}
     </div>
   );
 }

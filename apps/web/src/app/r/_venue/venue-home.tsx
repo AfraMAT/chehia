@@ -23,6 +23,9 @@ export function VenueHome() {
 
   // Browse flow: a table is picked in-session. Scanned flow: table is fixed.
   const browse = Boolean(tables) && !table?.qr_token;
+  // Browse venue with no tables configured: the picker would be empty, so the
+  // "choose your table" affordances are disabled with a hint instead.
+  const noTables = browse && (tables?.length ?? 0) === 0;
 
   return (
     <div className="flex flex-col min-h-dvh">
@@ -81,16 +84,17 @@ export function VenueHome() {
           <button
             type="button"
             onClick={() => setPickerOpen(true)}
-            className="mt-4 bg-card border-[1.5px] border-dashed border-line-dashed rounded-xl p-4 flex items-center gap-3 text-start cursor-pointer hover:border-harissa transition-colors"
+            disabled={noTables}
+            className="mt-4 bg-card border-[1.5px] border-dashed border-line-dashed rounded-xl p-4 flex items-center gap-3 text-start cursor-pointer hover:border-harissa transition-colors disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:border-line-dashed"
           >
-            <div className="w-11 h-11 rounded-lg bg-teal-tint flex items-center justify-center text-teal-pressed text-xl font-extrabold shrink-0">
+            <div className="w-11 h-11 rounded-lg bg-teal-tint flex items-center justify-center text-teal-pressed text-xl font-extrabold shrink-0" aria-hidden>
               ⌖
             </div>
             <div className="flex flex-col flex-1">
               <span className="font-extrabold text-[15px] text-ink">{t.landing.chooseTable}</span>
-              <span className="text-[13px] text-muted">{t.landing.chooseTableBody}</span>
+              <span className="text-[13px] text-muted">{noTables ? t.landing.noTables : t.landing.chooseTableBody}</span>
             </div>
-            <span className="text-muted-soft font-extrabold rtl:rotate-180">›</span>
+            {!noTables && <span className="text-muted-soft font-extrabold rtl:rotate-180">›</span>}
           </button>
         )}
 
@@ -122,10 +126,14 @@ export function VenueHome() {
         </div>
         {browse && !table ? (
           <div className="flex flex-col gap-2">
+            {noTables ? (
+              <p className="text-center text-[13px] font-semibold text-muted-soft mb-1">{t.landing.noTables}</p>
+            ) : null}
             <button
               type="button"
               onClick={() => setPickerOpen(true)}
-              className="h-14 rounded-xl bg-harissa text-white font-extrabold text-[17px] flex items-center justify-center shadow-[0_6px_16px_rgba(188,75,38,0.3)] hover:bg-harissa-pressed transition-colors cursor-pointer"
+              disabled={noTables}
+              className="h-14 rounded-xl bg-harissa text-white font-extrabold text-[17px] flex items-center justify-center shadow-[0_6px_16px_rgba(188,75,38,0.3)] hover:bg-harissa-pressed transition-colors cursor-pointer disabled:bg-disabled disabled:shadow-none disabled:cursor-not-allowed"
             >
               {t.landing.chooseTable}
             </button>

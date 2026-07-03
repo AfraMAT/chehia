@@ -90,10 +90,31 @@ export function OrderScreen({ orderId }: { orderId: string }) {
 
   if (!order) {
     return (
-      <div className="flex flex-col min-h-dvh px-5 pt-6 gap-4">
-        <Skeleton className="h-10 w-2/3 mx-auto" />
-        <Skeleton className="h-24 w-24 rounded-full mx-auto" />
-        <Skeleton className="h-40 w-full rounded-2xl" />
+      <div className="flex flex-col min-h-dvh">
+        {/* Header */}
+        <header className="px-5 pt-4 flex items-center justify-between">
+          <Skeleton className="w-10 h-10 rounded-full" />
+          <Skeleton className="h-3.5 w-24" />
+          <span className="w-10" />
+        </header>
+        {/* Status hero */}
+        <div className="px-5 pt-7 pb-6 flex flex-col items-center gap-3.5">
+          <Skeleton className="w-[88px] h-[88px] rounded-full" />
+          <Skeleton className="h-7 w-2/3 mt-1" />
+          <Skeleton className="h-4 w-1/2" />
+        </div>
+        {/* Timeline card */}
+        <div className="mx-5 bg-white border border-line rounded-2xl p-4 flex flex-col gap-5">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex gap-3.5 items-start">
+              <Skeleton className="w-[26px] h-[26px] rounded-full shrink-0" />
+              <div className="flex-1 flex flex-col gap-1.5">
+                <Skeleton className="h-4 w-1/3" />
+                <Skeleton className="h-3 w-3/4" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

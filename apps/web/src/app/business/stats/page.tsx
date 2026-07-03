@@ -10,6 +10,7 @@ import {
 } from "@chehia/shared";
 import { getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
+import { Skeleton } from "@/components/ui";
 import { ZelligeMark } from "@/components/brand";
 import { usePortal } from "../portal-provider";
 
@@ -233,7 +234,18 @@ export default function StatsPage() {
             {t.portal.stats.generatedNightly}
           </span>
         </div>
-        {insights.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="bg-card rounded-lg p-4 flex flex-col gap-2.5">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-5/6" />
+                <Skeleton className="h-3 w-2/3" />
+              </div>
+            ))}
+          </div>
+        ) : insights.length === 0 ? (
           <div className="bg-card rounded-lg px-4 py-5 text-center">
             <span className="text-[13px] font-semibold text-muted">{t.portal.stats.noInsights}</span>
           </div>

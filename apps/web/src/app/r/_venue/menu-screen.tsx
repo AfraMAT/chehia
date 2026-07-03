@@ -6,7 +6,7 @@ import Link from "next/link";
 import { cartCount, cartTotal, formatPrice, millimesToDisplay, currencyLabel, type MenuItem } from "@chehia/shared";
 import { useI18n } from "@/components/i18n-provider";
 import { ZelligeMark } from "@/components/brand";
-import { PhotoPlaceholder, SearchIcon, Tag } from "@/components/ui";
+import { PhotoPlaceholder, SearchIcon, Skeleton, Tag } from "@/components/ui";
 import { useVenue } from "./venue-provider";
 import { ItemSheet } from "./item-sheet";
 import { OfflineBanner } from "./offline-banner";
@@ -38,6 +38,9 @@ export function MenuScreen() {
   }, [items, categories, activeCategory, search]);
 
   const count = cartCount(cart);
+  // Menu still populating (no items on the menu yet, no active search): show a
+  // skeleton grid rather than flashing an empty "no results" state.
+  const menuLoading = items.length === 0 && !search.trim();
 
   const dietaryLabel = (tag: string): { label: string; tone: "green" | "amber" | "neutral" } | null => {
     switch (tag) {
@@ -113,7 +116,18 @@ export function MenuScreen() {
 
       {/* Items */}
       <main className="flex-1 px-5 pt-2.5 flex flex-col gap-2.5">
-        {visibleItems.length === 0 && (
+        {menuLoading &&
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white border border-line rounded-xl p-3 flex gap-3 items-center">
+              <Skeleton className="w-[68px] h-[68px] rounded-lg shrink-0" />
+              <div className="flex-1 min-w-0 flex flex-col gap-2">
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-3 w-4/5" />
+                <Skeleton className="h-3 w-1/3" />
+              </div>
+            </div>
+          ))}
+        {!menuLoading && visibleItems.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
             <span className="font-display font-extrabold text-xl text-ink">{t.menu.noResults}</span>
             <span className="text-sm text-muted">{t.menu.noResultsBody}</span>

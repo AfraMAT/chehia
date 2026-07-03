@@ -14,6 +14,7 @@ import { getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
 import { PhotoPlaceholder, Toggle } from "@/components/ui";
 import { usePortal } from "../portal-provider";
+import { ConfirmDialog } from "../confirm-dialog";
 import { ItemEditor } from "./item-editor";
 
 /** W3 · Menu management — categories, items, availability, trilingual completeness. */
@@ -28,8 +29,9 @@ export default function MenuManagementPage() {
   const [groups, setGroups] = useState<(ModifierGroup & { modifiers: Modifier[] })[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<MenuItem | "new" | null>(null);
-  const [savedFlash, setSavedFlash] = useState(false);
+  const [savedFlash, setSavedFlash] = useState<string | null>(null);
   const [saveError, setSaveError] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
   // Menu management is owner/manager only — RLS silently discards writes
   // from other roles, so don't even show them the page.
@@ -54,11 +56,11 @@ export default function MenuManagementPage() {
     void reload();
   }, [reload]);
 
-  const flashSaved = (ok: boolean) => {
+  const flashSaved = (ok: boolean, label: string = t.portal.menu.published) => {
     setSaveError(!ok);
-    setSavedFlash(ok);
+    setSavedFlash(ok ? label : null);
     setTimeout(() => {
-      setSavedFlash(false);
+      setSavedFlash(null);
       setSaveError(false);
     }, 2500);
   };
@@ -80,7 +82,7 @@ export default function MenuManagementPage() {
       // RLS or network rejected the write: revert the optimistic flip.
       setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_available: !available } : i)));
     }
-    flashSaved(!error);
+    flashSaved(!error, t.portal.menu.availabilitySaved);
   };
 
   const addCategory = async () => {
@@ -95,8 +97,10 @@ export default function MenuManagementPage() {
     flashSaved(!error);
   };
 
-  const deleteCategory = async (cat: Category) => {
-    if (!window.confirm(t.portal.menu.deleteCategoryConfirm)) return;
+  const confirmDeleteCategory = async () => {
+    const cat = categoryToDelete;
+    setCategoryToDelete(null);
+    if (!cat) return;
     const { error } = await supabase.from("categories").delete().eq("id", cat.id);
     if (activeCategory === cat.id) setActiveCategory(null);
     await reload();
@@ -122,7 +126,7 @@ export default function MenuManagementPage() {
         <h1 className="font-display font-extrabold text-2xl text-ink">{t.portal.menu.title}</h1>
         {savedFlash && (
           <span className="text-xs font-extrabold text-success-text bg-success-tint rounded-full px-3 py-1.5">
-            ✓ {t.portal.menu.published}
+            ✓ {savedFlash}
           </span>
         )}
         {saveError && (
@@ -185,7 +189,7 @@ export default function MenuManagementPage() {
                 <button
                   type="button"
                   aria-label={t.common.delete}
-                  onClick={() => void deleteCategory(cat)}
+                  onClick={() => setCategoryToDelete(cat)}
                   className="absolute -top-1.5 -end-1.5 hidden group-hover:flex w-5 h-5 rounded-full bg-danger text-white text-[10px] font-extrabold items-center justify-center cursor-pointer"
                 >
                   ✕
@@ -324,6 +328,14 @@ export default function MenuManagementPage() {
           />
         )}
       </div>
+
+      {categoryToDelete && (
+        <ConfirmDialog
+          body={t.portal.menu.deleteCategoryConfirm}
+          onConfirm={() => void confirmDeleteCategory()}
+          onCancel={() => setCategoryToDelete(null)}
+        />
+      )}
     </div>
   );
 }

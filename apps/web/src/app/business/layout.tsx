@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { PortalProvider } from "./portal-provider";
+import { PortalFooter } from "./portal-footer";
 import { Sidebar } from "./sidebar";
 
 /**
@@ -27,7 +28,10 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
       ) : (
         <div className="min-h-dvh bg-sand flex">
           <Sidebar />
-          <div className="flex-1 min-w-0 flex flex-col">{children}</div>
+          <div className="flex-1 min-w-0 flex flex-col">
+            <div className="flex-1 min-w-0 flex flex-col">{children}</div>
+            <PortalFooter />
+          </div>
         </div>
       )}
     </PortalProvider>

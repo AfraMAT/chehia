@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { useVenue, type TableChoice } from "./venue-provider";
 
@@ -12,6 +13,20 @@ export function TablePicker({ onClose }: { onClose: () => void }) {
   const { tables, setTable, table } = useVenue();
   const { t } = useI18n();
 
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [onClose]);
+
   const byZone = new Map<string, TableChoice[]>();
   for (const tb of tables ?? []) {
     const zone = tb.zone || "";
@@ -23,7 +38,7 @@ export function TablePicker({ onClose }: { onClose: () => void }) {
       <button aria-label={t.common.close} className="absolute inset-0 bg-ink/45 cursor-pointer" onClick={onClose} />
       <div className="relative w-full max-w-[520px] max-h-[86dvh] bg-cream rounded-t-3xl flex flex-col overflow-hidden shadow-[0_-12px_40px_rgba(34,26,19,0.3)]">
         <div className="shrink-0 px-5 pt-3 pb-2">
-          <div className="w-11 h-[5px] rounded bg-line-strong mx-auto mb-3.5" />
+          <div aria-hidden className="w-11 h-[5px] rounded bg-line-strong mx-auto mb-3.5" />
           <h2 className="font-display font-extrabold text-[22px] text-ink">{t.landing.tablePickerTitle}</h2>
           <p className="text-[13px] text-muted">{t.landing.tablePickerBody}</p>
         </div>

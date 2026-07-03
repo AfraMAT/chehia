@@ -233,6 +233,9 @@ export function CartScreen() {
       {/* Submit */}
       <div className="sticky bottom-0 px-4 pt-2.5 pb-3.5 bg-card border-t border-line flex flex-col gap-2">
         {error && <p className="text-center text-[13px] font-bold text-danger-text">{error}</p>}
+        {!hasTable && (
+          <p className="text-center text-[12.5px] font-semibold text-muted-soft">{t.landing.chooseTableBody}</p>
+        )}
         <div className="flex items-center justify-center gap-2">
           <span className="w-[7px] h-[7px] rounded-full bg-teal shrink-0" />
           <span className="text-[12.5px] font-semibold text-teal-pressed">{t.cart.payAtCounter}</span>

@@ -8,6 +8,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { useAdmin } from "./admin-provider";
 import { CreateBusiness } from "./create-business";
 import { LeadsPanel } from "./leads-panel";
+import { PortalFooter } from "../business/portal-footer";
 
 interface VenueOverview {
   id: string;
@@ -206,6 +207,8 @@ export default function AdminDashboard() {
           </>
         )}
       </main>
+
+      <PortalFooter className="max-w-[960px] mx-auto w-full" />
 
       {creating && <CreateBusiness onClose={() => setCreating(false)} onCreated={() => void load()} />}
     </div>

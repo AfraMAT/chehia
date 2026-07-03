@@ -16,11 +16,18 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus?.();
     };
-  }, []);
+  }, [onClose]);
 
   const options: { value: WaiterCallReason; label: string }[] = [
     { value: "bill", label: t.waiter.bill },
@@ -49,7 +56,7 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true">
       <button aria-label={t.common.close} className="absolute inset-0 bg-ink/45 cursor-pointer" onClick={onClose} />
       <div className="relative w-full max-w-[520px] bg-card rounded-t-3xl px-5 pt-3 pb-5 shadow-[0_-12px_40px_rgba(34,26,19,0.3)]">
-        <div className="w-11 h-[5px] rounded bg-line-strong mx-auto mb-4" />
+        <div aria-hidden className="w-11 h-[5px] rounded bg-line-strong mx-auto mb-4" />
 
         {state === "sent" ? (
           <div className="flex flex-col items-center gap-3 py-8">

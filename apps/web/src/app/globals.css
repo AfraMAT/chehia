@@ -13,7 +13,7 @@
 
   --color-ink: #221a13;
   --color-muted: #6e6257;
-  --color-muted-soft: #9a8d80;
+  --color-muted-soft: #786a5c; /* darkened from #9a8d80 to meet WCAG AA (≥4.5:1) on cream/sand/card */
   --color-disabled: #c9bfb2;
   --color-cream: #faf6ef;
   --color-card: #fffdf9;
@@ -96,6 +96,19 @@
   }
   50% {
     transform: scaleY(0.55);
+  }
+}
+
+/* Respect reduced-motion: neutralize custom animations (ch-pulse, ch-ping,
+   ch-bar, spin) and transitions for users who request less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

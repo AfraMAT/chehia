@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import QRCode from "qrcode";
 
-/** Renders a real QR code as an <img> data URL, harissa-on-white for scan contrast. */
-export function QrImage({ url, size = 150, className = "" }: { url: string; size?: number; className?: string }) {
+/**
+ * Renders a real QR code as an <img> data URL, harissa-on-white for scan contrast.
+ * Memoized: the dataURL is stable once computed for a given url/size, so unrelated
+ * parent updates (e.g. selecting a table preview) don't re-render every card's QR.
+ */
+export const QrImage = memo(function QrImage({ url, size = 150, className = "" }: { url: string; size?: number; className?: string }) {
   const [dataUrl, setDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,4 +35,4 @@ export function QrImage({ url, size = 150, className = "" }: { url: string; size
   }
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={dataUrl} alt="QR code" width={size} height={size} className={`rounded-lg ${className}`} />;
-}
+});

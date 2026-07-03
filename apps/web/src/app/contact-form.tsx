@@ -47,13 +47,14 @@ export function ContactForm() {
         <span className="w-14 h-14 rounded-full bg-success-tint text-success text-2xl flex items-center justify-center">✓</span>
         <h3 className="font-display font-extrabold text-xl text-ink mt-1">{t.contact.sentTitle}</h3>
         <p className="text-sm text-muted max-w-[320px]">{t.contact.sentBody}</p>
+        <p className="text-[12.5px] font-semibold text-muted-soft max-w-[320px]">{t.contact.responseTime}</p>
       </div>
     );
   }
 
   return (
     <form onSubmit={submit} className="bg-card border border-line rounded-2xl p-5 sm:p-6 flex flex-col gap-3">
-      {/* Honeypot — visually hidden, off-screen, not tabbable */}
+      {/* Honeypot — anti-spam trap; visually hidden, off-screen, not tabbable. Real users leave it empty. */}
       <input
         type="text"
         name="company_website"
@@ -61,7 +62,8 @@ export function ContactForm() {
         onChange={set("company_website")}
         tabIndex={-1}
         autoComplete="off"
-        aria-hidden
+        aria-hidden="true"
+        aria-label="Anti-spam — leave this field empty"
         className="absolute w-px h-px -left-[9999px] opacity-0"
       />
       <div className="grid gap-3 sm:grid-cols-2">
@@ -88,6 +90,7 @@ export function ContactForm() {
       >
         {status === "sending" ? t.contact.sending : t.contact.send}
       </button>
+      <p className="text-center text-[12.5px] font-semibold text-muted">{t.contact.responseTime}</p>
       <p className="text-center text-[12.5px] text-muted-soft">
         {t.contact.orEmail}{" "}
         <a href={`mailto:${CONTACT_EMAIL}`} className="font-bold text-teal-pressed hover:underline">

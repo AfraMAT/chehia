@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import {
   currencyLabel,
   formatCount,
@@ -20,13 +20,6 @@ export default function OrdersPage() {
   const [soundOn, setSoundOn] = useState(true);
   const { orders, tables, calls, todayCount, todayRevenue, setOrderStatus, acknowledgeCall, loading } =
     useLiveOrders(restaurant.id, { sound: soundOn });
-
-  // Ticker to refresh elapsed labels.
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick((n) => n + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   const orderByTable = useMemo(() => {
     const map = new Map<string, LiveOrder>();
@@ -106,7 +99,6 @@ export default function OrdersPage() {
                     : st === "ready"
                       ? { bg: "bg-success-tint", border: "border-success-border", dot: "bg-success", text: "text-success-text", label: t.order.ready, pulse: false }
                       : { bg: "bg-card", border: "border-line", dot: "bg-disabled", text: "text-muted-soft", label: t.portal.orders.free, pulse: false };
-              const elapsed = order ? formatElapsed(order.created_at) : null;
               return (
                 <div key={tb.id} className={`rounded-lg border-[1.5px] ${style.border} ${style.bg} px-3.5 py-3 flex flex-col gap-1.5 min-h-[86px]`}>
                   <div className="flex items-center justify-between">
@@ -117,7 +109,8 @@ export default function OrdersPage() {
                     <span className={`text-[11.5px] font-extrabold ${style.text}`}>{style.label}</span>
                     <span className="text-[10.5px] font-semibold text-muted-soft">
                       {tb.zone}
-                      {elapsed ? ` · ${elapsed.minutes > 0 ? `${elapsed.minutes} ${t.common.min}` : `${elapsed.seconds} ${t.common.seconds}`}` : ""}
+                      {order ? " · " : ""}
+                      {order && <Elapsed since={order.created_at} compact />}
                     </span>
                   </div>
                 </div>
@@ -134,14 +127,13 @@ export default function OrdersPage() {
               cutlery: t.waiter.cutlery,
               other: call.note || t.waiter.other,
             }[call.reason];
-            const elapsed = formatElapsed(call.created_at);
             return (
               <div key={call.id} className="bg-sand rounded-lg px-3.5 py-2.5 flex items-center gap-2.5">
                 <span className="w-2 h-2 rounded-full bg-harissa animate-ch-pulse shrink-0" />
                 <span className="text-[12.5px] font-bold text-ink flex-1 min-w-0 truncate">
                   {t.common.table} {tb?.label ?? "?"} — {t.portal.orders.waiterRequest} :{" "}
                   <span className="text-harissa-pressed">{reasonLabel}</span> ·{" "}
-                  {elapsed.minutes > 0 ? `${elapsed.minutes} ${t.common.min}` : `${elapsed.seconds} ${t.common.seconds}`}
+                  <Elapsed since={call.created_at} compact />
                 </span>
                 <button
                   type="button"
@@ -163,6 +155,45 @@ function urgency(status: OrderStatus): number {
   return status === "new" ? 3 : status === "preparing" ? 2 : status === "ready" ? 1 : 0;
 }
 
+/**
+ * Self-updating elapsed-time label. Each instance owns its own 1s ticker so the
+ * parent order/floor tree doesn't re-render every second — only the timestamps do.
+ * `compact` shows just the largest unit (floor tiles, waiter calls); the default
+ * shows min + sec (order cards).
+ */
+const Elapsed = memo(function Elapsed({
+  since,
+  compact = false,
+  prefix,
+}: {
+  since: string;
+  compact?: boolean;
+  prefix?: string;
+}) {
+  const { t } = useI18n();
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const elapsed = formatElapsed(since);
+  const label = compact
+    ? elapsed.minutes > 0
+      ? `${elapsed.minutes} ${t.common.min}`
+      : `${elapsed.seconds} ${t.common.seconds}`
+    : elapsed.minutes > 0
+      ? `${elapsed.minutes} ${t.common.min} ${elapsed.seconds} ${t.common.seconds}`
+      : `${elapsed.seconds} ${t.common.seconds}`;
+
+  return (
+    <span dir="ltr">
+      {prefix ? `${prefix} ` : ""}
+      {label}
+    </span>
+  );
+});
+
 function LegendDot({ color, label, textClass }: { color: string; label: string; textClass: string }) {
   return (
     <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${textClass}`}>
@@ -182,13 +213,7 @@ function OrderCard({
   onAdvance: (status: OrderStatus) => void;
 }) {
   const { t, tr, lang } = useI18n();
-  const elapsed = formatElapsed(order.created_at);
   const isNew = order.status === "new";
-
-  const elapsedLabel =
-    elapsed.minutes > 0
-      ? `${elapsed.minutes} ${t.common.min} ${elapsed.seconds} ${t.common.seconds}`
-      : `${elapsed.seconds} ${t.common.seconds}`;
 
   const statusLabel = isNew ? t.portal.orders.newOrder : order.status === "preparing" ? t.order.preparing : t.order.ready;
 
@@ -214,7 +239,7 @@ function OrderCard({
             #{order.order_number} · {statusLabel}
           </span>
           <span className={`text-xs font-bold ${isNew ? "text-harissa-pressed" : "text-warning-text"}`}>
-            {isNew ? `${t.portal.orders.ago} ${elapsedLabel}` : `${t.portal.orders.since} ${elapsedLabel}`}
+            <Elapsed since={order.created_at} prefix={isNew ? t.portal.orders.ago : t.portal.orders.since} />
           </span>
         </div>
         {isNew && <span className="ms-auto w-2.5 h-2.5 rounded-full bg-harissa animate-ch-pulse shrink-0" />}

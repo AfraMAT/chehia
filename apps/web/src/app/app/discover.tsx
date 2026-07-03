@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   formatDistanceKm,
@@ -33,7 +33,7 @@ function DiscoverInner({ venues }: { venues: DiscoveryVenue[] }) {
   const [coords, setCoords] = useState<Coords | null>(null);
   const [geo, setGeo] = useState<GeoState>("idle");
 
-  const locate = () => {
+  const locate = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setGeo("denied");
       return;
@@ -47,7 +47,7 @@ function DiscoverInner({ venues }: { venues: DiscoveryVenue[] }) {
       () => setGeo("denied"),
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 },
     );
-  };
+  }, []);
 
   const results = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -111,6 +111,7 @@ function DiscoverInner({ venues }: { venues: DiscoveryVenue[] }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t.discover.searchPlaceholder}
+            aria-label={t.discover.searchPlaceholder}
             className="flex-1 bg-transparent text-sm text-ink placeholder:text-muted-soft outline-none min-w-0"
           />
         </div>
@@ -151,7 +152,7 @@ function DiscoverInner({ venues }: { venues: DiscoveryVenue[] }) {
               href={`/r/${venue.slug}`}
               className="bg-white border border-line rounded-2xl overflow-hidden flex items-stretch gap-0 hover:shadow-md transition-shadow"
             >
-              <PhotoPlaceholder src={venue.cover_url} alt="" className="w-[104px] shrink-0 object-cover self-stretch" />
+              <PhotoPlaceholder src={venue.cover_url} alt={venue.name} className="w-[104px] shrink-0 object-cover self-stretch" />
               <div className="flex-1 min-w-0 p-3.5 flex flex-col gap-1 justify-center">
                 <div className="flex items-start justify-between gap-2">
                   <span className="font-display font-extrabold text-[17px] text-ink leading-tight truncate">
@@ -187,9 +188,29 @@ function DiscoverInner({ venues }: { venues: DiscoveryVenue[] }) {
           <ZelligeMark size={16} radius={5} />
           <span className="text-[12px] font-semibold text-muted-soft">{t.discover.scanInstead}</span>
         </div>
-        <Link href="/business" className="text-[12px] font-bold text-muted hover:text-ink transition-colors">
-          {t.home.forBusinessesCta}
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/business" className="text-[12px] font-bold text-muted hover:text-ink transition-colors">
+            {t.home.forBusinessesCta}
+          </Link>
+          <Link href="/legal/privacy" className="text-[12px] font-bold text-muted hover:text-ink transition-colors">
+            {t.home.privacy}
+          </Link>
+          <Link href="/legal/terms" className="text-[12px] font-bold text-muted hover:text-ink transition-colors">
+            {t.home.terms}
+          </Link>
+        </div>
+        <span className="text-[11px] text-muted-soft">
+          {t.home.builtBy}{" "}
+          <a
+            href="https://aframat.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-muted hover:text-ink transition-colors"
+          >
+            AfraMAT
+          </a>
+          {" · © 2026 Chehia"}
+        </span>
       </footer>
     </div>
   );
