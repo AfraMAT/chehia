@@ -11,7 +11,7 @@ import {
 } from "@chehia/shared";
 import { useI18n } from "@/components/i18n-provider";
 import { PhotoPlaceholder, Stepper, Tag } from "@/components/ui";
-import { useVenue } from "../venue-provider";
+import { useVenue } from "./venue-provider";
 
 /** P3 · Item detail — required vs optional modifier groups, live price in CTA, allergens declared. */
 export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => void }) {

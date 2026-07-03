@@ -44,15 +44,17 @@ end;
 $$;
 
 -- ---------- restaurants ----------
-insert into public.restaurants (id, slug, name, tagline_i18n, address, city, phone, plan, cover_url, opening_hours)
+insert into public.restaurants (id, slug, name, tagline_i18n, address, city, phone, plan, cover_url, opening_hours, latitude, longitude)
 values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'cafe-el-marsa', 'Café El Marsa',
    '{"fr":"Corniche, La Marsa","ar":"الكورنيش، المرسى","en":"Corniche, La Marsa"}',
    'Avenue de la Corniche', 'La Marsa', '+216 71 000 000', 'pro', null,
-   '{"mon":"07:00-23:00","tue":"07:00-23:00","wed":"07:00-23:00","thu":"07:00-23:00","fri":"07:00-23:00","sat":"07:00-00:00","sun":"07:00-00:00"}'),
+   '{"mon":"07:00-23:00","tue":"07:00-23:00","wed":"07:00-23:00","thu":"07:00-23:00","fri":"07:00-23:00","sat":"07:00-00:00","sun":"07:00-00:00"}',
+   36.8783, 10.3247),
   ('bbbbbbbb-0000-0000-0000-000000000002', 'le-zink', 'Le Zink',
    '{"fr":"Berges du Lac 2","ar":"ضفاف البحيرة 2","en":"Berges du Lac 2"}',
-   'Rue du Lac Léman', 'Tunis', '+216 71 111 111', 'starter', null, '{}');
+   'Rue du Lac Léman', 'Tunis', '+216 71 111 111', 'starter', null, '{}',
+   36.8330, 10.2730);
 
 -- Demo venues are already live and past onboarding.
 update public.restaurants set is_active = true, onboarding_completed_at = now()

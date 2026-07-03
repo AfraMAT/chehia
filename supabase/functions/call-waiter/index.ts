@@ -4,6 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
 
 const REASONS = ["bill", "water", "cutlery", "other"] as const;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -22,26 +23,27 @@ Deno.serve(async (req) => {
     return errorResponse("unauthorized", "Sign in (anonymously) first", 401);
   }
 
-  let input: { qr_token?: string; reason?: string; note?: string };
+  let input: { qr_token?: string; table_id?: string; reason?: string; note?: string };
   try {
     input = await req.json();
   } catch {
     return errorResponse("bad_json", "Invalid JSON body");
   }
-  if (!input.qr_token) return errorResponse("bad_request", "qr_token required");
+  if (!input.qr_token && !input.table_id) return errorResponse("bad_request", "qr_token or table_id required");
+  if (input.table_id && !UUID_RE.test(input.table_id)) return errorResponse("bad_request", "table_id must be a UUID");
   const reason = REASONS.includes(input.reason as typeof REASONS[number])
     ? (input.reason as typeof REASONS[number])
     : "other";
 
   const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-  const { data: table } = await admin
-    .from("tables")
-    .select("id, restaurant_id, label, is_active")
-    .eq("qr_token", input.qr_token)
-    .maybeSingle();
+  const tableQuery = admin.from("tables").select("id, restaurant_id, label, is_active");
+  const { data: table } = await (input.qr_token
+    ? tableQuery.eq("qr_token", input.qr_token)
+    : tableQuery.eq("id", input.table_id!)
+  ).maybeSingle();
   if (!table || !table.is_active) {
-    return errorResponse("unknown_table", "This QR code is not valid", 404);
+    return errorResponse("unknown_table", "This table is not valid", 404);
   }
 
   const { data: restaurant } = await admin

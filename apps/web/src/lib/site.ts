@@ -6,21 +6,27 @@
 export const SITE_URL = "https://chehia.app";
 
 /**
+ * Consumer app origin — where the scan → order experience lives (and the mobile
+ * app's universal-link domain). Printed QR / table links point here so a scan
+ * lands on app.chehia.app. Legacy chehia.app/r/... links still resolve (the
+ * routes exist on the apex host too), so old printed codes keep working.
+ */
+export const APP_URL = "https://app.chehia.app";
+
+/**
  * Origin to embed in printed QR codes and table links. In dev we point at the
- * local server; in production we use the canonical origin (which matches the
- * mobile app's universal-link domain), independent of any env var.
+ * local server; on preview deployments at the deployment's own origin (so the
+ * full scan → order flow can be tested end-to-end against the dev backend);
+ * in production at the consumer app origin — never an env var, so it can never
+ * be mispointed.
  */
 export function qrOrigin(): string {
   if (process.env.NODE_ENV === "development") return "http://localhost:3000";
-  // On preview deployments (the `develop` branch) point QR / table links at the
-  // deployment's own origin, so the full scan → order flow can be tested
-  // end-to-end against the dev backend. Production always uses the hardcoded
-  // canonical origin — never an env var — so it can never be mispointed.
   if (
     process.env.NEXT_PUBLIC_DEPLOY_ENV === "preview" &&
     process.env.NEXT_PUBLIC_PREVIEW_ORIGIN
   ) {
     return process.env.NEXT_PUBLIC_PREVIEW_ORIGIN;
   }
-  return SITE_URL;
+  return APP_URL;
 }

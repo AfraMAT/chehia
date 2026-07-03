@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { getServerSupabase } from "@/lib/supabase";
 import { VenueProvider } from "@/app/r/_venue/venue-provider";
-import { loadScannedVenue } from "@/app/r/_venue/loader";
+import { loadBrowseVenue } from "@/app/r/_venue/loader";
 import { InvalidQr } from "@/app/r/_venue/invalid-qr";
 
 export const dynamic = "force-dynamic";
 
-type Params = { slug: string; token: string };
+type Params = { slug: string };
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { slug } = await params;
@@ -15,23 +15,23 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   return { title: data?.name ?? "Menu" };
 }
 
-export default async function VenueTokenLayout({
+export default async function VenueBrowseLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
   params: Promise<Params>;
 }) {
-  const { slug, token } = await params;
-  const bundle = await loadScannedVenue(slug, token);
+  const { slug } = await params;
+  const bundle = await loadBrowseVenue(slug);
 
   if (!bundle) {
-    return <InvalidQr />;
+    return <InvalidQr kind="venue" />;
   }
 
   return (
     <div className="mx-auto w-full max-w-[520px] min-h-dvh bg-cream flex flex-col">
-      <VenueProvider bundle={bundle} basePath={`/r/${slug}/t/${token}`}>
+      <VenueProvider bundle={bundle} basePath={`/r/${slug}`}>
         {children}
       </VenueProvider>
     </div>

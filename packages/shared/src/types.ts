@@ -30,6 +30,24 @@ export interface Restaurant {
   opening_hours: Record<string, string>;
   plan: "starter" | "pro";
   onboarding_completed_at: string | null;
+  /** Map pin for discovery / "near me" sorting; null until geocoded. */
+  latitude: number | null;
+  longitude: number | null;
+}
+
+/** A venue as shown in the discovery list (public fields only). */
+export interface DiscoveryVenue {
+  id: string;
+  slug: string;
+  name: string;
+  tagline_i18n: I18nText;
+  city: string;
+  address: string;
+  cover_url: string | null;
+  logo_url: string | null;
+  plan: "starter" | "pro";
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface Category {

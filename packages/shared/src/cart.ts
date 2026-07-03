@@ -21,13 +21,29 @@ export interface CartLine {
 
 export interface Cart {
   restaurantId: string;
+  /** QR capability, present in the scanned flow. Empty string in the browse flow. */
   qrToken: string;
+  /**
+   * Table chosen in the discovery/browse flow (app.chehia.app), where there is
+   * no scanned qr_token. Set once the customer picks their table.
+   */
+  tableId?: string;
   lines: CartLine[];
   note: string;
 }
 
 export function emptyCart(restaurantId: string, qrToken: string): Cart {
   return { restaurantId, qrToken, lines: [], note: "" };
+}
+
+/** Attach (or change) the chosen table in the browse flow. */
+export function attachTable(cart: Cart, tableId: string): Cart {
+  return { ...cart, tableId };
+}
+
+/** True once the cart can be submitted: it targets a table (scanned or picked). */
+export function cartHasTable(cart: Cart): boolean {
+  return Boolean(cart.qrToken || cart.tableId);
 }
 
 export function lineKey(itemId: string, modifierIds: string[], note: string): string {
@@ -155,10 +171,14 @@ export function validateModifiers(groups: ModifierGroup[], modifierIds: string[]
   return { ok: missing.length === 0 && over.length === 0, missingGroups: missing, overGroups: over };
 }
 
-/** Payload for the place-order edge function. */
+/**
+ * Payload for the place-order edge function. Sends the qr_token (scanned flow)
+ * or the table_id (browse flow) — the server re-validates whichever is present.
+ */
 export function toOrderPayload(cart: Cart, language: string) {
   return {
-    qr_token: cart.qrToken,
+    ...(cart.qrToken ? { qr_token: cart.qrToken } : {}),
+    ...(cart.tableId ? { table_id: cart.tableId } : {}),
     language,
     note: cart.note,
     lines: cart.lines.map((l) => ({

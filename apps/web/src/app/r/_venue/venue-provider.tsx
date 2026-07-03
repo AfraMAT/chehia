@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   addLine as addLineBase,
+  attachTable,
   emptyCart,
   reconcileCart,
   setQty as setQtyBase,
@@ -19,15 +20,26 @@ import { getSupabase } from "@/lib/supabase";
 import { storageGet, storageSet } from "@/lib/storage";
 import { I18nProvider } from "@/components/i18n-provider";
 
+/** A table the customer is ordering to — carries qr_token only in the scanned flow. */
+export type TableChoice = Pick<Table, "id" | "label" | "zone"> & { qr_token?: string };
+
 export interface VenueBundle {
   restaurant: Restaurant;
-  table: Pick<Table, "id" | "label" | "zone" | "qr_token">;
+  /** Known up-front in the scanned flow; null in the browse flow until picked. */
+  table: TableChoice | null;
   categories: Category[];
   items: MenuItem[];
   groupsByItem: Record<string, ModifierGroup[]>;
+  /** Tables the customer can pick from in the browse flow (no qr_token). */
+  tables?: TableChoice[];
 }
 
-interface VenueContextValue extends VenueBundle {
+interface VenueContextValue extends Omit<VenueBundle, "table"> {
+  /** URL prefix for this venue's screens: `/r/{slug}/t/{token}` or `/r/{slug}`. */
+  basePath: string;
+  table: TableChoice | null;
+  /** Browse flow: choose (or change) the table. Persists into the cart. */
+  setTable: (table: TableChoice) => void;
   cart: Cart;
   addToCart: (line: CartLine) => void;
   updateQty: (key: string, qty: number) => void;
@@ -40,15 +52,33 @@ interface VenueContextValue extends VenueBundle {
 
 const VenueContext = createContext<VenueContextValue | null>(null);
 
-export function VenueProvider({ bundle, children }: { bundle: VenueBundle; children: React.ReactNode }) {
-  const cartKey = `chehia.cart.${bundle.table.qr_token}`;
-  const [cart, setCart] = useState<Cart>(() => emptyCart(bundle.restaurant.id, bundle.table.qr_token));
+export function VenueProvider({
+  bundle,
+  basePath,
+  children,
+}: {
+  bundle: VenueBundle;
+  basePath: string;
+  children: React.ReactNode;
+}) {
+  // Cart storage: keyed per-table in the scanned flow (each QR is its own cart),
+  // per-venue in the browse flow (one cart while you browse, table chosen later).
+  const scanned = Boolean(bundle.table?.qr_token);
+  const cartKey = scanned
+    ? `chehia.cart.${bundle.table!.qr_token}`
+    : `chehia.cart.v.${bundle.restaurant.slug}`;
+
+  const [table, setTableState] = useState<TableChoice | null>(bundle.table);
+  const [cart, setCart] = useState<Cart>(() => {
+    const base = emptyCart(bundle.restaurant.id, bundle.table?.qr_token ?? "");
+    return bundle.table && !bundle.table.qr_token ? attachTable(base, bundle.table.id) : base;
+  });
   const [hydrated, setHydrated] = useState(false);
   const [items, setItems] = useState(bundle.items);
   const [online, setOnline] = useState(true);
 
-  // Hydrate the cart from localStorage, reconciling stale lines/prices
-  // against the freshly loaded menu. Runs once.
+  // Hydrate the cart from localStorage, reconciling stale lines/prices against
+  // the freshly loaded menu. Also restores a table picked earlier (browse flow).
   const hydrateOnceRef = useRef(false);
   useEffect(() => {
     if (hydrateOnceRef.current) return;
@@ -57,15 +87,23 @@ export function VenueProvider({ bundle, children }: { bundle: VenueBundle; child
       const stored = storageGet(cartKey);
       if (stored) {
         const parsed = JSON.parse(stored) as Cart;
-        if (parsed.qrToken === bundle.table.qr_token && Array.isArray(parsed.lines)) {
+        const sameVenue = parsed.restaurantId === bundle.restaurant.id;
+        const sameTarget = scanned ? parsed.qrToken === bundle.table!.qr_token : true;
+        if (sameVenue && sameTarget && Array.isArray(parsed.lines)) {
           setCart(reconcileCart(parsed, bundle.items, bundle.groupsByItem).cart);
+          // Restore a previously picked table (browse flow) unless one was passed in.
+          if (!bundle.table && parsed.tableId) {
+            const found = bundle.tables?.find((t) => t.id === parsed.tableId);
+            if (found) setTableState(found);
+          }
         }
       }
     } catch {
       // corrupted cart: start fresh
     }
     setHydrated(true);
-  }, [cartKey, bundle.table.qr_token, bundle.items, bundle.groupsByItem]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartKey]);
 
   useEffect(() => {
     if (hydrated) storageSet(cartKey, JSON.stringify(cart));
@@ -112,13 +150,20 @@ export function VenueProvider({ bundle, children }: { bundle: VenueBundle; child
     };
   }, [bundle.restaurant.id]);
 
+  const setTable = useCallback((next: TableChoice) => {
+    setTableState(next);
+    setCart((c) => (next.qr_token ? c : attachTable(c, next.id)));
+  }, []);
+
   const addToCart = useCallback((line: CartLine) => setCart((c) => addLineBase(c, line)), []);
   const updateQty = useCallback((key: string, qty: number) => setCart((c) => setQtyBase(c, key, qty)), []);
   const setCartNote = useCallback((note: string) => setCart((c) => ({ ...c, note })), []);
-  const clearCart = useCallback(
-    () => setCart(emptyCart(bundle.restaurant.id, bundle.table.qr_token)),
-    [bundle.restaurant.id, bundle.table.qr_token],
-  );
+  const clearCart = useCallback(() => {
+    setCart(() => {
+      const base = emptyCart(bundle.restaurant.id, table?.qr_token ?? "");
+      return table && !table.qr_token ? attachTable(base, table.id) : base;
+    });
+  }, [bundle.restaurant.id, table]);
 
   const itemsRef = useRef(items);
   const cartRef = useRef(cart);
@@ -135,12 +180,31 @@ export function VenueProvider({ bundle, children }: { bundle: VenueBundle; child
   }, [bundle.groupsByItem]);
 
   const value = useMemo<VenueContextValue>(
-    () => ({ ...bundle, items, cart, addToCart, updateQty, setCartNote, clearCart, reconcileNow, online }),
-    [bundle, items, cart, addToCart, updateQty, setCartNote, clearCart, reconcileNow, online],
+    () => ({
+      restaurant: bundle.restaurant,
+      categories: bundle.categories,
+      groupsByItem: bundle.groupsByItem,
+      tables: bundle.tables,
+      basePath,
+      table,
+      setTable,
+      items,
+      cart,
+      addToCart,
+      updateQty,
+      setCartNote,
+      clearCart,
+      reconcileNow,
+      online,
+    }),
+    [bundle, basePath, table, setTable, items, cart, addToCart, updateQty, setCartNote, clearCart, reconcileNow, online],
   );
 
   return (
-    <I18nProvider initial={bundle.restaurant.default_language as Language} storageKey={`chehia.lang.${bundle.restaurant.slug}`}>
+    <I18nProvider
+      initial={bundle.restaurant.default_language as Language}
+      storageKey={`chehia.lang.${bundle.restaurant.slug}`}
+    >
       <VenueContext.Provider value={value}>{children}</VenueContext.Provider>
     </I18nProvider>
   );

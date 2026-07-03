@@ -5,7 +5,7 @@ import type { WaiterCallReason } from "@chehia/shared";
 import { callFunction, ensureCustomerSession } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
 import { Spinner } from "@/components/ui";
-import { useVenue } from "../../venue-provider";
+import { useVenue } from "./venue-provider";
 
 /** P6 · Call waiter — bottom sheet with reason presets; lands on staff devices with the table number. */
 export function WaiterSheet({ onClose }: { onClose: () => void }) {
@@ -33,12 +33,10 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
     if (state === "sending") return;
     setState("sending");
     try {
+      if (!table) throw new Error("no table");
       await ensureCustomerSession();
-      const { ok } = await callFunction("call-waiter", {
-        qr_token: table.qr_token,
-        reason,
-        note,
-      });
+      const target = table.qr_token ? { qr_token: table.qr_token } : { table_id: table.id };
+      const { ok } = await callFunction("call-waiter", { ...target, reason, note });
       if (!ok) throw new Error("failed");
       setState("sent");
       setTimeout(onClose, 1600);

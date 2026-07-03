@@ -1,6 +1,8 @@
 // place-order: the only write path for customer orders.
 // - Caller must be an authenticated Supabase user (anonymous auth is fine).
-// - Table is resolved from its qr_token (the capability printed in the QR).
+// - Table is identified by its qr_token (the capability printed in the QR) OR,
+//   for customers who arrived via discovery (app.chehia.app) and picked their
+//   table, by table_id. Either way the table + venue are re-validated here.
 // - Prices are recomputed from the database; client-sent prices are ignored.
 // - Modifier selections are validated against group min/max rules.
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -14,7 +16,10 @@ type OrderLineInput = {
 };
 
 type PlaceOrderInput = {
-  qr_token: string;
+  /** Scanned flow: the QR token printed at the table. */
+  qr_token?: string;
+  /** Discovery flow: a table chosen from list_venue_tables (no token needed). */
+  table_id?: string;
   language?: string;
   note?: string;
   /** Client-generated idempotency key: retries never duplicate an order. */
@@ -55,8 +60,11 @@ Deno.serve(async (req) => {
     return errorResponse("bad_json", "Invalid JSON body");
   }
 
-  if (!input?.qr_token || !Array.isArray(input.lines) || input.lines.length === 0) {
-    return errorResponse("bad_request", "qr_token and at least one line are required");
+  if ((!input?.qr_token && !input?.table_id) || !Array.isArray(input.lines) || input.lines.length === 0) {
+    return errorResponse("bad_request", "a table (qr_token or table_id) and at least one line are required");
+  }
+  if (input.table_id && !UUID_RE.test(input.table_id)) {
+    return errorResponse("bad_request", "table_id must be a UUID");
   }
   if (input.lines.length > 50) {
     return errorResponse("too_many_lines", "Order too large");
@@ -67,14 +75,17 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Resolve the table from its QR token.
-  const { data: table } = await admin
+  // Resolve the table by its QR token (scanned flow) or its id (chosen from the
+  // discovery table picker). Either way the venue's is_active is re-checked below.
+  const tableQuery = admin
     .from("tables")
-    .select("id, restaurant_id, label, zone, is_active")
-    .eq("qr_token", input.qr_token)
-    .maybeSingle();
+    .select("id, restaurant_id, label, zone, is_active");
+  const { data: table } = await (input.qr_token
+    ? tableQuery.eq("qr_token", input.qr_token)
+    : tableQuery.eq("id", input.table_id!)
+  ).maybeSingle();
   if (!table || !table.is_active) {
-    return errorResponse("unknown_table", "This QR code is not valid", 404);
+    return errorResponse("unknown_table", "This table is not valid", 404);
   }
 
   const { data: restaurant } = await admin
