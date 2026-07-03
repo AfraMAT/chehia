@@ -5,7 +5,7 @@ import { SITE_URL } from "@/lib/site";
 // ordering pages should not be indexed.
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [{ userAgent: "*", allow: "/", disallow: ["/business", "/r/"] }],
+    rules: [{ userAgent: "*", allow: "/", disallow: ["/admin", "/business", "/r/"] }],
     sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

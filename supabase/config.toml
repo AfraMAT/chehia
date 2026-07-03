@@ -385,3 +385,16 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # not a user JWT — disable gateway JWT verification for it.
 [functions.generate-insights]
 verify_jwt = false
+
+# submit-lead is the public "contact us" endpoint (anonymous, no session) —
+# validated in-code (honeypot, rate limits). Disable gateway JWT verification.
+[functions.submit-lead]
+verify_jwt = false
+
+# admin-provision-business and create-staff authenticate in-code against the
+# service-role key / caller role (self-contained), so gateway JWT is disabled.
+[functions.admin-provision-business]
+verify_jwt = false
+
+[functions.create-staff]
+verify_jwt = false

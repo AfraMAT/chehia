@@ -24,7 +24,7 @@ export default function PrivacyPage() {
         <ul className="list-disc ps-5 flex flex-col gap-1.5">
           <li><b>Commandes.</b> Les articles commandés, la table, la langue et l’horodatage. Les clients commandent via une session <b>anonyme</b> — aucun compte ni identité n’est requis.</li>
           <li><b>Comptes du personnel.</b> Pour les établissements : e-mail et rôle des membres de l’équipe, afin d’accéder au portail.</li>
-          <li><b>Demandes de contact.</b> Si vous nous écrivez via le formulaire « restaurateurs » : nom, établissement, e-mail, téléphone, ville et message.</li>
+          <li><b>Demandes de contact.</b> Si vous nous écrivez via le formulaire « restaurateurs » : nom, établissement, e-mail, téléphone, ville, message, et votre adresse IP (à des fins de prévention du spam).</li>
           <li><b>Préférences locales.</b> Votre panier et votre langue sont conservés dans le stockage local de votre navigateur (localStorage), sur votre appareil.</li>
         </ul>
       </Section>

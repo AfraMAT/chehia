@@ -20,15 +20,30 @@ const plexArabic = IBM_Plex_Sans_Arabic({
   weight: ["400", "500", "600", "700"],
 });
 
+const DESCRIPTION =
+  "Commandez depuis votre table dans les cafés et restaurants tunisiens. QR ordering for Tunisian cafés & restaurants.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: "Chehia — Scannez. Commandez. Régalez-vous.",
     template: "%s · Chehia",
   },
-  description:
-    "Commandez depuis votre table dans les cafés et restaurants tunisiens. QR ordering for Tunisian cafés & restaurants.",
+  description: DESCRIPTION,
   applicationName: "Chehia",
+  openGraph: {
+    type: "website",
+    siteName: "Chehia",
+    title: "Chehia — Scannez. Commandez. Régalez-vous.",
+    description: DESCRIPTION,
+    url: SITE_URL,
+    locale: "fr_TN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Chehia — Scannez. Commandez. Régalez-vous.",
+    description: DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {

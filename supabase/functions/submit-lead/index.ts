@@ -1,6 +1,7 @@
 // submit-lead: public "contact us" endpoint for the marketing landing.
 // - No auth (verify_jwt=false): anyone can file a sales enquiry.
-// - Honeypot + length validation + per-email 24h rate limit guard against spam.
+// - Honeypot + length validation + layered rate limits (global/hour, per-IP/hour,
+//   per-email/24h) guard against spam and mail-bombing.
 // - Stored via the service role in public.leads (the table is otherwise private).
 // - If RESEND_API_KEY is set, also emails the team (LEADS_TO, default
 //   contact@aframat.com). Email failures never fail the request — the lead is
@@ -43,14 +44,34 @@ Deno.serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-  // Rate limit: max 5 enquiries per email / 24h. Over the cap → pretend success
-  // (don't reveal the limit, don't store more).
-  const { data: recent } = await admin.rpc("recent_lead_count", { p_email: email });
-  if ((recent ?? 0) >= 5) return jsonResponse({ ok: true });
+  const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || req.headers.get("x-real-ip") || "";
+  const sinceHour = new Date(Date.now() - 3_600_000).toISOString();
+  // Over any limit → pretend success (don't reveal caps, don't store more).
+  const dropped = () => jsonResponse({ ok: true });
+
+  // Global backstop: cap total enquiries per hour. Guards against mail-bombing /
+  // DB growth / Resend cost even if the attacker rotates the email and the IP.
+  {
+    const { count, error } = await admin.from("leads").select("id", { count: "exact", head: true }).gte("created_at", sinceHour);
+    if (error) console.error("submit-lead global rate-check error:", error);
+    else if ((count ?? 0) >= 300) return dropped();
+  }
+  // Per-IP cap — the real guard, since the email field is attacker-controlled.
+  if (ip) {
+    const { count, error } = await admin.from("leads").select("id", { count: "exact", head: true }).eq("ip", ip).gte("created_at", sinceHour);
+    if (error) console.error("submit-lead ip rate-check error:", error);
+    else if ((count ?? 0) >= 8) return dropped();
+  }
+  // Per-email cap — an extra signal (kept, but weak on its own).
+  {
+    const { data: recent, error } = await admin.rpc("recent_lead_count", { p_email: email });
+    if (error) console.error("submit-lead email rate-check error:", error);
+    else if ((recent ?? 0) >= 5) return dropped();
+  }
 
   const { error: insErr } = await admin
     .from("leads")
-    .insert({ name, email, business_name, phone, city, message, locale, source: "landing" });
+    .insert({ name, email, business_name, phone, city, message, locale, source: "landing", ip });
   if (insErr) {
     console.error("submit-lead insert failed:", insErr);
     return errorResponse("db_error", "Could not submit your request", 500);
