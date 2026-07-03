@@ -529,4 +529,11 @@ export const en: Dictionary = {
     q6: "How much does it cost?",
     a6: "Two simple plans, Starter and Pro, no lock-in. Write to us for pricing tailored to your venue.",
   },
+  about: {
+    title: "About Chehia",
+    anonymous: "Order without an account — no sign-up or personal data required. You pay at the counter.",
+    privacy: "Privacy policy",
+    contact: "Questions or data requests: contact@aframat.com",
+    link: "About & privacy",
+  },
 };

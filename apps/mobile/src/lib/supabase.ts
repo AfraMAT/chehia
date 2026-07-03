@@ -3,12 +3,19 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 
 /**
- * Local dev: EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 works on the iOS
- * simulator; use your machine's LAN IP for physical devices, and
- * http://10.0.2.2:54321 for the Android emulator.
+ * Backend selection. A RELEASE build defaults to the PROD Supabase project — its
+ * publishable (anon) key is public and safe to ship, since Row-Level Security is
+ * the real trust boundary. EXPO_PUBLIC_* env vars (injected by eas.json build
+ * profiles, or a local .env for development) OVERRIDE this default: dev/preview
+ * builds point at the dev project, and local development can point at the local
+ * stack (http://127.0.0.1:54321 on the iOS simulator, http://10.0.2.2:54321 on
+ * the Android emulator). This guarantees a store build is never wired to localhost.
  */
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
-const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? "";
+const PROD_URL = "https://wpnouppukofzmvsieyeq.supabase.co";
+const PROD_ANON_KEY = "sb_publishable_3-8-FFBSDKTgLm9aqQwjdw_HFYQ3-Pu";
+
+const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? PROD_URL;
+const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? PROD_ANON_KEY;
 
 export const supabase = createClient(url, anonKey, {
   auth: {

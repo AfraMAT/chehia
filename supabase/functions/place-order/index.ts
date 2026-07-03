@@ -90,11 +90,43 @@ Deno.serve(async (req) => {
 
   const { data: restaurant } = await admin
     .from("restaurants")
-    .select("id, is_active")
+    .select("id, is_active, require_qr")
     .eq("id", table.restaurant_id)
     .maybeSingle();
   if (!restaurant?.is_active) {
     return errorResponse("restaurant_inactive", "This venue is not taking orders", 409);
+  }
+
+  // Scanned (qr_token) vs remote browse (table_id chosen from discovery).
+  const origin = input.qr_token ? "scan" : "browse";
+  // A venue may switch off remote ordering entirely (only scanned QR accepted).
+  if (origin === "browse" && restaurant.require_qr) {
+    return errorResponse("qr_required", "This venue requires scanning the table's QR code to order", 403);
+  }
+
+  // Abuse controls — bound how fast a single session or a single table can
+  // create orders (defence-in-depth on top of place_order_tx's open-order cap).
+  {
+    const since = new Date(Date.now() - 5 * 60_000).toISOString();
+    const { count } = await admin
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("created_by", userId)
+      .gte("created_at", since);
+    if ((count ?? 0) >= 6) {
+      return errorResponse("rate_limited", "Too many recent orders — please wait a moment", 429);
+    }
+  }
+  {
+    const since = new Date(Date.now() - 90_000).toISOString();
+    const { count } = await admin
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("table_id", table.id)
+      .gte("created_at", since);
+    if ((count ?? 0) >= 4) {
+      return errorResponse("rate_limited", "Several very recent orders on this table — please wait", 429);
+    }
   }
 
   // Load items + their modifier structure for validation and pricing.
@@ -224,6 +256,12 @@ Deno.serve(async (req) => {
     }
     console.error("place-order tx failed:", txError);
     return errorResponse("db_error", "Could not create the order", 500);
+  }
+
+  // Tag remote (browse) orders so staff can distinguish them from scanned ones.
+  // Scanned orders keep the column default ('scan'); only browse needs a write.
+  if (origin === "browse") {
+    await admin.from("orders").update({ origin }).eq("id", order.id);
   }
 
   return jsonResponse({

@@ -527,6 +527,13 @@ export const fr = {
     q6: "Combien ça coûte ?",
     a6: "Deux formules simples, Starter et Pro, sans engagement. Écrivez-nous pour un tarif adapté à votre établissement.",
   },
+  about: {
+    title: "À propos de Chehia",
+    anonymous: "Commandez sans compte — aucune inscription ni donnée personnelle requise. Le paiement se fait au comptoir.",
+    privacy: "Politique de confidentialité",
+    contact: "Questions ou demandes de données : contact@aframat.com",
+    link: "À propos & confidentialité",
+  },
 } as const;
 
 /** Same key structure as fr, but any string values. */
