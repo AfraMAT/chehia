@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
 import { Logo } from "@/components/brand";
 import { Spinner } from "@/components/ui";
+import { GoogleSignIn } from "@/components/google-signin";
 import { I18nProvider, useI18n } from "@/components/i18n-provider";
 
 export default function AdminLoginPage() {
@@ -61,6 +62,8 @@ function AdminLoginForm() {
             <p className="text-[13px] text-muted">{t.admin.signInSubtitle}</p>
           </div>
         </div>
+
+        <GoogleSignIn ctx="admin" />
 
         <form onSubmit={submit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">

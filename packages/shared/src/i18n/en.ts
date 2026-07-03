@@ -150,6 +150,14 @@ export const en: Dictionary = {
     signInTitle: "Business portal",
     signInSubtitle: "Manage your orders, menu, and tables.",
     invalidCredentials: "Incorrect email or password",
+    continueWithGoogle: "Continue with Google",
+    orEmail: "or",
+    completingSignIn: "Signing you in…",
+    noAccessTitle: "Access not authorized",
+    noAccessBody:
+      "This Google account isn't linked to any Chehia workspace. Contact your venue's administrator or the Chehia team.",
+    backToSignIn: "Back to sign in",
+    googleFailed: "Google sign-in failed. Please try again.",
   },
   portal: {
     nav: {

@@ -148,6 +148,14 @@ export const fr = {
     signInTitle: "Espace restaurateur",
     signInSubtitle: "Gérez vos commandes, votre menu et vos tables.",
     invalidCredentials: "E-mail ou mot de passe incorrect",
+    continueWithGoogle: "Continuer avec Google",
+    orEmail: "ou",
+    completingSignIn: "Connexion en cours…",
+    noAccessTitle: "Accès non autorisé",
+    noAccessBody:
+      "Ce compte Google n'est associé à aucun espace Chehia. Contactez l'administrateur de votre établissement ou l'équipe Chehia.",
+    backToSignIn: "Retour à la connexion",
+    googleFailed: "La connexion avec Google a échoué. Réessayez.",
   },
   portal: {
     nav: {

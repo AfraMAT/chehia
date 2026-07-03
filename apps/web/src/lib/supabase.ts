@@ -77,6 +77,29 @@ export async function ensureCustomerSession(): Promise<string> {
   return anon.user.id;
 }
 
+/**
+ * Start Google OAuth for the staff/admin portals. This is a full-page redirect
+ * to Google and back to `/auth/callback` on the *same* origin — required so the
+ * PKCE verifier stored in localStorage is available when the code is exchanged.
+ * `ctx` only tailors the callback screen's copy + back-link; the callback
+ * resolves the real role (staff vs admin) from the DB before letting anyone in.
+ *
+ * Security: Google only *authenticates*. Authorization still requires a
+ * pre-provisioned `staff`/`platform_admins` row — a Google user with no such row
+ * is signed straight back out. Supabase auto-links a Google identity to an
+ * existing account with the same confirmed email, so provisioned owners/admins
+ * (created with email_confirm=true) keep the same auth_uid and are recognized.
+ */
+export async function signInWithGoogle(ctx: "business" | "admin"): Promise<void> {
+  const supabase = getSupabase();
+  const redirectTo = `${window.location.origin}/auth/callback?ctx=${ctx}`;
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo, queryParams: { prompt: "select_account" } },
+  });
+  if (error) throw error;
+}
+
 export function functionsUrl(name: string): string {
   return `${requireConfig().url}/functions/v1/${name}`;
 }

@@ -150,6 +150,14 @@ export const ar: Dictionary = {
     signInTitle: "فضاء أصحاب المطاعم",
     signInSubtitle: "أدر طلباتك وقائمتك وطاولاتك.",
     invalidCredentials: "البريد أو كلمة المرور غير صحيحة",
+    continueWithGoogle: "المتابعة عبر Google",
+    orEmail: "أو",
+    completingSignIn: "جارٍ تسجيل الدخول…",
+    noAccessTitle: "الوصول غير مصرّح به",
+    noAccessBody:
+      "حساب Google هذا غير مرتبط بأي فضاء على شهية. تواصل مع مسؤول مطعمك أو مع فريق شهية.",
+    backToSignIn: "العودة إلى تسجيل الدخول",
+    googleFailed: "فشل تسجيل الدخول عبر Google. حاول مرة أخرى.",
   },
   portal: {
     nav: {
