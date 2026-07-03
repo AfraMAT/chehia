@@ -241,6 +241,11 @@ function OrderCard({
           <span className={`text-xs font-bold ${isNew ? "text-harissa-pressed" : "text-warning-text"}`}>
             <Elapsed since={order.created_at} prefix={isNew ? t.portal.orders.ago : t.portal.orders.since} />
           </span>
+          {order.origin === "browse" && (
+            <span className="self-start mt-0.5 text-[10px] font-extrabold text-teal-pressed bg-teal-tint rounded-full px-2 py-0.5">
+              {t.portal.orders.remoteOrder}
+            </span>
+          )}
         </div>
         {isNew && <span className="ms-auto w-2.5 h-2.5 rounded-full bg-harissa animate-ch-pulse shrink-0" />}
       </div>

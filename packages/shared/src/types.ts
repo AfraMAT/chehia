@@ -30,6 +30,8 @@ export interface Restaurant {
   opening_hours: Record<string, string>;
   plan: "starter" | "pro";
   onboarding_completed_at: string | null;
+  /** When true, only scanned-QR orders are accepted (remote/browse ordering off). */
+  require_qr: boolean;
   /** Map pin for discovery / "near me" sorting; null until geocoded. */
   latitude: number | null;
   longitude: number | null;
@@ -117,6 +119,8 @@ export interface Order {
   note: string;
   language: string;
   total_millimes: number;
+  /** How the order was placed: a scanned QR, or the remote browse/discovery flow. */
+  origin: "scan" | "browse";
   created_at: string;
   accepted_at: string | null;
   ready_at: string | null;

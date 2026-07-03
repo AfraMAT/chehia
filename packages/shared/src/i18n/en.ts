@@ -192,6 +192,7 @@ export const en: Dictionary = {
       emptyBody: "New orders appear here in real time, with a sound alert.",
       note: "Note",
       cancelOrder: "Cancel order",
+      remoteOrder: "Remote",
     },
     kitchen: {
       title: "Kitchen",
@@ -293,6 +294,8 @@ export const en: Dictionary = {
       defaultLanguage: "Default language",
       hours: "Opening hours",
       saved: "Settings saved",
+      requireQr: "Require QR scan to order",
+      requireQrHint: "Turns off remote ordering — only guests who scan their table's QR can order.",
     },
     staff: {
       title: "Team",

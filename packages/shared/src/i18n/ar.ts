@@ -192,6 +192,7 @@ export const ar: Dictionary = {
       emptyBody: "تظهر الطلبات الجديدة هنا مباشرة، مع تنبيه صوتي.",
       note: "ملاحظة",
       cancelOrder: "إلغاء الطلب",
+      remoteOrder: "عن بُعد",
     },
     kitchen: {
       title: "المطبخ",
@@ -293,6 +294,8 @@ export const ar: Dictionary = {
       defaultLanguage: "اللغة الافتراضية",
       hours: "أوقات العمل",
       saved: "تم حفظ الإعدادات",
+      requireQr: "اشتراط مسح رمز QR للطلب",
+      requireQrHint: "يعطّل الطلب عن بُعد: لا يمكن الطلب إلا لمن يمسح رمز QR الخاص بطاولته.",
     },
     staff: {
       title: "الفريق",

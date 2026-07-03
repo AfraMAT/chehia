@@ -190,6 +190,7 @@ export const fr = {
       emptyBody: "Les nouvelles commandes apparaissent ici en temps réel, avec un signal sonore.",
       note: "Note",
       cancelOrder: "Annuler la commande",
+      remoteOrder: "À distance",
     },
     kitchen: {
       title: "Cuisine",
@@ -291,6 +292,8 @@ export const fr = {
       defaultLanguage: "Langue par défaut",
       hours: "Horaires",
       saved: "Réglages enregistrés",
+      requireQr: "Exiger le scan du QR pour commander",
+      requireQrHint: "Désactive la commande à distance : seuls les clients qui scannent le QR de leur table peuvent commander.",
     },
     staff: {
       title: "Équipe",

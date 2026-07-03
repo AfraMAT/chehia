@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { LANGUAGE_LABELS, LANGUAGES, type Language, type StaffRole } from "@chehia/shared";
 import { callFunction, getSupabase } from "@/lib/supabase";
-import { Spinner } from "@/components/ui";
+import { Spinner, Toggle } from "@/components/ui";
 import { useI18n } from "@/components/i18n-provider";
 import { usePortal } from "../portal-provider";
 
@@ -31,6 +31,7 @@ export default function SettingsPage() {
   const [languages, setLanguages] = useState<Language[]>(restaurant.languages as Language[]);
   const [defaultLanguage, setDefaultLanguage] = useState<Language>(restaurant.default_language as Language);
   const [hours, setHours] = useState<Record<Day, DayHours>>(() => parseHours(restaurant.opening_hours));
+  const [requireQr, setRequireQr] = useState(restaurant.require_qr ?? false);
   const [staffRows, setStaffRows] = useState<StaffRow[]>([]);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -67,7 +68,7 @@ export default function SettingsPage() {
     for (const d of DAYS) if (!hours[d].closed) opening[d] = `${hours[d].open}-${hours[d].close}`;
     await supabase
       .from("restaurants")
-      .update({ name, address, city, phone, languages, default_language: defaultLanguage, opening_hours: opening })
+      .update({ name, address, city, phone, languages, default_language: defaultLanguage, opening_hours: opening, require_qr: requireQr })
       .eq("id", restaurant.id);
     await refreshRestaurant();
     setLang(defaultLanguage);
@@ -167,6 +168,14 @@ export default function SettingsPage() {
                 ))}
               </div>
             </Field>
+
+            <div className="flex items-start justify-between gap-3 pt-3 mt-1 border-t border-line">
+              <div className="flex flex-col gap-0.5 flex-1">
+                <span className="text-[13px] font-extrabold text-ink">{t.portal.settings.requireQr}</span>
+                <span className="text-[11.5px] text-muted leading-relaxed">{t.portal.settings.requireQrHint}</span>
+              </div>
+              <Toggle checked={requireQr} onChange={setRequireQr} label={t.portal.settings.requireQr} disabled={!canManage} />
+            </div>
           </div>
 
           {/* Opening hours */}

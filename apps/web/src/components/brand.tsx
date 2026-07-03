@@ -1,5 +1,11 @@
 /** Brand primitives: the 8-point zellige star mark and the wordmark. */
 
+/**
+ * The Chehia "Scan & Fork" mark — a QR-scan finder + a fork, echoing the app
+ * icon (scan → order → eat). Reduced form (single finder + fork) so it stays
+ * legible from ~16px nav marks up. Kept the `ZelligeMark` export name so every
+ * existing caller keeps working.
+ */
 export function ZelligeMark({
   size = 30,
   color = "#BC4B26",
@@ -11,26 +17,22 @@ export function ZelligeMark({
   inner?: string;
   radius?: number;
 }) {
-  const sq = size * 0.44;
+  const rx = ((radius ?? size * 0.3) / size) * 100;
   return (
-    <div
-      aria-hidden
-      className="relative shrink-0"
-      style={{ width: size, height: size, background: color, borderRadius: radius ?? size * 0.3 }}
-    >
-      <div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{ width: sq, height: sq, background: inner, borderRadius: size * 0.07 }}
-      />
-      <div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45"
-        style={{ width: sq, height: sq, background: inner, borderRadius: size * 0.07 }}
-      />
-      <div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{ width: size * 0.16, height: size * 0.16, background: color }}
-      />
-    </div>
+    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden style={{ display: "block", flexShrink: 0 }}>
+      <rect width="100" height="100" rx={rx} fill={color} />
+      {/* "scan" QR finder, top-left */}
+      <rect x="19" y="19" width="25" height="25" rx="7" fill="none" stroke={inner} strokeWidth="5.5" />
+      <rect x="28" y="28" width="7" height="7" rx="2" fill={inner} />
+      {/* fork */}
+      <g fill={inner}>
+        <rect x="52" y="40" width="4.4" height="23" rx="2.2" />
+        <rect x="59" y="40" width="4.4" height="23" rx="2.2" />
+        <rect x="66" y="40" width="4.4" height="23" rx="2.2" />
+        <rect x="52" y="59" width="18.4" height="5" rx="2.5" />
+        <rect x="59" y="62" width="4.8" height="21" rx="2.4" />
+      </g>
+    </svg>
   );
 }
 
