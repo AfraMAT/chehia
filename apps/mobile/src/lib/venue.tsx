@@ -3,6 +3,7 @@ import NetInfo from "@react-native-community/netinfo";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   addLine as addLineBase,
+  attachTable,
   emptyCart,
   reconcileCart,
   setQty as setQtyBase,
@@ -18,12 +19,18 @@ import {
 } from "@chehia/shared";
 import { ensureCustomerSession, functionsUrl, supabase, supabaseAnonKey } from "./supabase";
 
+/** A table the customer is ordering to — carries qr_token only in the scanned flow. */
+export type TableChoice = Pick<Table, "id" | "label" | "zone"> & { qr_token?: string };
+
 export interface VenueBundle {
   restaurant: Restaurant;
-  table: Pick<Table, "id" | "label" | "zone" | "qr_token">;
+  /** Known up-front in the scanned flow; null in the browse flow until picked. */
+  table: TableChoice | null;
   categories: Category[];
   items: MenuItem[];
   groupsByItem: Record<string, ModifierGroup[]>;
+  /** Tables the customer can pick from in the browse flow (no qr_token). */
+  tables?: TableChoice[];
 }
 
 export type VenueState =
@@ -55,6 +62,12 @@ function randomUUID(): string {
 
 interface VenueContextValue {
   state: VenueState;
+  /** URL prefix for this venue's screens: `/r/{slug}/t/{token}` or `/r/{slug}`. */
+  basePath: string;
+  /** True in the discovery/browse flow (table picked in-session, no qr_token). */
+  browse: boolean;
+  /** Browse flow: choose (or change) the table. Persists into the cart + bundle. */
+  setTable: (table: TableChoice) => void;
   cart: Cart;
   online: boolean;
   cachedAt: string | null;
@@ -72,63 +85,40 @@ interface VenueContextValue {
 
 const VenueContext = createContext<VenueContextValue | null>(null);
 
-const menuCacheKey = (slug: string, token: string) => `chehia.menu.${slug}.${token}`;
-const cartKey = (token: string) => `chehia.cart.${token}`;
-const queueKey = (token: string) => `chehia.queue.${token}`;
+/** Cache/cart/queue are keyed by the flow's stable target: the token (scanned)
+ * or the slug (browse — one cart while browsing, table chosen later). */
+const menuCacheKey = (slug: string, target: string) => `chehia.menu.${slug}.${target}`;
+const cartKey = (target: string) => `chehia.cart.${target}`;
+const queueKey = (target: string) => `chehia.queue.${target}`;
 
-/**
- * Loads the venue bundle. Returns null only for a genuine "not found"
- * (bad slug/token); THROWS on network/database failures so the caller can
- * fall back to the cached menu instead of showing "invalid QR".
- */
-async function fetchBundle(slug: string, token: string): Promise<VenueBundle | null> {
-  const { data: restaurant, error: restaurantError } = await supabase
-    .from("restaurants")
-    .select("*")
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .maybeSingle<Restaurant>();
-  if (restaurantError) throw new Error("network");
-  if (!restaurant) return null;
-
-  // Resolve the table via a token-scoped RPC (qr_token is a capability and must
-  // not be enumerable). Verify it belongs to this slug's restaurant.
-  const { data: resolved, error: tableError } = await supabase
-    .rpc("resolve_table", { p_qr_token: token })
-    .maybeSingle<{ id: string; restaurant_id: string; label: string; zone: string }>();
-  if (tableError) throw new Error("network");
-  if (!resolved || resolved.restaurant_id !== restaurant.id) return null;
-  const table: Pick<Table, "id" | "label" | "zone" | "qr_token"> = {
-    id: resolved.id,
-    label: resolved.label,
-    zone: resolved.zone,
-    qr_token: token,
-  };
-
+/** Shared menu load: categories, items, modifier structure for a restaurant. */
+async function fetchMenu(
+  restaurantId: string,
+): Promise<Pick<VenueBundle, "categories" | "items" | "groupsByItem">> {
   const [{ data: categories }, { data: items }, { data: groups }, { data: modifiers }] = await Promise.all([
     supabase
       .from("categories")
       .select("*")
-      .eq("restaurant_id", restaurant.id)
+      .eq("restaurant_id", restaurantId)
       .eq("is_active", true)
       .order("sort_order")
       .overrideTypes<Category[], { merge: false }>(),
     supabase
       .from("items")
       .select("*")
-      .eq("restaurant_id", restaurant.id)
+      .eq("restaurant_id", restaurantId)
       .order("sort_order")
       .overrideTypes<MenuItem[], { merge: false }>(),
     supabase
       .from("modifier_groups")
       .select("*")
-      .eq("restaurant_id", restaurant.id)
+      .eq("restaurant_id", restaurantId)
       .order("sort_order")
       .overrideTypes<Omit<ModifierGroup, "modifiers">[], { merge: false }>(),
     supabase
       .from("modifiers")
       .select("*")
-      .eq("restaurant_id", restaurant.id)
+      .eq("restaurant_id", restaurantId)
       .eq("is_available", true)
       .order("sort_order")
       .overrideTypes<Modifier[], { merge: false }>(),
@@ -142,18 +132,76 @@ async function fetchBundle(slug: string, token: string): Promise<VenueBundle | n
     });
   }
 
-  return { restaurant, table, categories: categories ?? [], items: items ?? [], groupsByItem };
+  return { categories: categories ?? [], items: items ?? [], groupsByItem };
 }
 
-export function VenueProvider({
-  slug,
-  token,
-  children,
-}: {
-  slug: string;
-  token: string;
-  children: React.ReactNode;
-}) {
+/** Load the active venue by slug. Returns null for a genuine not-found; THROWS
+ * on network/database failures so the caller can fall back to a cached menu. */
+async function fetchRestaurant(slug: string): Promise<Restaurant | null> {
+  const { data: restaurant, error } = await supabase
+    .from("restaurants")
+    .select("*")
+    .eq("slug", slug)
+    .eq("is_active", true)
+    .maybeSingle<Restaurant>();
+  if (error) throw new Error("network");
+  return restaurant;
+}
+
+/**
+ * Scanned flow: venue + the table resolved from its QR token. Returns null only
+ * for a genuine "not found" (bad slug/token); THROWS on network/DB failures.
+ */
+async function fetchScannedBundle(slug: string, token: string): Promise<VenueBundle | null> {
+  const restaurant = await fetchRestaurant(slug);
+  if (!restaurant) return null;
+
+  // Resolve the table via a token-scoped RPC (qr_token is a capability and must
+  // not be enumerable). Verify it belongs to this slug's restaurant.
+  const { data: resolved, error: tableError } = await supabase
+    .rpc("resolve_table", { p_qr_token: token })
+    .maybeSingle<{ id: string; restaurant_id: string; label: string; zone: string }>();
+  if (tableError) throw new Error("network");
+  if (!resolved || resolved.restaurant_id !== restaurant.id) return null;
+  const table: TableChoice = {
+    id: resolved.id,
+    label: resolved.label,
+    zone: resolved.zone,
+    qr_token: token,
+  };
+
+  return { restaurant, table, ...(await fetchMenu(restaurant.id)) };
+}
+
+/**
+ * Browse flow: venue + its menu + the tables the customer can pick from (via the
+ * `list_venue_tables` RPC — id/label/zone only, never the qr_token).
+ */
+async function fetchBrowseBundle(slug: string): Promise<VenueBundle | null> {
+  const restaurant = await fetchRestaurant(slug);
+  if (!restaurant) return null;
+
+  const { data: tableRows, error } = await supabase.rpc("list_venue_tables", { p_slug: slug });
+  if (error) throw new Error("network");
+  const rows = (tableRows ?? []) as { id: string; label: string; zone: string; sort_order: number }[];
+  const tables: TableChoice[] = rows.map((r) => ({ id: r.id, label: r.label, zone: r.zone }));
+
+  return { restaurant, table: null, tables, ...(await fetchMenu(restaurant.id)) };
+}
+
+type ProviderProps =
+  | { slug: string; token: string; children: React.ReactNode }
+  | { slug: string; browse: true; children: React.ReactNode };
+
+export function VenueProvider(props: ProviderProps) {
+  const slug = props.slug;
+  const browse = "browse" in props;
+  const token = browse ? "" : props.token;
+  // The storage target: the token (scanned, per-QR cart) or the slug (browse,
+  // one cart per venue). basePath mirrors the route the screens live under.
+  const target = browse ? `v.${slug}` : token;
+  const basePath = browse ? `/r/${slug}` : `/r/${slug}/t/${token}`;
+
   const [state, setState] = useState<VenueState>({ status: "loading" });
   const [cart, setCart] = useState<Cart>(() => emptyCart("", token));
   const [cartHydrated, setCartHydrated] = useState(false);
@@ -176,7 +224,7 @@ export function VenueProvider({
     let cancelled = false;
     void (async () => {
       try {
-        const bundle = await fetchBundle(slug, token);
+        const bundle = browse ? await fetchBrowseBundle(slug) : await fetchScannedBundle(slug, token);
         if (cancelled) return;
         if (!bundle) {
           setState({ status: "invalid" });
@@ -184,14 +232,14 @@ export function VenueProvider({
         }
         setState({ status: "ready", bundle, fromCache: false });
         setCachedAt(null);
-        // Cache the full bundle (table included) keyed per slug+token.
+        // Cache the full bundle (table included) keyed per slug+target.
         await AsyncStorage.setItem(
-          menuCacheKey(slug, token),
+          menuCacheKey(slug, target),
           JSON.stringify({ bundle, at: new Date().toISOString() }),
         );
       } catch {
         // Network failure → cached menu.
-        const raw = await AsyncStorage.getItem(menuCacheKey(slug, token));
+        const raw = await AsyncStorage.getItem(menuCacheKey(slug, target));
         if (cancelled) return;
         if (raw) {
           try {
@@ -209,20 +257,22 @@ export function VenueProvider({
     return () => {
       cancelled = true;
     };
-  }, [slug, token]);
+  }, [slug, token, target, browse]);
 
   // Hydrate cart + queued order. The cart is reconciled against the live
   // menu once it arrives (stale prices/vanished items are corrected).
   useEffect(() => {
     void (async () => {
       const [rawCart, rawQueue] = await Promise.all([
-        AsyncStorage.getItem(cartKey(token)),
-        AsyncStorage.getItem(queueKey(token)),
+        AsyncStorage.getItem(cartKey(target)),
+        AsyncStorage.getItem(queueKey(target)),
       ]);
       if (rawCart) {
         try {
           const parsed = JSON.parse(rawCart) as Cart;
-          if (parsed.qrToken === token && Array.isArray(parsed.lines)) setCart(parsed);
+          // Scanned carts are token-keyed; browse carts have no token but a tableId.
+          const sameTarget = browse ? parsed.qrToken === "" : parsed.qrToken === token;
+          if (sameTarget && Array.isArray(parsed.lines)) setCart(parsed);
         } catch {
           // fresh cart
         }
@@ -240,22 +290,34 @@ export function VenueProvider({
       }
       setCartHydrated(true);
     })();
-  }, [token]);
+  }, [target, token, browse]);
 
   // Reconcile the hydrated cart when fresh (non-cache) menu data is ready.
   // Runs exactly once per mount — post-hydration correction, not a render loop.
+  // Also restores a browse table picked earlier, dropping it if no longer valid.
   const reconciledRef = useRef(false);
   useEffect(() => {
     if (!cartHydrated || reconciledRef.current) return;
     if (state.status !== "ready" || state.fromCache) return;
     reconciledRef.current = true;
+    const bundle = state.bundle;
+    // Browse flow: a table picked in an earlier session is restored only if it is
+    // still available; otherwise the stale tableId is dropped so the picker
+    // reappears (and the cart can't submit against a phantom table).
+    const restored = browse && cart.tableId ? bundle.tables?.find((tb) => tb.id === cart.tableId) : undefined;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCart((c) => reconcileCart(c, state.bundle.items, state.bundle.groupsByItem).cart);
-  }, [cartHydrated, state]);
+    setCart((c) => {
+      const next = reconcileCart(c, bundle.items, bundle.groupsByItem).cart;
+      return browse && next.tableId && !restored ? { ...next, tableId: undefined } : next;
+    });
+    if (restored) {
+      setState((prev) => (prev.status === "ready" ? { ...prev, bundle: { ...prev.bundle, table: restored } } : prev));
+    }
+  }, [cartHydrated, state, browse, cart.tableId]);
 
   useEffect(() => {
-    if (cartHydrated) void AsyncStorage.setItem(cartKey(token), JSON.stringify(cart));
-  }, [cart, token, cartHydrated]);
+    if (cartHydrated) void AsyncStorage.setItem(cartKey(target), JSON.stringify(cart));
+  }, [cart, target, cartHydrated]);
 
   // Live item availability while online.
   const readyRestaurantId = state.status === "ready" && !state.fromCache ? state.bundle.restaurant.id : null;
@@ -288,10 +350,26 @@ export function VenueProvider({
     };
   }, [readyRestaurantId]);
 
+  // Browse flow: pick (or change) the table. Attaches it to the cart (order is
+  // placed by table_id) and surfaces it on the bundle so the shared screens —
+  // built for the scanned flow's fixed table — render it unchanged.
+  const setTable = useCallback((next: TableChoice) => {
+    setCart((c) => attachTable(c, next.id));
+    setState((prev) => (prev.status === "ready" ? { ...prev, bundle: { ...prev.bundle, table: next } } : prev));
+  }, []);
+
   const addToCart = useCallback((line: CartLine) => setCart((c) => addLineBase(c, line)), []);
   const updateQty = useCallback((key: string, qty: number) => setCart((c) => setQtyBase(c, key, qty)), []);
   const setCartNote = useCallback((note: string) => setCart((c) => ({ ...c, note })), []);
-  const clearCart = useCallback(() => setCart(emptyCart("", token)), [token]);
+  const clearCart = useCallback(
+    () =>
+      setCart((c) => {
+        const base = emptyCart("", token);
+        // Browse: keep the chosen table so a follow-up order still targets it.
+        return browse && c.tableId ? attachTable(base, c.tableId) : base;
+      }),
+    [token, browse],
+  );
 
   const submitCart = useCallback(
     async (payloadCart: Cart, language: string, clientRef: string): Promise<PlaceOrderResult> => {
@@ -331,19 +409,23 @@ export function VenueProvider({
           // fetch threw → offline. Move the cart into the queue (P8): the
           // live cart empties; new items form a separate future order.
           const payload: QueuedPayload = { cart, language, clientRef };
-          await AsyncStorage.setItem(queueKey(token), JSON.stringify(payload));
+          await AsyncStorage.setItem(queueKey(target), JSON.stringify(payload));
           setQueuedOrder({
             count: cart.lines.reduce((s, l) => s + l.qty, 0),
             totalMillimes: cart.lines.reduce((s, l) => s + l.unitPriceMillimes * l.qty, 0),
           });
-          setCart(emptyCart("", token));
+          // Empty the live cart but keep the browse table for the next order.
+          setCart((c) => {
+            const base = emptyCart("", token);
+            return browse && c.tableId ? attachTable(base, c.tableId) : base;
+          });
           return { ok: false, queued: true };
         }
       } finally {
         submittingRef.current = false;
       }
     },
-    [cart, submitCart, token],
+    [cart, submitCart, target, token, browse],
   );
 
   const retryQueued = useCallback(
@@ -351,19 +433,19 @@ export function VenueProvider({
       if (submittingRef.current) return { ok: false };
       submittingRef.current = true;
       try {
-        const raw = await AsyncStorage.getItem(queueKey(token));
+        const raw = await AsyncStorage.getItem(queueKey(target));
         if (!raw) return { ok: false };
         const queued = JSON.parse(raw) as QueuedPayload;
         try {
           const result = await submitCart(queued.cart, overrideLanguage ?? queued.language, queued.clientRef);
           if (result.ok) {
-            await AsyncStorage.removeItem(queueKey(token));
+            await AsyncStorage.removeItem(queueKey(target));
             setQueuedOrder(null);
             setQueuedPlacedOrderId(result.orderId ?? null);
           } else {
             // The server explicitly rejected it (item sold out, table gone…):
             // dequeue and hand the lines back to the cart for editing.
-            await AsyncStorage.removeItem(queueKey(token));
+            await AsyncStorage.removeItem(queueKey(target));
             setQueuedOrder(null);
             setCart((c) => ({ ...c, lines: [...queued.cart.lines, ...c.lines], note: c.note || queued.cart.note }));
           }
@@ -375,7 +457,7 @@ export function VenueProvider({
         submittingRef.current = false;
       }
     },
-    [submitCart, token],
+    [submitCart, target],
   );
 
   // Auto-retry the queued order when connectivity returns; the queued
@@ -393,6 +475,17 @@ export function VenueProvider({
 
   const callWaiter = useCallback(
     async (reason: string, note: string): Promise<boolean> => {
+      // Waiter calls are keyed by the physical table. Scanned flow uses the
+      // qr_token; browse flow uses the picked table_id.
+      const target =
+        state.status === "ready" && state.bundle.table
+          ? state.bundle.table.qr_token
+            ? { qr_token: state.bundle.table.qr_token }
+            : { table_id: state.bundle.table.id }
+          : token
+            ? { qr_token: token }
+            : null;
+      if (!target) return false;
       try {
         await ensureCustomerSession();
         const { data: sessionData } = await supabase.auth.getSession();
@@ -403,19 +496,22 @@ export function VenueProvider({
             Authorization: `Bearer ${sessionData.session?.access_token}`,
             apikey: supabaseAnonKey,
           },
-          body: JSON.stringify({ qr_token: token, reason, note }),
+          body: JSON.stringify({ ...target, reason, note }),
         });
         return response.ok;
       } catch {
         return false;
       }
     },
-    [token],
+    [state, token],
   );
 
   const value = useMemo<VenueContextValue>(
     () => ({
       state,
+      basePath,
+      browse,
+      setTable,
       cart,
       online,
       cachedAt,
@@ -429,10 +525,10 @@ export function VenueProvider({
       retryQueued,
       callWaiter,
     }),
-    [state, cart, online, cachedAt, queuedOrder, queuedPlacedOrderId, addToCart, updateQty, setCartNote, clearCart, placeOrder, retryQueued, callWaiter],
+    [state, basePath, browse, setTable, cart, online, cachedAt, queuedOrder, queuedPlacedOrderId, addToCart, updateQty, setCartNote, clearCart, placeOrder, retryQueued, callWaiter],
   );
 
-  return <VenueContext.Provider value={value}>{children}</VenueContext.Provider>;
+  return <VenueContext.Provider value={value}>{props.children}</VenueContext.Provider>;
 }
 
 export function useVenueState(): VenueContextValue {

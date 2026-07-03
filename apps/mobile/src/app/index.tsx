@@ -104,6 +104,13 @@ export default function ScanHome() {
 
       <View style={{ alignSelf: "stretch", gap: 10 }}>
         <CtaButton lang={lang} label={t.landing.scanPrompt} onPress={() => void startScan()} height={56} />
+        <CtaButton
+          lang={lang}
+          variant="outline"
+          height={48}
+          label={t.home.findRestaurant}
+          onPress={() => router.push("/app")}
+        />
         {__DEV__ && (
           <CtaButton
             lang={lang}
