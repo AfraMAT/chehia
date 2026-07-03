@@ -70,7 +70,7 @@ export function MenuScreen() {
 
       {/* Header */}
       <View style={[rowDir(lang), { alignItems: "center", gap: 10, paddingHorizontal: 20, paddingTop: 12 }]}>
-        <Pressable onPress={() => router.back()}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t.common.back} onPress={() => router.back()}>
           <ZelligeMark size={30} />
         </Pressable>
         <View style={{ flex: 1 }}>

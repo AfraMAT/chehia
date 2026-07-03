@@ -62,7 +62,7 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
   return (
     <Modal animationType="slide" transparent onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: "rgba(34,26,19,0.45)", justifyContent: "flex-end" }}>
-        <Pressable style={{ flex: 1 }} onPress={onClose} />
+        <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityRole="button" accessibilityLabel={t.common.close} />
         <View
           style={{
             maxHeight: "92%",

@@ -57,14 +57,17 @@ export default function ScanHome() {
           </T>
         </View>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.common.close}
+          hitSlop={8}
           onPress={() => setScanning(false)}
           style={{
             position: "absolute",
             top: insets.top + 12,
             left: 16,
-            width: 40,
-            height: 40,
-            borderRadius: 20,
+            width: 48,
+            height: 48,
+            borderRadius: 24,
             backgroundColor: "rgba(34,26,19,0.82)",
             alignItems: "center",
             justifyContent: "center",
@@ -120,6 +123,16 @@ export default function ScanHome() {
             onPress={() => router.push("/r/cafe-el-marsa/t/demo-elmarsa-t12")}
           />
         )}
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => router.push("/about")}
+          hitSlop={8}
+          style={{ alignSelf: "center", paddingVertical: 8 }}
+        >
+          <T lang={lang} weight="semibold" size={12} color={colors.mutedSoft}>
+            {t.about.link}
+          </T>
+        </Pressable>
       </View>
     </View>
   );

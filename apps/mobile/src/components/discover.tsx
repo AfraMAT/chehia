@@ -101,6 +101,8 @@ export function Discover() {
               <Pressable
                 key={code}
                 onPress={() => setLang(code as Language)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
                 accessibilityLabel={LANGUAGE_LABELS[code as Language]}
                 style={{
                   paddingHorizontal: 8,
@@ -154,8 +156,10 @@ export function Discover() {
           <TextInput
             value={search}
             onChangeText={setSearch}
+            accessibilityLabel={t.discover.searchPlaceholder}
             placeholder={t.discover.searchPlaceholder}
             placeholderTextColor={colors.mutedSoft}
+            returnKeyType="search"
             style={{
               flex: 1,
               fontFamily: "Manrope_500Medium",
@@ -166,6 +170,8 @@ export function Discover() {
           />
         </View>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.discover.nearMe}
           onPress={locate}
           disabled={geo === "locating"}
           style={[
@@ -214,6 +220,8 @@ export function Discover() {
         <FlatList
           data={results}
           keyExtractor={({ venue }) => venue.id}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 4, paddingBottom: insets.bottom + 24, gap: 10, flexGrow: 1 }}
           ListEmptyComponent={
             <EmptyState
@@ -239,6 +247,8 @@ export function Discover() {
           }
           renderItem={({ item: { venue, dist } }) => (
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={venue.name}
               onPress={() => go(`/r/${venue.slug}`)}
               style={[
                 rowDir(lang),

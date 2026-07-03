@@ -17,7 +17,8 @@ import {
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { AccessibilityInfo } from "react-native";
 import { I18nProvider } from "@/lib/i18n";
 import { colors } from "@/lib/theme";
 
@@ -36,9 +37,18 @@ export default function RootLayout() {
     IBMPlexSansArabic_700Bold,
   });
 
+  const [reduceMotion, setReduceMotion] = useState(false);
+
   useEffect(() => {
     if (loaded) void SplashScreen.hideAsync();
   }, [loaded]);
+
+  // Respect the OS "Reduce Motion" accessibility setting.
+  useEffect(() => {
+    void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduceMotion);
+    return () => sub.remove();
+  }, []);
 
   if (!loaded) return null;
 
@@ -49,7 +59,7 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.cream },
-          animation: "slide_from_right",
+          animation: reduceMotion ? "none" : "slide_from_right",
         }}
       />
     </I18nProvider>

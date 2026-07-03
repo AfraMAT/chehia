@@ -82,7 +82,7 @@ export function CtaButton({
       disabled={disabled}
       style={({ pressed }) => [
         {
-          height,
+          height: Math.max(height, 44),
           borderRadius: 16,
           backgroundColor: pressed && variant === "primary" && !disabled ? colors.harissaPressed : s.bg,
           borderWidth: s.border ? 2 : 0,
@@ -172,7 +172,9 @@ export function Stepper({
       }}
     >
       <Pressable
-        accessibilityLabel="minus"
+        accessibilityRole="button"
+        accessibilityLabel="Decrease quantity"
+        hitSlop={8}
         disabled={value <= min}
         onPress={() => onChange(Math.max(min, value - 1))}
         style={{ width: w, height: h, alignItems: "center", justifyContent: "center", opacity: value <= min ? 0.3 : 1 }}
@@ -183,7 +185,9 @@ export function Stepper({
         {value}
       </Text>
       <Pressable
-        accessibilityLabel="plus"
+        accessibilityRole="button"
+        accessibilityLabel="Increase quantity"
+        hitSlop={8}
         disabled={value >= max}
         onPress={() => onChange(Math.min(max, value + 1))}
         style={{ width: w, height: h, alignItems: "center", justifyContent: "center", opacity: value >= max ? 0.3 : 1 }}
@@ -231,12 +235,14 @@ export function PhotoPlaceholder({
 export function BackButton({ onPress, isRtl = false }: { onPress: () => void; isRtl?: boolean }) {
   return (
     <Pressable
+      accessibilityRole="button"
       accessibilityLabel="back"
+      hitSlop={8}
       onPress={onPress}
       style={{
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         backgroundColor: "#FFFFFF",
         borderWidth: 1.5,
         borderColor: colors.border,
