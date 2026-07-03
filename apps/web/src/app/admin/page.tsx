@@ -7,6 +7,7 @@ import { Logo } from "@/components/brand";
 import { useI18n } from "@/components/i18n-provider";
 import { useAdmin } from "./admin-provider";
 import { CreateBusiness } from "./create-business";
+import { LeadsPanel } from "./leads-panel";
 
 interface VenueOverview {
   id: string;
@@ -37,6 +38,7 @@ export default function AdminDashboard() {
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [tab, setTab] = useState<"venues" | "leads">("venues");
 
   const load = useCallback(async () => {
     const { data } = await supabase.rpc("admin_venue_overview");
@@ -106,6 +108,25 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-[960px] mx-auto px-6 py-6 flex flex-col gap-4">
+        <div className="flex gap-1 bg-sand-deep rounded-lg p-1 self-start">
+          {(["venues", "leads"] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setTab(k)}
+              className={`h-8 px-4 rounded-md text-[13px] font-extrabold cursor-pointer transition-colors ${
+                tab === k ? "bg-card text-ink shadow-sm" : "text-muted hover:text-ink"
+              }`}
+            >
+              {k === "venues" ? t.admin.venuesTab : t.admin.leadsTab}
+            </button>
+          ))}
+        </div>
+
+        {tab === "leads" ? (
+          <LeadsPanel />
+        ) : (
+          <>
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="font-display font-extrabold text-2xl text-ink">{t.admin.venues}</h1>
           <span className="text-sm font-bold text-muted-soft">{venues?.length ?? 0}</span>
@@ -181,6 +202,8 @@ export default function AdminDashboard() {
               );
             })}
           </div>
+        )}
+          </>
         )}
       </main>
 
