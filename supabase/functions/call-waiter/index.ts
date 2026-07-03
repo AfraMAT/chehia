@@ -1,5 +1,7 @@
 // call-waiter: customer requests staff attention from their table.
-// Same capability model as place-order: the table qr_token authorizes the call.
+// Same capability model as place-order: the table is identified by its qr_token
+// (scanned) or table_id (chosen via discovery); a per-user open-call cap bounds
+// abuse of the token-free path.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
 
@@ -53,6 +55,19 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (!restaurant?.is_active) {
     return errorResponse("restaurant_inactive", "This venue is not taking requests", 409);
+  }
+
+  // Abuse cap: at most 5 open waiter calls per customer at a time. The token-free
+  // table_id path (discovery) means a table is orderable/callable without scanning
+  // its QR; this per-user cap (plus the one-open-call-per-table unique index)
+  // bounds the remote "light up the whole floor" spam surface.
+  const { count: openCalls } = await admin
+    .from("waiter_calls")
+    .select("id", { count: "exact", head: true })
+    .eq("created_by", userData.user.id)
+    .eq("status", "open");
+  if ((openCalls ?? 0) >= 5) {
+    return errorResponse("too_many_open_calls", "Too many open requests", 429);
   }
 
   const { data: call, error: callErr } = await admin

@@ -12,7 +12,9 @@ Built from [chehia-playbook.md](chehia-playbook.md) and the design canvas in
 ```
 apps/
   mobile/        Expo (React Native) customer app — QR scan → menu → order → live tracking
-  web/           Next.js — customer web fallback (/r/[slug]/t/[token]) + business portal (/business)
+  web/           Next.js — one app, four subdomains (host-routed in src/proxy.ts):
+                 chehia.app landing · app.chehia.app (discovery + /r/[slug] browse & pick-a-table +
+                 /r/[slug]/t/[token] scan) · business.chehia.app portal · admin.chehia.app
 packages/
   shared/        Design tokens, trilingual i18n, money/cart/status domain logic (unit-tested)
   integration/   Integration tests against the local Supabase stack (RLS, order flow, edge functions)
@@ -143,6 +145,13 @@ merge to `main` → production deploys to chehia.app (runs against the prod proj
   `create-staff`). The `item-photos` Storage bucket + RLS come from migration `20260703000002`.
   Schedule `generate-insights` nightly via `pg_cron` + `pg_net` on prod. **Enable anonymous sign-ins**
   (Auth → Providers) on **each** project — customer ordering signs in anonymously.
+- **Subdomains** — one Next.js app serves four hosts, routed by host in `src/proxy.ts` (Next 16 renamed
+  `middleware`→`proxy`): `chehia.app` → marketing landing, `app.chehia.app` → consumer discovery
+  (`/app`), `business.chehia.app` → `/business`, `admin.chehia.app` → `/admin`. Only the root path is
+  remapped per host, so every section is still reachable by path on a single host (previews, localhost).
+  Printed QR / table links point at `app.chehia.app` (`qrOrigin()`); legacy `chehia.app/r/...` still
+  resolves. **DNS:** add `app`, `business`, `admin` CNAMEs (→ Vercel) and register each as a domain on
+  the `chehia-web` Vercel project. Until then everything works by path on chehia.app.
 - **Domain** — `chehia.app` DNS points at Vercel. The app serves
   `/.well-known/apple-app-site-association` and `/.well-known/assetlinks.json` from route handlers that
   activate once `APPLE_TEAM_ID` / `ANDROID_CERT_SHA256` env vars are set (they 404 until then, so no
@@ -153,8 +162,8 @@ merge to `main` → production deploys to chehia.app (runs against the prod proj
 
 ### Credentials / one-time actions needed from you
 
-- **Anonymous sign-ins** on the **dev** Supabase project (`chehia-dev`) — Auth → Providers → enable
-  (prod already has it). Without it, customer ordering on preview deployments fails.
+- **Subdomain DNS** — add `app`, `business`, `admin` CNAMEs at the registrar pointing at Vercel, and add
+  each as a domain on the `chehia-web` Vercel project. Everything works by path on chehia.app until then.
 - **Apple Developer** ($99/yr) & **Google Play** ($25) for store builds; the Apple Team ID and Android
   signing SHA-256 then populate `APPLE_TEAM_ID` / `ANDROID_CERT_SHA256` (deep-link association files).
 - **`ANTHROPIC_API_KEY`** for production AI insights (template fallback works without it) — set via

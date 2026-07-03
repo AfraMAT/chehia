@@ -90,12 +90,17 @@ export function VenueProvider({
         const sameVenue = parsed.restaurantId === bundle.restaurant.id;
         const sameTarget = scanned ? parsed.qrToken === bundle.table!.qr_token : true;
         if (sameVenue && sameTarget && Array.isArray(parsed.lines)) {
-          setCart(reconcileCart(parsed, bundle.items, bundle.groupsByItem).cart);
-          // Restore a previously picked table (browse flow) unless one was passed in.
-          if (!bundle.table && parsed.tableId) {
-            const found = bundle.tables?.find((t) => t.id === parsed.tableId);
+          let restored = reconcileCart(parsed, bundle.items, bundle.groupsByItem).cart;
+          // Browse flow: restore a previously picked table, but only if it is
+          // still available. If it was deactivated/removed, drop the stale
+          // tableId so the picker reappears and `table` / cartHasTable stay in
+          // sync (otherwise the cart would submit against a phantom table).
+          if (!bundle.table && restored.tableId) {
+            const found = bundle.tables?.find((t) => t.id === restored.tableId);
             if (found) setTableState(found);
+            else restored = { ...restored, tableId: undefined };
           }
+          setCart(restored);
         }
       }
     } catch {
