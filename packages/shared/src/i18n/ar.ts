@@ -331,7 +331,7 @@ export const ar: Dictionary = {
     newVenue: "مطعم جديد",
     venueName: "اسم المطعم",
     slug: "المعرّف (slug)",
-    slugHint: "عنوان الزبون: chehia.app/r/<slug>",
+    slugHint: "عنوان الزبون: app.chehia.app/r/<slug>",
     city: "المدينة",
     plan: "الباقة",
     planStarter: "ستارتر",

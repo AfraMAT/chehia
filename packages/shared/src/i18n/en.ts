@@ -331,7 +331,7 @@ export const en: Dictionary = {
     newVenue: "New venue",
     venueName: "Venue name",
     slug: "Identifier (slug)",
-    slugHint: "Customer address: chehia.app/r/<slug>",
+    slugHint: "Customer address: app.chehia.app/r/<slug>",
     city: "City",
     plan: "Plan",
     planStarter: "Starter",

@@ -329,7 +329,7 @@ export const fr = {
     newVenue: "Nouvel établissement",
     venueName: "Nom de l'établissement",
     slug: "Identifiant (slug)",
-    slugHint: "Adresse client : chehia.app/r/<slug>",
+    slugHint: "Adresse client : app.chehia.app/r/<slug>",
     city: "Ville",
     plan: "Formule",
     planStarter: "Starter",
