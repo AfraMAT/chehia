@@ -1,56 +1,70 @@
-# Welcome to your Expo app 👋
+# Chehia — customer app (Expo)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The customer-facing mobile app for **Chehia**, QR table-ordering for Tunisian
+cafés and restaurants. Anonymous, order-only, pay-at-counter: no accounts, no
+in-app payment, one permission (camera, to scan a table QR). Trilingual
+**French / Arabic (RTL) / English**.
 
-## Get started
+Part of the [`chehia`](../../README.md) pnpm monorepo — shares tokens, i18n, and
+domain logic with `apps/web` via `@chehia/shared`.
 
-1. Install dependencies
+## Stack
 
-   ```bash
-   npm install
-   ```
+- Expo SDK 57 · React Native 0.86 · React 19 · TypeScript
+- `expo-router` (typed routes) · `expo-camera` (QR scan) · `expo-location` (near-me)
+- Supabase (anonymous auth + Postgres/RLS + edge functions + realtime)
 
-2. Start the app
+## Backend selection
 
-   ```bash
-   npx expo start
-   ```
+`src/lib/supabase.ts` defaults a **release build to the production** Supabase
+project (its publishable/anon key is public — RLS is the trust boundary).
+`EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` override it:
 
-In the output, you'll find options to open the app in a
+- **local dev** — `.env` points at the local stack (`http://127.0.0.1:54321`).
+- **dev / preview builds** — the `eas.json` `development`/`preview` profiles inject the dev project.
+- **production builds** — the `eas.json` `production` profile injects the prod project.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+This guarantees a store build is never wired to localhost.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Run locally
 
 ```bash
-npm run reset-project
+pnpm install                       # from the repo root
+cd apps/mobile
+cp .env.example .env               # then fill in your Supabase values
+pnpm start                         # Expo dev server (scan the QR with Expo Go)
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+On the iOS simulator, open a table deep link directly:
 
-### Other setup steps
+```bash
+xcrun simctl openurl booted "exp://127.0.0.1:8081/--/r/cafe-el-marsa/t/demo-elmarsa-t12"
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Screens
 
-## Learn more
+`src/app/` (expo-router):
 
-To learn more about developing your project with Expo, look at the following resources:
+- `index.tsx` — scan home (camera QR) + "Find a restaurant".
+- `app.tsx` → `components/discover.tsx` — public venue discovery + near-me.
+- `r/[slug]/t/[token]/` — scanned-QR flow · `r/[slug]/(browse)/` — pick-a-table flow.
+- Shared venue UI in `components/venue/` (menu, item sheet, cart, order tracking, waiter).
+- `about.tsx` — About & Privacy (links the privacy policy; data-request contact).
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Store build & submit
 
-## Join the community
+See [`docs/mobile-submission.md`](../../docs/mobile-submission.md) for the full
+App Store / Google Play checklist. In short:
 
-Join our community of developers creating universal apps.
+```bash
+cd apps/mobile
+eas build   --platform ios --profile production
+eas submit  --platform ios --profile production
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Quality gates
+
+```bash
+pnpm typecheck   # tsc --noEmit
+pnpm lint        # expo lint
+```

@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { router } from "expo-router";
-import { useCallback, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Linking, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { parseTableUrl } from "@chehia/shared";
 import { T, CtaButton, Wordmark, ZelligeMark } from "@/components/ui";
@@ -17,7 +17,17 @@ export default function ScanHome() {
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanning, setScanning] = useState(false);
+  const [cameraBlocked, setCameraBlocked] = useState(false);
+  const [unknownCode, setUnknownCode] = useState(false);
   const handledRef = useRef(false);
+  const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (hintTimer.current) clearTimeout(hintTimer.current);
+    },
+    [],
+  );
 
   const onScanned = useCallback(({ data }: { data: string }) => {
     if (handledRef.current) return;
@@ -29,14 +39,27 @@ export default function ScanHome() {
       setTimeout(() => {
         handledRef.current = false;
       }, 1500);
+    } else {
+      // Acknowledge an unrecognized code so the scanner never looks frozen
+      // (debounced — onBarcodeScanned fires on every camera frame).
+      setUnknownCode(true);
+      if (hintTimer.current) clearTimeout(hintTimer.current);
+      hintTimer.current = setTimeout(() => setUnknownCode(false), 2500);
     }
   }, []);
 
   const startScan = async () => {
     if (!permission?.granted) {
       const result = await requestPermission();
-      if (!result.granted) return;
+      if (!result.granted) {
+        // A permanent iOS denial (canAskAgain=false) no longer shows the system
+        // prompt, so guide the user to Settings instead of a silent no-op.
+        if (!result.canAskAgain) setCameraBlocked(true);
+        return;
+      }
     }
+    setCameraBlocked(false);
+    setUnknownCode(false);
     setScanning(true);
   };
 
@@ -55,6 +78,11 @@ export default function ScanHome() {
           <T lang={lang} weight="bold" size={14} color={colors.cream} style={{ marginTop: 20, textAlign: "center" }}>
             {t.landing.scanPrompt}
           </T>
+          {unknownCode && (
+            <T lang={lang} weight="bold" size={13} color={colors.cream} style={{ marginTop: 10, textAlign: "center", opacity: 0.85 }}>
+              {t.landing.notChehiaCode}
+            </T>
+          )}
         </View>
         <Pressable
           accessibilityRole="button"
@@ -107,6 +135,20 @@ export default function ScanHome() {
 
       <View style={{ alignSelf: "stretch", gap: 10 }}>
         <CtaButton lang={lang} label={t.landing.scanPrompt} onPress={() => void startScan()} height={56} />
+        {cameraBlocked && (
+          <>
+            <T lang={lang} weight="semibold" size={12.5} color={colors.mutedSoft} style={{ textAlign: "center", paddingHorizontal: 8 }}>
+              {t.landing.cameraDenied}
+            </T>
+            <CtaButton
+              lang={lang}
+              variant="outline"
+              height={44}
+              label={t.landing.openSettings}
+              onPress={() => void Linking.openSettings()}
+            />
+          </>
+        )}
         <CtaButton
           lang={lang}
           variant="outline"

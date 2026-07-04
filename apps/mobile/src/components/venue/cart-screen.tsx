@@ -30,6 +30,7 @@ export function CartScreen() {
     retryQueued,
     queuedOrder,
     queuedPlacedOrderId,
+    clearQueuedPlaced,
     online,
   } = useVenue();
   const { t, tr, lang, isRtl } = useI18n();
@@ -40,11 +41,15 @@ export function CartScreen() {
   const [pickerOpen, setPickerOpen] = useState(false);
 
   // A queued order that the auto-retry just placed → jump to live tracking.
+  // Consume the one-shot first so re-opening the cart later doesn't re-eject
+  // the customer back to this already-placed order (they could never reorder).
   useEffect(() => {
     if (queuedPlacedOrderId) {
-      go(`${basePath}/order/${queuedPlacedOrderId}`, "replace");
+      const id = queuedPlacedOrderId;
+      clearQueuedPlaced();
+      go(`${basePath}/order/${id}`, "replace");
     }
-  }, [queuedPlacedOrderId, basePath]);
+  }, [queuedPlacedOrderId, basePath, clearQueuedPlaced]);
 
   const count = cartCount(cart);
   const total = cartTotal(cart);
@@ -66,13 +71,23 @@ export function CartScreen() {
       return;
     }
     if (result.queued) return; // queued banner takes over
-    if (result.errorCode === "item_unavailable" || result.errorCode === "unknown_item") {
-      setError(t.cart.itemUnavailable);
-    } else if (result.errorCode === "unknown_table") {
-      setError(t.errors.unknownTable);
-    } else {
-      setError(t.errors.orderFailed);
-    }
+    // Map each server error code to an actionable message; anything unmapped
+    // falls back to the generic "could not be sent".
+    const messages: Record<string, string> = {
+      item_unavailable: t.cart.itemUnavailable,
+      unknown_item: t.cart.itemUnavailable,
+      unknown_table: t.errors.unknownTable,
+      qr_required: t.errors.qrRequired,
+      rate_limited: t.errors.rateLimited,
+      restaurant_inactive: t.errors.venueClosed,
+      too_many_open_orders: t.errors.tooManyOpenOrders,
+      too_many_lines: t.errors.orderInvalid,
+      too_many_modifiers: t.errors.orderInvalid,
+      modifier_invalid: t.errors.orderInvalid,
+      missing_required: t.errors.orderInvalid,
+      auth_failed: t.errors.sessionFailed,
+    };
+    setError((result.errorCode && messages[result.errorCode]) || t.errors.orderFailed);
   };
 
   const align = { textAlign: (isRtl ? "right" : "left") as "left" | "right" };

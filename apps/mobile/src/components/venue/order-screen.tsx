@@ -42,12 +42,16 @@ export function OrderScreen({ orderId }: { orderId: string }) {
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const fetchOrder = async (overwrite: boolean) => {
-      const { data: o } = await supabase.from("orders").select("*").eq("id", String(orderId)).maybeSingle<Order>();
+      const { data: o, error } = await supabase.from("orders").select("*").eq("id", String(orderId)).maybeSingle<Order>();
       if (cancelled) return;
+      // A transient network/DB error must not look like a missing order — keep
+      // the spinner and let the realtime subscribe + refetch recover.
+      if (error) return;
       if (!o) {
         setLoadFailed(true);
         return;
       }
+      setLoadFailed(false);
       setOrder((prev) => (overwrite || !prev ? o : prev));
     };
 

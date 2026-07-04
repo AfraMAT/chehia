@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { Linking, Pressable, ScrollView, View } from "react-native";
+import { Alert, Linking, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackButton, T, Wordmark, ZelligeMark } from "@/components/ui";
 import { useI18n } from "@/lib/i18n";
@@ -37,7 +37,7 @@ export default function AboutScreen() {
         <Pressable
           accessibilityRole="link"
           accessibilityLabel={t.about.privacy}
-          onPress={() => void WebBrowser.openBrowserAsync("https://chehia.app/legal/privacy")}
+          onPress={() => void WebBrowser.openBrowserAsync("https://chehia.app/legal/privacy").catch(() => {})}
           hitSlop={6}
           style={[
             rowDir(lang),
@@ -65,7 +65,9 @@ export default function AboutScreen() {
         <Pressable
           accessibilityRole="link"
           accessibilityLabel={t.about.contact}
-          onPress={() => void Linking.openURL("mailto:contact@aframat.com")}
+          onPress={() =>
+            void Linking.openURL("mailto:contact@aframat.com").catch(() => Alert.alert(t.about.contact))
+          }
           hitSlop={8}
           style={{ paddingVertical: 4 }}
         >

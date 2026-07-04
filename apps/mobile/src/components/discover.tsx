@@ -1,3 +1,4 @@
+import * as Location from "expo-location";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,18 +18,16 @@ import { go } from "@/lib/nav";
 import { supabase } from "@/lib/supabase";
 import { colors, rowDir } from "@/lib/theme";
 
-type GeoState = "idle" | "locating" | "on" | "denied";
+type GeoState = "idle" | "locating" | "on" | "denied" | "unavailable";
 
 /**
  * Consumer discovery — find a venue by name or near you, then browse & order.
  * Mirrors apps/web discover.tsx: active-venue list, search, distance sort.
  *
- * Geolocation: apps/mobile has no geolocation dependency (expo-location is not
- * installed and this environment cannot rebuild native modules). The "near me"
- * button therefore falls back gracefully to `discover.locationOff`; distance
- * sorting simply stays disabled until coords exist.
- * TODO(native): add `expo-location`, request permission here, and set coords
- * via `getCurrentPositionAsync` to enable "near me".
+ * "Near me" uses expo-location: it requests foreground permission, reads the
+ * current position, and sorts venues by Haversine distance. Permission denied
+ * → `locationOff`; a failed read or an unavailable native module (e.g. a bare
+ * Expo Go) → `locationUnavailable`. Distance sorting stays off until coords exist.
  */
 export function Discover() {
   const { t, tr, lang, setLang, isRtl } = useI18n();
@@ -54,12 +53,24 @@ export function Discover() {
     };
   }, []);
 
-  const locate = useCallback(() => {
-    // No geolocation API available without a native dependency. Surface the
-    // graceful fallback instead of leaving the button in a dead state.
-    // TODO(native): replace with expo-location once it can be installed/rebuilt.
-    setGeo("denied");
-    setCoords(null);
+  const locate = useCallback(async () => {
+    setGeo("locating");
+    try {
+      const { granted } = await Location.requestForegroundPermissionsAsync();
+      if (!granted) {
+        setCoords(null);
+        setGeo("denied");
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+      setGeo("on");
+    } catch {
+      // Position read failed or the native module is unavailable — degrade
+      // gracefully; search-by-name discovery still works.
+      setCoords(null);
+      setGeo("unavailable");
+    }
   }, []);
 
   const results = useMemo(() => {
@@ -172,7 +183,7 @@ export function Discover() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t.discover.nearMe}
-          onPress={locate}
+          onPress={() => void locate()}
           disabled={geo === "locating"}
           style={[
             rowDir(lang),
@@ -198,9 +209,9 @@ export function Discover() {
         </Pressable>
       </View>
 
-      {geo === "denied" && (
+      {(geo === "denied" || geo === "unavailable") && (
         <T lang={lang} weight="semibold" size={12.5} color={colors.mutedSoft} style={{ paddingHorizontal: 20, paddingTop: 8, ...align }}>
-          {t.discover.locationOff}
+          {geo === "unavailable" ? t.discover.locationUnavailable : t.discover.locationOff}
         </T>
       )}
 

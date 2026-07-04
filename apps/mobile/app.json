@@ -69,6 +69,12 @@
         {
           "cameraPermission": "Scan the QR code on your table to view the menu and order. / Chehia utilise la caméra pour scanner le code QR de votre table."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Chehia uses your location to show restaurants near you. / Chehia utilise votre position pour afficher les restaurants à proximité. / تستخدم شهية موقعك لعرض المطاعم القريبة منك."
+        }
       ]
     ],
     "experiments": {

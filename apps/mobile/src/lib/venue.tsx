@@ -74,6 +74,8 @@ interface VenueContextValue {
   queuedOrder: { count: number; totalMillimes: number } | null;
   /** Set when a queued order was auto-submitted successfully (navigate to tracking). */
   queuedPlacedOrderId: string | null;
+  /** Consume the one-shot above once the cart screen has navigated to it. */
+  clearQueuedPlaced: () => void;
   addToCart: (line: CartLine) => void;
   updateQty: (key: string, qty: number) => void;
   setCartNote: (note: string) => void;
@@ -363,6 +365,10 @@ export function VenueProvider(props: ProviderProps) {
     void AsyncStorage.removeItem(orderKey(target));
   }, [target]);
 
+  // One-shot: the cart screen navigates to a just-auto-placed queued order, then
+  // clears this so re-opening the cart doesn't re-eject the customer to it.
+  const clearQueuedPlaced = useCallback(() => setQueuedPlacedOrderId(null), []);
+
   // Live item availability while online.
   const readyRestaurantId = state.status === "ready" && !state.fromCache ? state.bundle.restaurant.id : null;
   useEffect(() => {
@@ -417,7 +423,14 @@ export function VenueProvider(props: ProviderProps) {
 
   const submitCart = useCallback(
     async (payloadCart: Cart, language: string, clientRef: string): Promise<PlaceOrderResult> => {
-      await ensureCustomerSession();
+      // An auth failure (anonymous sign-in disabled or rate-limited) is NOT a
+      // network outage — surface it as an error instead of silently queuing the
+      // order offline forever, which the outer catch would otherwise do.
+      try {
+        await ensureCustomerSession();
+      } catch {
+        return { ok: false, errorCode: "auth_failed" };
+      }
       const { data: sessionData } = await supabase.auth.getSession();
       const response = await fetch(functionsUrl("place-order"), {
         method: "POST",
@@ -449,7 +462,17 @@ export function VenueProvider(props: ProviderProps) {
         const clientRef = randomUUID();
         try {
           const result = await submitCart(cart, language, clientRef);
-          if (result.ok && result.orderId) rememberOrder(result.orderId);
+          if (result.ok && result.orderId) {
+            rememberOrder(result.orderId);
+            // Clear the cart after a placed order so a follow-up order starts
+            // fresh (keep the browse table for a quick re-order). Without this
+            // the persistent cart bar keeps the just-ordered items and "Add
+            // items" could re-submit them as a duplicate.
+            setCart((c) => {
+              const base = emptyCart("", token);
+              return browse && c.tableId ? attachTable(base, c.tableId) : base;
+            });
+          }
           return result;
         } catch {
           // fetch threw → offline. Move the cart into the queue (P8): the
@@ -489,6 +512,10 @@ export function VenueProvider(props: ProviderProps) {
             setQueuedOrder(null);
             setQueuedPlacedOrderId(result.orderId ?? null);
             if (result.orderId) rememberOrder(result.orderId);
+          } else if (result.errorCode === "auth_failed") {
+            // Transient auth problem — keep the order queued so the next
+            // connectivity change retries it, rather than dropping it.
+            return { ok: false, queued: true };
           } else {
             // The server explicitly rejected it (item sold out, table gone…):
             // dequeue and hand the lines back to the cart for editing.
@@ -564,6 +591,7 @@ export function VenueProvider(props: ProviderProps) {
       cachedAt,
       queuedOrder,
       queuedPlacedOrderId,
+      clearQueuedPlaced,
       addToCart,
       updateQty,
       setCartNote,
@@ -575,7 +603,7 @@ export function VenueProvider(props: ProviderProps) {
       rememberOrder,
       forgetOrder,
     }),
-    [state, basePath, browse, setTable, cart, online, cachedAt, queuedOrder, queuedPlacedOrderId, addToCart, updateQty, setCartNote, clearCart, placeOrder, retryQueued, callWaiter, activeOrder, rememberOrder, forgetOrder],
+    [state, basePath, browse, setTable, cart, online, cachedAt, queuedOrder, queuedPlacedOrderId, clearQueuedPlaced, addToCart, updateQty, setCartNote, clearCart, placeOrder, retryQueued, callWaiter, activeOrder, rememberOrder, forgetOrder],
   );
 
   return <VenueContext.Provider value={value}>{props.children}</VenueContext.Provider>;
