@@ -24,7 +24,7 @@ import { OfflineBanner } from "./offline-banner";
  */
 export function MenuScreen() {
   const venue = useVenue();
-  const { restaurant, table, categories, items, groupsByItem, cart, basePath } = venue;
+  const { restaurant, table, categories, items, groupsByItem, cart, basePath, activeOrder } = venue;
   const { t, tr, lang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
 
@@ -166,6 +166,39 @@ export function MenuScreen() {
             })}
           </ScrollView>
         </View>
+      )}
+
+      {/* Return to an order placed from this device */}
+      {activeOrder && (
+        <Pressable
+          onPress={() => go(`${basePath}/order/${activeOrder.id}`)}
+          accessibilityRole="button"
+          accessibilityLabel={t.order.inProgress}
+          style={[
+            rowDir(lang),
+            shadowDark,
+            {
+              marginHorizontal: 20,
+              marginTop: 12,
+              backgroundColor: colors.ink,
+              borderRadius: 14,
+              paddingVertical: 11,
+              paddingHorizontal: 16,
+              alignItems: "center",
+              gap: 10,
+            },
+          ]}
+        >
+          <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: colors.harissa }} />
+          <T lang={lang} weight="extrabold" size={13.5} color={colors.cream} style={{ flex: 1, textAlign: isRtl ? "right" : "left" }}>
+            {t.order.inProgress}
+          </T>
+          <View style={{ backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 10, paddingVertical: 6, paddingHorizontal: 12 }}>
+            <T lang={lang} weight="extrabold" size={13} color={colors.cream}>
+              {t.order.trackOrder} {isRtl ? "‹" : "›"}
+            </T>
+          </View>
+        </Pressable>
       )}
 
       {/* Items */}

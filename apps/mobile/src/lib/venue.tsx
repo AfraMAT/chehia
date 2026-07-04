@@ -81,6 +81,12 @@ interface VenueContextValue {
   placeOrder: (language: string) => Promise<PlaceOrderResult>;
   retryQueued: (overrideLanguage?: string) => Promise<PlaceOrderResult>;
   callWaiter: (reason: string, note: string) => Promise<boolean>;
+  /** Most-recent order placed from this device for this venue/table (kept ~4h). */
+  activeOrder: { id: string } | null;
+  /** Remember a just-placed order so the customer can navigate back to it. */
+  rememberOrder: (id: string) => void;
+  /** Forget the tracked order (called when it reaches a terminal state). */
+  forgetOrder: () => void;
 }
 
 const VenueContext = createContext<VenueContextValue | null>(null);
@@ -90,6 +96,11 @@ const VenueContext = createContext<VenueContextValue | null>(null);
 const menuCacheKey = (slug: string, target: string) => `chehia.menu.${slug}.${target}`;
 const cartKey = (target: string) => `chehia.cart.${target}`;
 const queueKey = (target: string) => `chehia.queue.${target}`;
+const orderKey = (target: string) => `chehia.order.${target}`;
+
+// Keep the "return to your order" pointer ~4h: long enough to finish a meal,
+// short enough it doesn't surface to the next customer at the same table.
+const ACTIVE_ORDER_TTL_MS = 4 * 60 * 60 * 1000;
 
 /** Shared menu load: categories, items, modifier structure for a restaurant. */
 async function fetchMenu(
@@ -209,6 +220,7 @@ export function VenueProvider(props: ProviderProps) {
   const [cachedAt, setCachedAt] = useState<string | null>(null);
   const [queuedOrder, setQueuedOrder] = useState<{ count: number; totalMillimes: number } | null>(null);
   const [queuedPlacedOrderId, setQueuedPlacedOrderId] = useState<string | null>(null);
+  const [activeOrder, setActiveOrder] = useState<{ id: string } | null>(null);
   const submittingRef = useRef(false);
 
   // Connectivity.
@@ -319,6 +331,38 @@ export function VenueProvider(props: ProviderProps) {
     if (cartHydrated) void AsyncStorage.setItem(cartKey(target), JSON.stringify(cart));
   }, [cart, target, cartHydrated]);
 
+  // Restore a recent active order so "return to your order" survives navigating
+  // away, backgrounding, or a cold app start. Stale pointers (past TTL) are dropped.
+  useEffect(() => {
+    void (async () => {
+      const raw = await AsyncStorage.getItem(orderKey(target));
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw) as { id?: string; at?: number };
+        if (parsed.id && typeof parsed.at === "number" && Date.now() - parsed.at < ACTIVE_ORDER_TTL_MS) {
+          setActiveOrder({ id: parsed.id });
+        } else {
+          await AsyncStorage.removeItem(orderKey(target));
+        }
+      } catch {
+        await AsyncStorage.removeItem(orderKey(target));
+      }
+    })();
+  }, [target]);
+
+  const rememberOrder = useCallback(
+    (id: string) => {
+      setActiveOrder({ id });
+      void AsyncStorage.setItem(orderKey(target), JSON.stringify({ id, at: Date.now() }));
+    },
+    [target],
+  );
+
+  const forgetOrder = useCallback(() => {
+    setActiveOrder(null);
+    void AsyncStorage.removeItem(orderKey(target));
+  }, [target]);
+
   // Live item availability while online.
   const readyRestaurantId = state.status === "ready" && !state.fromCache ? state.bundle.restaurant.id : null;
   useEffect(() => {
@@ -404,7 +448,9 @@ export function VenueProvider(props: ProviderProps) {
         // committed but the response was lost, the retry cannot duplicate it.
         const clientRef = randomUUID();
         try {
-          return await submitCart(cart, language, clientRef);
+          const result = await submitCart(cart, language, clientRef);
+          if (result.ok && result.orderId) rememberOrder(result.orderId);
+          return result;
         } catch {
           // fetch threw → offline. Move the cart into the queue (P8): the
           // live cart empties; new items form a separate future order.
@@ -425,7 +471,7 @@ export function VenueProvider(props: ProviderProps) {
         submittingRef.current = false;
       }
     },
-    [cart, submitCart, target, token, browse],
+    [cart, submitCart, target, token, browse, rememberOrder],
   );
 
   const retryQueued = useCallback(
@@ -442,6 +488,7 @@ export function VenueProvider(props: ProviderProps) {
             await AsyncStorage.removeItem(queueKey(target));
             setQueuedOrder(null);
             setQueuedPlacedOrderId(result.orderId ?? null);
+            if (result.orderId) rememberOrder(result.orderId);
           } else {
             // The server explicitly rejected it (item sold out, table gone…):
             // dequeue and hand the lines back to the cart for editing.
@@ -457,7 +504,7 @@ export function VenueProvider(props: ProviderProps) {
         submittingRef.current = false;
       }
     },
-    [submitCart, target],
+    [submitCart, target, rememberOrder],
   );
 
   // Auto-retry the queued order when connectivity returns; the queued
@@ -524,8 +571,11 @@ export function VenueProvider(props: ProviderProps) {
       placeOrder,
       retryQueued,
       callWaiter,
+      activeOrder,
+      rememberOrder,
+      forgetOrder,
     }),
-    [state, basePath, browse, setTable, cart, online, cachedAt, queuedOrder, queuedPlacedOrderId, addToCart, updateQty, setCartNote, clearCart, placeOrder, retryQueued, callWaiter],
+    [state, basePath, browse, setTable, cart, online, cachedAt, queuedOrder, queuedPlacedOrderId, addToCart, updateQty, setCartNote, clearCart, placeOrder, retryQueued, callWaiter, activeOrder, rememberOrder, forgetOrder],
   );
 
   return <VenueContext.Provider value={value}>{props.children}</VenueContext.Provider>;

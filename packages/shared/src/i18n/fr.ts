@@ -108,6 +108,8 @@ export const fr = {
     orderAgain: "Commander autre chose",
     sentToKitchen: "Commande envoyée à la cuisine",
     servedIn: "SERVIE EN {min} MIN",
+    inProgress: "Commande en cours",
+    trackOrder: "Suivre",
   },
   waiter: {
     call: "Appeler le serveur",

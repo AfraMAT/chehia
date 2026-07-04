@@ -17,3 +17,11 @@ export function storageSet(key: string, value: string): void {
     // best-effort persistence
   }
 }
+
+export function storageRemove(key: string): void {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // best-effort
+  }
+}

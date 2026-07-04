@@ -16,12 +16,30 @@ import type { NextRequest } from "next/server";
  * to their real path so `usePathname()` in their client layouts stays correct.
  */
 export function proxy(request: NextRequest) {
-  if (request.nextUrl.pathname !== "/") {
-    return NextResponse.next();
+  const host = request.headers.get("host") ?? "";
+  const hostname = host.split(":")[0];
+  const sub = hostname.split(".")[0];
+  const { pathname, search } = request.nextUrl;
+
+  // Canonicalize the consumer app to a single URL (app.chehia.app) in production.
+  // The discovery page is otherwise reachable at chehia.app/app (apex path) AND
+  // app.chehia.app/app (subdomain path) as well as app.chehia.app/. On localhost
+  // and preview there are no subdomains, so path access to /app is left intact.
+  // Matched precisely ("/app" or "/app/…") so /apple-icon etc. are untouched.
+  if (process.env.VERCEL_ENV === "production" && (pathname === "/app" || pathname.startsWith("/app/"))) {
+    const rest = pathname.slice(4) || "/"; // strip "/app"
+    const isApex = hostname === "chehia.app" || hostname === "www.chehia.app";
+    if (isApex) {
+      return NextResponse.redirect(`https://app.chehia.app${rest}${search}`, 308);
+    }
+    if (sub === "app") {
+      return NextResponse.redirect(new URL(`${rest}${search}`, request.url), 308);
+    }
   }
 
-  const host = request.headers.get("host") ?? "";
-  const sub = host.split(":")[0].split(".")[0];
+  if (pathname !== "/") {
+    return NextResponse.next();
+  }
 
   if (sub === "app") {
     return NextResponse.rewrite(new URL("/app", request.url));

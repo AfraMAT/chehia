@@ -187,12 +187,15 @@ export function useLiveOrders(restaurantId: string, { sound = false }: { sound?:
   const acknowledgeCall = useCallback(
     async (callId: string) => {
       setState((prev) => ({ ...prev, calls: prev.calls.filter((c) => c.id !== callId) }));
+      // Reconcile with the DB afterwards: if the write failed, reload restores the
+      // call to the board so a customer's request is never silently dropped.
       await getSupabase()
         .from("waiter_calls")
         .update({ status: "acknowledged", acknowledged_at: new Date().toISOString() })
         .eq("id", callId);
+      void reload();
     },
-    [],
+    [reload],
   );
 
   return { ...state, reload, setOrderStatus, acknowledgeCall };

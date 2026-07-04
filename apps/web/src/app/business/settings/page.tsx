@@ -21,7 +21,7 @@ type DayHours = { open: string; close: string; closed: boolean };
 /** Settings — venue profile, opening hours, languages, team management. */
 export default function SettingsPage() {
   const { restaurant, refreshRestaurant, canManage } = usePortal();
-  const { t, setLang } = useI18n();
+  const { t } = useI18n();
   const supabase = getSupabase();
 
   const [name, setName] = useState(restaurant.name);
@@ -71,7 +71,8 @@ export default function SettingsPage() {
       .update({ name, address, city, phone, languages, default_language: defaultLanguage, opening_hours: opening, require_qr: requireQr })
       .eq("id", restaurant.id);
     await refreshRestaurant();
-    setLang(defaultLanguage);
+    // Don't force the operator's portal UI language to the venue default on save —
+    // their chosen language (chehia.portal.lang) is independent of the customer default.
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);

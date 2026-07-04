@@ -8,6 +8,8 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Chehia — Trouvez votre restaurant",
   description: "Commandez à table dans les cafés et restaurants tunisiens près de vous.",
+  // The consumer app's one canonical home is the subdomain (see proxy.ts).
+  alternates: { canonical: "https://app.chehia.app" },
 };
 
 /** app.chehia.app — consumer discovery: find a venue, browse the menu, order. */

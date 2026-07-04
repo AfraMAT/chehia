@@ -17,11 +17,18 @@ import {
   type Table,
 } from "@chehia/shared";
 import { getSupabase } from "@/lib/supabase";
-import { storageGet, storageSet } from "@/lib/storage";
+import { storageGet, storageRemove, storageSet } from "@/lib/storage";
 import { I18nProvider } from "@/components/i18n-provider";
 
 /** A table the customer is ordering to — carries qr_token only in the scanned flow. */
 export type TableChoice = Pick<Table, "id" | "label" | "zone"> & { qr_token?: string };
+
+/** A pointer back to an order this device placed, so the customer can return to it. */
+export type ActiveOrder = { id: string };
+
+// Keep the "return to your order" pointer ~4h: long enough to finish a meal,
+// short enough that it doesn't surface to the next customer at the same table.
+const ACTIVE_ORDER_TTL_MS = 4 * 60 * 60 * 1000;
 
 export interface VenueBundle {
   restaurant: Restaurant;
@@ -48,6 +55,12 @@ interface VenueContextValue extends Omit<VenueBundle, "table"> {
   /** Drop lines that no longer match the live menu; returns how many were removed. */
   reconcileNow: () => number;
   online: boolean;
+  /** Most-recent order placed from this device for this venue/table (kept ~4h), or null. */
+  activeOrder: ActiveOrder | null;
+  /** Remember a just-placed order so the customer can navigate back to it. */
+  rememberOrder: (id: string) => void;
+  /** Forget the tracked order (called when it reaches a terminal state). */
+  forgetOrder: () => void;
 }
 
 const VenueContext = createContext<VenueContextValue | null>(null);
@@ -67,6 +80,10 @@ export function VenueProvider({
   const cartKey = scanned
     ? `chehia.cart.${bundle.table!.qr_token}`
     : `chehia.cart.v.${bundle.restaurant.slug}`;
+  // Active-order pointer keyed like the cart (per-QR when scanned, per-venue in browse).
+  const orderKey = scanned
+    ? `chehia.order.${bundle.table!.qr_token}`
+    : `chehia.order.v.${bundle.restaurant.slug}`;
 
   const [table, setTableState] = useState<TableChoice | null>(bundle.table);
   const [cart, setCart] = useState<Cart>(() => {
@@ -76,6 +93,7 @@ export function VenueProvider({
   const [hydrated, setHydrated] = useState(false);
   const [items, setItems] = useState(bundle.items);
   const [online, setOnline] = useState(true);
+  const [activeOrder, setActiveOrder] = useState<ActiveOrder | null>(null);
 
   // Hydrate the cart from localStorage, reconciling stale lines/prices against
   // the freshly loaded menu. Also restores a table picked earlier (browse flow).
@@ -113,6 +131,36 @@ export function VenueProvider({
   useEffect(() => {
     if (hydrated) storageSet(cartKey, JSON.stringify(cart));
   }, [cart, cartKey, hydrated]);
+
+  // Restore a recent active order so "return to your order" survives navigation,
+  // refresh, and re-scanning the same QR. Stale pointers (past the TTL) are dropped.
+  useEffect(() => {
+    try {
+      const raw = storageGet(orderKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { id?: string; at?: number };
+      if (parsed.id && typeof parsed.at === "number" && Date.now() - parsed.at < ACTIVE_ORDER_TTL_MS) {
+        setActiveOrder({ id: parsed.id });
+      } else {
+        storageRemove(orderKey);
+      }
+    } catch {
+      storageRemove(orderKey);
+    }
+  }, [orderKey]);
+
+  const rememberOrder = useCallback(
+    (id: string) => {
+      setActiveOrder({ id });
+      storageSet(orderKey, JSON.stringify({ id, at: Date.now() }));
+    },
+    [orderKey],
+  );
+
+  const forgetOrder = useCallback(() => {
+    setActiveOrder(null);
+    storageRemove(orderKey);
+  }, [orderKey]);
 
   // Track connectivity for the offline banner + queued submissions.
   useEffect(() => {
@@ -201,8 +249,11 @@ export function VenueProvider({
       clearCart,
       reconcileNow,
       online,
+      activeOrder,
+      rememberOrder,
+      forgetOrder,
     }),
-    [bundle, basePath, table, setTable, items, cart, addToCart, updateQty, setCartNote, clearCart, reconcileNow, online],
+    [bundle, basePath, table, setTable, items, cart, addToCart, updateQty, setCartNote, clearCart, reconcileNow, online, activeOrder, rememberOrder, forgetOrder],
   );
 
   return (

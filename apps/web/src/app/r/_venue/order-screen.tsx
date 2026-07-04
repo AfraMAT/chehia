@@ -11,7 +11,7 @@ import {
   type Order,
   type OrderItem,
 } from "@chehia/shared";
-import { getSupabase } from "@/lib/supabase";
+import { ensureCustomerSession, getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
 import { Skeleton } from "@/components/ui";
 import { useVenue } from "./venue-provider";
@@ -19,7 +19,7 @@ import { WaiterSheet } from "./waiter-sheet";
 
 /** P5/P9 · Order tracking — live via realtime, animated preparing state, waiter one tap away. */
 export function OrderScreen({ orderId }: { orderId: string }) {
-  const { table, basePath } = useVenue();
+  const { table, basePath, activeOrder, forgetOrder } = useVenue();
   const { t, tr, lang } = useI18n();
 
   const [order, setOrder] = useState<Order | null>(null);
@@ -34,6 +34,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   useEffect(() => {
     const supabase = getSupabase();
     let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const fetchOrder = async (overwrite: boolean) => {
       const { data: o } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle<Order>();
@@ -45,32 +46,46 @@ export function OrderScreen({ orderId }: { orderId: string }) {
       setOrder((prev) => (overwrite || !prev ? o : prev));
     };
 
-    void fetchOrder(false);
     void (async () => {
+      // Ensure the anonymous session is loaded before reading under RLS — covers
+      // landing directly on the order URL (return-to-order, refresh) before any
+      // prior action established a session in this tab.
+      await ensureCustomerSession().catch(() => {});
+      if (cancelled) return;
+
+      void fetchOrder(false);
       const { data: li } = await supabase
         .from("order_items")
         .select("*")
         .eq("order_id", orderId)
         .overrideTypes<OrderItem[], { merge: false }>();
       if (!cancelled) setLines(li ?? []);
-    })();
 
-    const channel = supabase
-      .channel(`order-${orderId}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
-        (payload) => setOrder((prev) => ({ ...(prev as Order), ...(payload.new as Order) })),
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") void fetchOrder(true);
-      });
+      channel = supabase
+        .channel(`order-${orderId}`)
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
+          (payload) => setOrder((prev) => ({ ...(prev as Order), ...(payload.new as Order) })),
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") void fetchOrder(true);
+        });
+    })();
 
     return () => {
       cancelled = true;
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [orderId]);
+
+  // Stop tracking once the order is done, so the "return to your order" banner
+  // clears and doesn't surface to the next customer at the same table.
+  useEffect(() => {
+    if (order && activeOrder?.id === orderId && (order.status === "served" || order.status === "cancelled")) {
+      forgetOrder();
+    }
+  }, [order, activeOrder, orderId, forgetOrder]);
 
   const base = basePath;
   const step = order ? trackingStep(order.status) : 0;
@@ -246,7 +261,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
                 title={order.status === "ready" ? t.order.ready : t.order.preparing}
                 body={order.status === "ready" ? t.order.readyBody : t.order.preparingBody}
                 hasLine
-                lineActive={false}
+                lineActive={step >= 2}
               />
               <TimelineRow state={step >= 2 ? "done" : "pending"} title={t.order.served} body={t.order.servedBody} />
             </div>

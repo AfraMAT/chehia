@@ -7,7 +7,8 @@ import { useI18n } from "@/components/i18n-provider";
 /**
  * Styled, keyboard-accessible replacement for window.confirm() on destructive
  * actions. Overlay + card matching the design system; Escape closes, the
- * confirm button is auto-focused, role="dialog" aria-modal for screen readers.
+ * cancel button is auto-focused (safe default so a stray Enter never confirms a
+ * destructive action), role="dialog" aria-modal for screen readers.
  */
 export function ConfirmDialog({
   title,
@@ -63,10 +64,10 @@ export function ConfirmDialog({
           </span>
         </div>
         <div className="flex gap-2.5 justify-end">
-          <Button variant="outline" className="min-h-10 text-[14px]" onClick={onCancel}>
+          <Button variant="outline" className="min-h-10 text-[14px]" autoFocus onClick={onCancel}>
             {cancelLabel ?? t.common.cancel}
           </Button>
-          <Button variant="danger-ghost" className="min-h-10 text-[14px]" autoFocus onClick={onConfirm}>
+          <Button variant="danger-ghost" className="min-h-10 text-[14px]" onClick={onConfirm}>
             {confirmLabel ?? t.common.delete}
           </Button>
         </div>

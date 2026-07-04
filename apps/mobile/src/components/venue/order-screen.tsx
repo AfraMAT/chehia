@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   currencyLabel,
@@ -16,7 +16,7 @@ import { WaiterSheet } from "./waiter-sheet";
 import { useI18n } from "@/lib/i18n";
 import { go } from "@/lib/nav";
 import { colors, rowDir } from "@/lib/theme";
-import { supabase } from "@/lib/supabase";
+import { ensureCustomerSession, supabase } from "@/lib/supabase";
 import { useVenue } from "@/lib/venue";
 
 /**
@@ -25,7 +25,7 @@ import { useVenue } from "@/lib/venue";
  * from the provider's basePath. Render only under a "ready" venue guard.
  */
 export function OrderScreen({ orderId }: { orderId: string }) {
-  const { table, basePath } = useVenue();
+  const { table, basePath, activeOrder, forgetOrder } = useVenue();
   const { t, tr, lang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
 
@@ -33,50 +33,89 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   const [lines, setLines] = useState<OrderItem[]>([]);
   const [waiterOpen, setWaiterOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   // Initial fetch only fills empty state; a refetch on channel join closes
   // the pre-subscription gap so a stale fetch can't mask a newer status.
   useEffect(() => {
     let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const fetchOrder = async (overwrite: boolean) => {
       const { data: o } = await supabase.from("orders").select("*").eq("id", String(orderId)).maybeSingle<Order>();
-      if (cancelled || !o) return;
+      if (cancelled) return;
+      if (!o) {
+        setLoadFailed(true);
+        return;
+      }
       setOrder((prev) => (overwrite || !prev ? o : prev));
     };
 
-    void fetchOrder(false);
     void (async () => {
+      // Ensure the anonymous session is loaded before reading under RLS — covers
+      // returning to the order after a cold app start, before any other action.
+      await ensureCustomerSession().catch(() => {});
+      if (cancelled) return;
+
+      void fetchOrder(false);
       const { data: li } = await supabase
         .from("order_items")
         .select("*")
         .eq("order_id", String(orderId))
         .overrideTypes<OrderItem[], { merge: false }>();
       if (!cancelled) setLines(li ?? []);
-    })();
 
-    const channel = supabase
-      .channel(`order-${orderId}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
-        (payload) => setOrder((prev) => ({ ...(prev as Order), ...(payload.new as Order) })),
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") void fetchOrder(true);
-      });
+      channel = supabase
+        .channel(`order-${orderId}`)
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
+          (payload) => setOrder((prev) => ({ ...(prev as Order), ...(payload.new as Order) })),
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") void fetchOrder(true);
+        });
+    })();
 
     return () => {
       cancelled = true;
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [orderId]);
+
+  // Stop tracking once the order is done, so the "return to your order" affordance
+  // clears and doesn't surface to the next customer at the same table.
+  useEffect(() => {
+    if (order && activeOrder?.id === String(orderId) && (order.status === "served" || order.status === "cancelled")) {
+      forgetOrder();
+    }
+  }, [order, activeOrder, orderId, forgetOrder]);
 
   const count = useMemo(() => lines.reduce((s, l) => s + l.qty, 0), [lines]);
   const tableLabel = table?.label ?? "";
 
+  if (loadFailed) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.cream, paddingTop: insets.top }}>
+        <View style={[rowDir(lang), { alignItems: "center", paddingHorizontal: 20, paddingTop: 12 }]}>
+          <BackButton isRtl={isRtl} onPress={() => go(`${basePath}/menu`, "replace")} />
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 14 }}>
+          <T lang={lang} display size={20} style={{ textAlign: "center" }}>
+            {t.errors.generic}
+          </T>
+          <CtaButton lang={lang} height={50} label={t.cart.browseMenu} onPress={() => go(`${basePath}/menu`, "replace")} />
+        </View>
+      </View>
+    );
+  }
+
   if (!order) {
-    return <View style={{ flex: 1, backgroundColor: colors.cream }} />;
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.cream, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={colors.harissa} />
+      </View>
+    );
   }
 
   const step = trackingStep(order.status);
@@ -240,7 +279,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
                   title={order.status === "ready" ? t.order.ready : t.order.preparing}
                   body={order.status === "ready" ? t.order.readyBody : t.order.preparingBody}
                   hasLine
-                  lineActive={false}
+                  lineActive={step >= 2}
                   isRtl={isRtl}
                   lang={lang}
                 />

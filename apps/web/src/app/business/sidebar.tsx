@@ -58,7 +58,7 @@ export function Sidebar() {
       <div className="bg-sand rounded-lg p-3 flex flex-col gap-0.5">
         <span className="font-extrabold text-[13px] text-ink truncate">{restaurant.name}</span>
         <span className="text-[11.5px] font-semibold text-muted-soft truncate">
-          {restaurant.plan === "pro" ? "Plan Pro" : "Plan Starter"} · {staff.display_name} — {roleLabel}
+          {restaurant.plan === "pro" ? t.admin.planPro : t.admin.planStarter} · {staff.display_name} — {roleLabel}
         </span>
         <button
           type="button"

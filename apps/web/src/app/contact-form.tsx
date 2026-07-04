@@ -12,7 +12,7 @@ const inputCls =
 /** Lead-capture form for restaurateurs — posts to the submit-lead edge function. */
 export function ContactForm() {
   const { t, lang } = useI18n();
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error" | "invalid">("idle");
   const [form, setForm] = useState({
     name: "",
     business_name: "",
@@ -29,7 +29,7 @@ export function ContactForm() {
     e.preventDefault();
     if (status === "sending") return;
     if (form.name.trim().length < 2 || !form.email.includes("@")) {
-      setStatus("error");
+      setStatus("invalid");
       return;
     }
     setStatus("sending");
@@ -83,6 +83,7 @@ export function ContactForm() {
         aria-label={t.contact.message}
       />
       {status === "error" && <p className="text-[13px] font-bold text-danger-text">{t.contact.error}</p>}
+      {status === "invalid" && <p className="text-[13px] font-bold text-danger-text">{t.contact.required}</p>}
       <button
         type="submit"
         disabled={status === "sending"}

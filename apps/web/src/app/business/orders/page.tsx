@@ -293,7 +293,7 @@ function OrderCard({
       ) : (
         <button
           type="button"
-          onClick={() => onAdvance(order.status === "preparing" ? "served" : "served")}
+          onClick={() => onAdvance("served")}
           className="h-[42px] rounded-md border-2 border-ink text-ink font-extrabold text-[13.5px] cursor-pointer hover:bg-sand transition-colors"
         >
           {t.portal.orders.markServed}

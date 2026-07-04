@@ -8,6 +8,7 @@ import { ZelligeMark, Wordmark } from "@/components/brand";
 import { PhotoPlaceholder } from "@/components/ui";
 import { useVenue } from "./venue-provider";
 import { TablePicker } from "./table-picker";
+import { ActiveOrderBanner } from "./active-order-banner";
 
 /** P1 · Venue landing — venue + table context, language up front, pay-at-counter stated immediately. */
 export function VenueHome() {
@@ -56,6 +57,9 @@ export function VenueHome() {
             {closingTime ? ` · ${t.landing.openUntil} ${closingTime}` : ""}
           </p>
         </div>
+
+        {/* Return to an order placed from this device */}
+        <ActiveOrderBanner className="mt-4" />
 
         {/* Table card (scanned or already picked) — or a pick prompt (browse) */}
         {table ? (

@@ -10,6 +10,7 @@ import { PhotoPlaceholder, SearchIcon, Skeleton, Tag } from "@/components/ui";
 import { useVenue } from "./venue-provider";
 import { ItemSheet } from "./item-sheet";
 import { OfflineBanner } from "./offline-banner";
+import { ActiveOrderBanner } from "./active-order-banner";
 
 /** P2 · Menu — category pills, dietary tags, 86'd items stay visible, persistent cart bar. */
 export function MenuScreen() {
@@ -79,6 +80,9 @@ export function MenuScreen() {
           </span>
         </Link>
       </header>
+
+      {/* Return to an order placed from this device */}
+      <ActiveOrderBanner className="mx-5 mt-3" />
 
       {/* Search */}
       <div className="px-5 pt-3.5">

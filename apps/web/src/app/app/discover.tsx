@@ -60,7 +60,7 @@ function DiscoverInner({ venues }: { venues: DiscoveryVenue[] }) {
     });
     const filtered = q
       ? withDist.filter(({ venue }) =>
-          [venue.name, venue.city, tr(venue.tagline_i18n)].some((s) => s?.toLowerCase().includes(q)),
+          [venue.name, venue.city, venue.address, tr(venue.tagline_i18n)].some((s) => s?.toLowerCase().includes(q)),
         )
       : withDist;
     filtered.sort((a, b) => {

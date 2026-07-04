@@ -20,7 +20,8 @@ import { TablePicker } from "./table-picker";
 
 /** P4 · Cart — table context re-confirmed, kitchen note, pay-at-counter stated twice. */
 export function CartScreen() {
-  const { restaurant, table, cart, updateQty, setCartNote, clearCart, reconcileNow, online, basePath } = useVenue();
+  const { restaurant, table, cart, updateQty, setCartNote, clearCart, reconcileNow, online, basePath, rememberOrder } =
+    useVenue();
   const { t, tr, lang } = useI18n();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -71,6 +72,7 @@ export function CartScreen() {
       }
       clientRefRef.current = null;
       setNavigating(true);
+      rememberOrder(json.order.id);
       clearCart();
       router.push(`${base}/order/${json.order.id}`);
     } catch {
@@ -179,7 +181,7 @@ export function CartScreen() {
             <div className="flex justify-between gap-2">
               <span className="font-extrabold text-[15px] text-ink">{tr(line.name)}</span>
               <span className="font-extrabold text-[15px] text-ink" dir="ltr">
-                {millimesToDisplay(line.unitPriceMillimes * line.qty, lang)}
+                {millimesToDisplay(line.unitPriceMillimes * line.qty, lang)} {currencyLabel(lang)}
               </span>
             </div>
             {(line.modifierLabels.length > 0 || line.note) && (

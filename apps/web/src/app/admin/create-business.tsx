@@ -172,7 +172,7 @@ export function CreateBusiness({ onClose, onCreated }: { onClose: () => void; on
               <input className={inputClass} dir="ltr" type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} />
             </Field>
             <Field label={t.admin.password} hint={password && password.length < 8 ? t.admin.weakPassword : t.admin.passwordHint}>
-              <input className={inputClass} dir="ltr" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <input className={inputClass} dir="ltr" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
             </Field>
 
             {error && <p className="text-[13px] font-bold text-danger-text">{error}</p>}

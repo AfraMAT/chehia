@@ -148,7 +148,13 @@ export default function MenuManagementPage() {
               .limit(1)
               .maybeSingle()
               .then(({ data }) => {
-                if (data) window.open(`/r/${restaurant.slug}/t/${data.qr_token}/menu`, "_blank");
+                // Prefer a real table's scanned menu; fall back to the browse
+                // venue page when the venue has no tables yet (so Preview is
+                // never a dead click).
+                window.open(
+                  data ? `/r/${restaurant.slug}/t/${data.qr_token}/menu` : `/r/${restaurant.slug}`,
+                  "_blank",
+                );
               });
           }}
           className="text-[13px] font-extrabold text-ink border-[1.5px] border-line-strong bg-card rounded-md px-4 py-2.5 cursor-pointer hover:border-ink transition-colors"
