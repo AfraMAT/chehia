@@ -372,6 +372,7 @@ export const fr = {
     search: "Rechercher un établissement",
     slugTaken: "Ce slug est déjà utilisé.",
     emailTaken: "Un compte existe déjà avec cet e-mail.",
+    weakPassword: "Le mot de passe doit contenir au moins 8 caractères (ou laissez le champ vide pour en générer un).",
     createFailed: "La création a échoué. Réessayez.",
     venuesTab: "Établissements",
     leadsTab: "Prospects",

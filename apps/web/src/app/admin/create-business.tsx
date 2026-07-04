@@ -37,9 +37,13 @@ export function CreateBusiness({ onClose, onCreated }: { onClose: () => void; on
   const [copied, setCopied] = useState(false);
 
   const effectiveSlug = slugTouched ? slug : slugify(name);
+  // Password is optional (blank → the server auto-generates one). If supplied it
+  // must be ≥8 chars — the one rule the server enforces that isn't otherwise
+  // guarded here, so catch it before submit instead of on a failed round-trip.
+  const passwordOk = password === "" || password.length >= 8;
   const canSubmit = useMemo(
-    () => name.trim() && effectiveSlug && ownerName.trim() && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ownerEmail),
-    [name, effectiveSlug, ownerName, ownerEmail],
+    () => Boolean(name.trim() && effectiveSlug && ownerName.trim() && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ownerEmail) && passwordOk),
+    [name, effectiveSlug, ownerName, ownerEmail, passwordOk],
   );
 
   const submit = async (e: React.FormEvent) => {
@@ -56,8 +60,17 @@ export function CreateBusiness({ onClose, onCreated }: { onClose: () => void; on
     );
     setSubmitting(false);
     if (!ok || !data?.owner) {
-      const code = (data as { error?: { code?: string } })?.error?.code;
-      setError(code === "slug_taken" ? t.admin.slugTaken : code === "email_taken" ? t.admin.emailTaken : t.admin.createFailed);
+      const err = (data as { error?: { code?: string; message?: string } })?.error;
+      const code = err?.code;
+      setError(
+        code === "slug_taken"
+          ? t.admin.slugTaken
+          : code === "email_taken"
+            ? t.admin.emailTaken
+            : code === "weak_password"
+              ? t.admin.weakPassword
+              : err?.message || t.admin.createFailed,
+      );
       return;
     }
     setResult(data as ProvisionResult);
@@ -158,7 +171,7 @@ export function CreateBusiness({ onClose, onCreated }: { onClose: () => void; on
             <Field label={t.admin.ownerEmail}>
               <input className={inputClass} dir="ltr" type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} />
             </Field>
-            <Field label={t.admin.password} hint={t.admin.passwordHint}>
+            <Field label={t.admin.password} hint={password && password.length < 8 ? t.admin.weakPassword : t.admin.passwordHint}>
               <input className={inputClass} dir="ltr" value={password} onChange={(e) => setPassword(e.target.value)} />
             </Field>
 

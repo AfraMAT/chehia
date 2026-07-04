@@ -374,6 +374,7 @@ export const en: Dictionary = {
     search: "Search a venue",
     slugTaken: "That slug is already in use.",
     emailTaken: "An account with that email already exists.",
+    weakPassword: "Password must be at least 8 characters (or leave it blank to auto-generate one).",
     createFailed: "Creation failed. Try again.",
     venuesTab: "Venues",
     leadsTab: "Leads",
