@@ -16,6 +16,7 @@ import { PhotoPlaceholder, Toggle } from "@/components/ui";
 import { usePortal } from "../portal-provider";
 import { ConfirmDialog } from "../confirm-dialog";
 import { ItemEditor } from "./item-editor";
+import { MenuImport } from "./menu-import";
 
 /** W3 · Menu management — categories, items, availability, trilingual completeness. */
 export default function MenuManagementPage() {
@@ -32,6 +33,7 @@ export default function MenuManagementPage() {
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
   const [saveError, setSaveError] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [importing, setImporting] = useState(false);
 
   // Menu management is owner/manager only — RLS silently discards writes
   // from other roles, so don't even show them the page.
@@ -161,6 +163,13 @@ export default function MenuManagementPage() {
         >
           {t.portal.menu.preview}
         </a>
+        <button
+          type="button"
+          onClick={() => setImporting(true)}
+          className="text-[13px] font-extrabold text-harissa-pressed bg-harissa-tint rounded-md px-4 py-2.5 cursor-pointer hover:bg-[#F2DCCE] transition-colors"
+        >
+          {t.portal.menu.import.button}
+        </button>
         <button
           type="button"
           disabled={!activeCategory}
@@ -340,6 +349,17 @@ export default function MenuManagementPage() {
           body={t.portal.menu.deleteCategoryConfirm}
           onConfirm={() => void confirmDeleteCategory()}
           onCancel={() => setCategoryToDelete(null)}
+        />
+      )}
+
+      {importing && (
+        <MenuImport
+          onClose={() => setImporting(false)}
+          onImported={() => {
+            setImporting(false);
+            void reload();
+            flashSaved(true, t.portal.menu.import.imported);
+          }}
         />
       )}
     </div>

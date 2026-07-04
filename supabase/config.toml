@@ -409,3 +409,8 @@ verify_jwt = false
 
 [functions.create-staff]
 verify_jwt = false
+
+# extract-menu gates in-code (callerId + owner/manager staff read scoped to the
+# restaurant_id), so gateway JWT verification is disabled.
+[functions.extract-menu]
+verify_jwt = false

@@ -8,6 +8,7 @@ import { Logo } from "@/components/brand";
 import { Spinner } from "@/components/ui";
 import { useI18n } from "@/components/i18n-provider";
 import { usePortal } from "../portal-provider";
+import { MenuImport } from "../menu/menu-import";
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 type Day = (typeof DAYS)[number];
@@ -356,35 +357,38 @@ function MenuStep({ defaultLang, onValidChange }: { defaultLang: Language; onVal
   const [cats, setCats] = useState<Cat[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [newCat, setNewCat] = useState("");
+  const [showImport, setShowImport] = useState(false);
+
+  const loadMenu = useCallback(async () => {
+    const { data: catRows } = await supabase
+      .from("categories")
+      .select("id, name_i18n, sort_order")
+      .eq("restaurant_id", restaurant.id)
+      .order("sort_order");
+    const { data: itemRows } = await supabase
+      .from("items")
+      .select("id, category_id, name_i18n, price_millimes, sort_order")
+      .eq("restaurant_id", restaurant.id)
+      .order("sort_order");
+    const mapped: Cat[] = (catRows ?? []).map((c) => ({
+      id: c.id as string,
+      name: tr(c.name_i18n as Record<string, string>),
+      items: (itemRows ?? [])
+        .filter((i) => i.category_id === c.id)
+        .map((i) => ({
+          id: i.id as string,
+          name: tr(i.name_i18n as Record<string, string>),
+          price: ((i.price_millimes as number) / 1000).toString(),
+        })),
+    }));
+    setCats(mapped);
+    setLoaded(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurant.id, supabase]);
 
   useEffect(() => {
-    void (async () => {
-      const { data: catRows } = await supabase
-        .from("categories")
-        .select("id, name_i18n, sort_order")
-        .eq("restaurant_id", restaurant.id)
-        .order("sort_order");
-      const { data: itemRows } = await supabase
-        .from("items")
-        .select("id, category_id, name_i18n, price_millimes, sort_order")
-        .eq("restaurant_id", restaurant.id)
-        .order("sort_order");
-      const mapped: Cat[] = (catRows ?? []).map((c) => ({
-        id: c.id as string,
-        name: tr(c.name_i18n as Record<string, string>),
-        items: (itemRows ?? [])
-          .filter((i) => i.category_id === c.id)
-          .map((i) => ({
-            id: i.id as string,
-            name: tr(i.name_i18n as Record<string, string>),
-            price: ((i.price_millimes as number) / 1000).toString(),
-          })),
-      }));
-      setCats(mapped);
-      setLoaded(true);
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    void loadMenu();
+  }, [loadMenu]);
 
   useEffect(() => {
     onValidChange(cats.some((c) => c.items.length > 0));
@@ -429,6 +433,15 @@ function MenuStep({ defaultLang, onValidChange }: { defaultLang: Language; onVal
     <div className="flex flex-col gap-4">
       <StepHeading title={t.onboarding.stepMenu} body={t.onboarding.stepMenuBody} />
 
+      <button
+        type="button"
+        onClick={() => setShowImport(true)}
+        className="flex items-center justify-center gap-1.5 h-12 rounded-xl border-[1.5px] border-harissa bg-harissa-tint text-harissa-pressed font-extrabold text-[14px] cursor-pointer hover:bg-[#F2DCCE] transition-colors"
+      >
+        {t.portal.menu.import.button}
+        <span className="text-[12px] font-bold opacity-75">· {t.portal.menu.import.buttonHint}</span>
+      </button>
+
       {cats.map((c) => (
         <div key={c.id} className="border border-line rounded-xl p-3.5 flex flex-col gap-2.5">
           <span className="font-extrabold text-[14px] text-ink">{c.name}</span>
@@ -467,6 +480,16 @@ function MenuStep({ defaultLang, onValidChange }: { defaultLang: Language; onVal
       </div>
 
       {!cats.some((c) => c.items.length > 0) && <p className="text-[12px] font-bold text-muted-soft">{t.onboarding.needItem}</p>}
+
+      {showImport && (
+        <MenuImport
+          onClose={() => setShowImport(false)}
+          onImported={() => {
+            setShowImport(false);
+            void loadMenu();
+          }}
+        />
+      )}
     </div>
   );
 }
