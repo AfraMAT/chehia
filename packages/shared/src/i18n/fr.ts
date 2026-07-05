@@ -15,6 +15,8 @@ export const fr = {
     delete: "Supprimer",
     close: "Fermer",
     back: "Retour",
+    decrease: "Diminuer la quantité",
+    increase: "Augmenter la quantité",
     retry: "Réessayer",
     loading: "Chargement…",
     search: "Rechercher",

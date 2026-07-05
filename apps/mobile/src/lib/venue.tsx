@@ -104,6 +104,14 @@ const orderKey = (target: string) => `chehia.order.${target}`;
 // short enough it doesn't surface to the next customer at the same table.
 const ACTIVE_ORDER_TTL_MS = 4 * 60 * 60 * 1000;
 
+// Server rejections of a QUEUED order that are TRANSIENT — keep the order
+// queued and retry later, rather than silently dropping it back to the cart.
+// auth_failed: anonymous sign-in disabled/rate-limited; rate_limited &
+// too_many_open_orders: the place-order abuse throttles (429) that clear with
+// time. A permanent rejection (item sold out, table gone, invalid modifier)
+// is NOT here — those hand the lines back to the cart for the customer to edit.
+const TRANSIENT_ORDER_ERRORS = new Set(["auth_failed", "rate_limited", "too_many_open_orders"]);
+
 /** Shared menu load: categories, items, modifier structure for a restaurant. */
 async function fetchMenu(
   restaurantId: string,
@@ -512,16 +520,26 @@ export function VenueProvider(props: ProviderProps) {
             setQueuedOrder(null);
             setQueuedPlacedOrderId(result.orderId ?? null);
             if (result.orderId) rememberOrder(result.orderId);
-          } else if (result.errorCode === "auth_failed") {
-            // Transient auth problem — keep the order queued so the next
-            // connectivity change retries it, rather than dropping it.
+          } else if (TRANSIENT_ORDER_ERRORS.has(result.errorCode ?? "")) {
+            // Transient (auth disabled, rate-limited, or the open-order cap):
+            // keep the order queued so the next connectivity change or manual
+            // retry tries again, rather than silently dropping it.
             return { ok: false, queued: true };
           } else {
-            // The server explicitly rejected it (item sold out, table gone…):
-            // dequeue and hand the lines back to the cart for editing.
+            // The server explicitly rejected it (item sold out, table gone,
+            // invalid modifier…): dequeue and hand the lines back to the cart
+            // for editing. Fold them in through addLine so an identical line
+            // the customer re-added while offline MERGES (no duplicate key,
+            // qty cap enforced) instead of a raw concat that would break the
+            // stepper on colliding keys.
             await AsyncStorage.removeItem(queueKey(target));
             setQueuedOrder(null);
-            setCart((c) => ({ ...c, lines: [...queued.cart.lines, ...c.lines], note: c.note || queued.cart.note }));
+            setCart((c) =>
+              queued.cart.lines.reduce((acc, line) => addLineBase(acc, line), {
+                ...c,
+                note: c.note || queued.cart.note,
+              }),
+            );
           }
           return result;
         } catch {

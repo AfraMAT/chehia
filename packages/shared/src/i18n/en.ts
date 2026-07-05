@@ -17,6 +17,8 @@ export const en: Dictionary = {
     delete: "Delete",
     close: "Close",
     back: "Back",
+    decrease: "Decrease quantity",
+    increase: "Increase quantity",
     retry: "Retry",
     loading: "Loading…",
     search: "Search",

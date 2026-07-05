@@ -55,6 +55,31 @@ export function CartScreen() {
   const total = cartTotal(cart);
   const hasTable = cartHasTable(cart);
 
+  // Map each server error code (place-order) to an actionable message; anything
+  // unmapped — e.g. a generic db_error — falls back to "could not be sent".
+  // Keys must match the codes place-order actually emits (supabase/functions/
+  // place-order): the *_modifier codes are all stale-cart cases → "review cart".
+  const errorMessage = (code?: string): string => {
+    const messages: Record<string, string> = {
+      item_unavailable: t.cart.itemUnavailable,
+      unknown_item: t.cart.itemUnavailable,
+      unknown_table: t.errors.unknownTable,
+      qr_required: t.errors.qrRequired,
+      rate_limited: t.errors.rateLimited,
+      restaurant_inactive: t.errors.venueClosed,
+      too_many_open_orders: t.errors.tooManyOpenOrders,
+      too_many_lines: t.errors.orderInvalid,
+      too_many_modifiers: t.errors.orderInvalid,
+      modifier_invalid: t.errors.orderInvalid,
+      missing_required_modifier: t.errors.orderInvalid,
+      unknown_modifier: t.errors.orderInvalid,
+      modifier_mismatch: t.errors.orderInvalid,
+      dup_modifier: t.errors.orderInvalid,
+      auth_failed: t.errors.sessionFailed,
+    };
+    return (code && messages[code]) || t.errors.orderFailed;
+  };
+
   const submit = async () => {
     if (submitting || count === 0) return;
     // Browse flow: a table must be chosen before an order can be placed.
@@ -71,23 +96,19 @@ export function CartScreen() {
       return;
     }
     if (result.queued) return; // queued banner takes over
-    // Map each server error code to an actionable message; anything unmapped
-    // falls back to the generic "could not be sent".
-    const messages: Record<string, string> = {
-      item_unavailable: t.cart.itemUnavailable,
-      unknown_item: t.cart.itemUnavailable,
-      unknown_table: t.errors.unknownTable,
-      qr_required: t.errors.qrRequired,
-      rate_limited: t.errors.rateLimited,
-      restaurant_inactive: t.errors.venueClosed,
-      too_many_open_orders: t.errors.tooManyOpenOrders,
-      too_many_lines: t.errors.orderInvalid,
-      too_many_modifiers: t.errors.orderInvalid,
-      modifier_invalid: t.errors.orderInvalid,
-      missing_required: t.errors.orderInvalid,
-      auth_failed: t.errors.sessionFailed,
-    };
-    setError((result.errorCode && messages[result.errorCode]) || t.errors.orderFailed);
+    setError(errorMessage(result.errorCode));
+  };
+
+  // Manual retry of a queued order. Success → the queuedPlacedOrderId effect
+  // jumps to tracking; a transient failure keeps it queued (banner stays, no
+  // error). Only a genuine server rejection hands the lines back to the cart —
+  // surface WHY so the customer knows it was not sent and can fix it.
+  const retryNow = async () => {
+    setError(null);
+    const result = await retryQueued(lang);
+    if (!result.ok && !result.queued) {
+      setError(errorMessage(result.errorCode));
+    }
   };
 
   const align = { textAlign: (isRtl ? "right" : "left") as "left" | "right" };
@@ -210,7 +231,7 @@ export function CartScreen() {
                     </T>
                   </View>
                 </View>
-                <CtaButton lang={lang} height={42} label={t.offline.retryNow} onPress={() => void retryQueued(lang)} />
+                <CtaButton lang={lang} height={42} label={t.offline.retryNow} onPress={() => void retryNow()} />
               </View>
             )}
 

@@ -34,6 +34,11 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   const [waiterOpen, setWaiterOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
+  // Distinct from loadFailed (genuine not-found): the order could not be loaded
+  // at all — offline on a cold-start, or the realtime socket never connected.
+  // Surfaces an escapable screen so the spinner can never trap the customer.
+  const [loadStalled, setLoadStalled] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Initial fetch only fills empty state; a refetch on channel join closes
   // the pre-subscription gap so a stale fetch can't mask a newer status.
@@ -45,15 +50,24 @@ export function OrderScreen({ orderId }: { orderId: string }) {
       const { data: o, error } = await supabase.from("orders").select("*").eq("id", String(orderId)).maybeSingle<Order>();
       if (cancelled) return;
       // A transient network/DB error must not look like a missing order — keep
-      // the spinner and let the realtime subscribe + refetch recover.
+      // the spinner and let the realtime subscribe + refetch recover (the
+      // stall timer below is the backstop if recovery never comes).
       if (error) return;
       if (!o) {
         setLoadFailed(true);
         return;
       }
       setLoadFailed(false);
+      setLoadStalled(false);
       setOrder((prev) => (overwrite || !prev ? o : prev));
     };
+
+    // Backstop: if nothing loads the order within a few seconds (offline
+    // cold-start, blocked/failed realtime socket), stop spinning forever and
+    // offer a way out. Cleared the moment a real order arrives.
+    const stallTimer = setTimeout(() => {
+      if (!cancelled) setLoadStalled(true);
+    }, 7000);
 
     void (async () => {
       // Ensure the anonymous session is loaded before reading under RLS — covers
@@ -83,9 +97,10 @@ export function OrderScreen({ orderId }: { orderId: string }) {
 
     return () => {
       cancelled = true;
+      clearTimeout(stallTimer);
       if (channel) void supabase.removeChannel(channel);
     };
-  }, [orderId]);
+  }, [orderId, reloadKey]);
 
   // Stop tracking once the order is done, so the "return to your order" affordance
   // clears and doesn't surface to the next customer at the same table.
@@ -115,6 +130,40 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   }
 
   if (!order) {
+    // Load stalled (offline / socket never connected) → escapable screen with a
+    // retry and a way back to the menu, so the spinner can't trap the customer.
+    if (loadStalled) {
+      return (
+        <View style={{ flex: 1, backgroundColor: colors.cream, paddingTop: insets.top }}>
+          <View style={[rowDir(lang), { alignItems: "center", paddingHorizontal: 20, paddingTop: 12 }]}>
+            <BackButton isRtl={isRtl} onPress={() => go(`${basePath}/menu`, "replace")} />
+          </View>
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 12 }}>
+            <T lang={lang} display size={20} style={{ textAlign: "center" }}>
+              {t.errors.generic}
+            </T>
+            <CtaButton
+              lang={lang}
+              height={50}
+              style={{ alignSelf: "stretch" }}
+              label={t.offline.retryNow}
+              onPress={() => {
+                setLoadStalled(false);
+                setReloadKey((k) => k + 1);
+              }}
+            />
+            <CtaButton
+              lang={lang}
+              variant="outline"
+              height={50}
+              style={{ alignSelf: "stretch" }}
+              label={t.cart.browseMenu}
+              onPress={() => go(`${basePath}/menu`, "replace")}
+            />
+          </View>
+        </View>
+      );
+    }
     return (
       <View style={{ flex: 1, backgroundColor: colors.cream, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator color={colors.harissa} />

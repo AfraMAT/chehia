@@ -67,7 +67,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Scan the QR code on your table to view the menu and order. / Chehia utilise la caméra pour scanner le code QR de votre table."
+          "cameraPermission": "Scan the QR code on your table to view the menu and order. / Chehia utilise la caméra pour scanner le code QR de votre table. / تستخدم شهية الكاميرا لمسح رمز QR الخاص بطاولتك."
         }
       ],
       [

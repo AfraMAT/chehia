@@ -1,5 +1,6 @@
 import { Pressable, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import type { Language } from "@chehia/shared";
+import { useI18n } from "../lib/i18n";
 import { colors, displayFace, faceFor, fontFamily, shadowCta, sizeFor } from "../lib/theme";
 
 /** The 8-point zellige star mark. */
@@ -157,6 +158,7 @@ export function Stepper({
   max?: number;
   compact?: boolean;
 }) {
+  const { t } = useI18n();
   const h = compact ? 36 : 52;
   const w = compact ? 38 : 46;
   return (
@@ -173,7 +175,7 @@ export function Stepper({
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Decrease quantity"
+        accessibilityLabel={t.common.decrease}
         hitSlop={8}
         disabled={value <= min}
         onPress={() => onChange(Math.max(min, value - 1))}
@@ -186,7 +188,7 @@ export function Stepper({
       </Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Increase quantity"
+        accessibilityLabel={t.common.increase}
         hitSlop={8}
         disabled={value >= max}
         onPress={() => onChange(Math.min(max, value + 1))}
@@ -233,10 +235,11 @@ export function PhotoPlaceholder({
 }
 
 export function BackButton({ onPress, isRtl = false }: { onPress: () => void; isRtl?: boolean }) {
+  const { t } = useI18n();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="back"
+      accessibilityLabel={t.common.back}
       hitSlop={8}
       onPress={onPress}
       style={{
