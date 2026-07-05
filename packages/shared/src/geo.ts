@@ -23,16 +23,18 @@ export function haversineKm(a: Coords, b: Coords): number {
 
 /**
  * Human-friendly distance: "120 m", "1,4 km", "12 km". The decimal separator
- * matches the locale ('.' for en, ',' otherwise), consistent with money.
+ * matches the locale ('.' for en, ',' otherwise), consistent with money; units
+ * are localized for Arabic ("م" / "كم") while keeping Western digits.
  */
 export function formatDistanceKm(km: number, lang: string = "fr"): string {
   const sep = lang === "en" ? "." : ",";
+  const unit = lang === "ar" ? { m: "م", km: "كم" } : { m: "m", km: "km" };
   if (km < 1) {
     const m = Math.max(10, Math.round((km * 1000) / 10) * 10);
-    return `${m} m`;
+    return `${m} ${unit.m}`;
   }
   if (km < 10) {
-    return `${km.toFixed(1).replace(".", sep)} km`;
+    return `${km.toFixed(1).replace(".", sep)} ${unit.km}`;
   }
-  return `${Math.round(km)} km`;
+  return `${Math.round(km)} ${unit.km}`;
 }

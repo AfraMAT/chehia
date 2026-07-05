@@ -117,6 +117,7 @@ export const ar: Dictionary = {
     servedIn: "قُدّم في {min} د",
     inProgress: "طلب قيد التنفيذ",
     trackOrder: "تتبّع",
+    soon: "جاهزة قريباً",
   },
   waiter: {
     call: "نادِ النادل",

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AccessibilityInfo, ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   currencyLabel,
@@ -25,7 +25,7 @@ import { useVenue } from "@/lib/venue";
  * from the provider's basePath. Render only under a "ready" venue guard.
  */
 export function OrderScreen({ orderId }: { orderId: string }) {
-  const { table, basePath, activeOrder, forgetOrder } = useVenue();
+  const { table, basePath, activeOrder, forgetOrder, online } = useVenue();
   const { t, tr, lang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
 
@@ -110,6 +110,25 @@ export function OrderScreen({ orderId }: { orderId: string }) {
     }
   }, [order, activeOrder, orderId, forgetOrder]);
 
+  // Speak each status transition so a VoiceOver/TalkBack user who set the phone
+  // down hears "Ready"/"Served" without re-focusing the text. Skip first mount.
+  const prevStatusRef = useRef<string | null>(null);
+  useEffect(() => {
+    const s = order?.status;
+    if (!s) return;
+    const title =
+      s === "cancelled" ? t.order.cancelled
+      : s === "served" ? t.order.servedTitle
+      : s === "ready" ? t.order.ready
+      : s === "preparing" ? t.order.preparing
+      : t.order.received;
+    if (prevStatusRef.current && prevStatusRef.current !== s) {
+      AccessibilityInfo.announceForAccessibility(title);
+    }
+    prevStatusRef.current = s;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order?.status]);
+
   const count = useMemo(() => lines.reduce((s, l) => s + l.qty, 0), [lines]);
   const tableLabel = table?.label ?? "";
 
@@ -140,8 +159,13 @@ export function OrderScreen({ orderId }: { orderId: string }) {
           </View>
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32, gap: 12 }}>
             <T lang={lang} display size={20} style={{ textAlign: "center" }}>
-              {t.errors.generic}
+              {online ? t.errors.generic : t.errors.network}
             </T>
+            {!online && (
+              <T lang={lang} weight="semibold" size={13.5} color={colors.muted} style={{ textAlign: "center" }}>
+                {t.errors.networkBody}
+              </T>
+            )}
             <CtaButton
               lang={lang}
               height={50}
@@ -193,12 +217,23 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   const align = { textAlign: (isRtl ? "right" : "left") as "left" | "right" };
   const tableSuffix = tableLabel ? ` · ${t.common.table} ${tableLabel}` : "";
 
+  const remaining = isServed || isCancelled ? null : remainingEstimate(order);
+  const statusSubtitle = isServed
+    ? t.order.servedSubtitle
+    : isCancelled
+      ? t.order.cancelledBody
+      : order.status === "ready"
+        ? `${t.order.readyBody}${tableSuffix}`
+        : remaining != null
+          ? `${interpolate(t.order.remaining, { min: remaining })}${tableSuffix}`
+          : `${t.order.soon}${tableSuffix}`;
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.cream, paddingTop: insets.top }}>
       {/* Header */}
       <View style={[rowDir(lang), { alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 12 }]}>
         <BackButton isRtl={isRtl} onPress={() => go(`${basePath}/menu`, "replace")} />
-        <T weight="extrabold" size={13} color={colors.mutedSoft} style={{ letterSpacing: 1.5 }}>
+        <T lang={lang} weight="extrabold" size={13} color={colors.mutedSoft} style={{ letterSpacing: lang === "ar" ? 0 : 1.5 }}>
           {t.order.order.toUpperCase()} #{order.order_number}
         </T>
         <View style={{ width: 40 }} />
@@ -232,18 +267,17 @@ export function OrderScreen({ orderId }: { orderId: string }) {
               </View>
             </View>
           )}
-          <View style={{ alignItems: "center", gap: 3, paddingHorizontal: 24 }}>
+          <View
+            accessible
+            accessibilityLiveRegion="polite"
+            accessibilityLabel={`${statusTitle}. ${statusSubtitle}`}
+            style={{ alignItems: "center", gap: 3, paddingHorizontal: 24 }}
+          >
             <T lang={lang} display size={30} style={{ textAlign: "center" }}>
               {statusTitle}
             </T>
             <T lang={lang} weight="semibold" size={14} color={colors.muted} style={{ textAlign: "center" }}>
-              {isServed
-                ? t.order.servedSubtitle
-                : isCancelled
-                  ? t.order.cancelledBody
-                  : order.status === "ready"
-                    ? `${t.order.readyBody}${tableSuffix}`
-                    : `${interpolate(t.order.remaining, { min: remainingEstimate(order) })}${tableSuffix}`}
+              {statusSubtitle}
             </T>
           </View>
         </View>
@@ -262,7 +296,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
             }}
           >
             <View style={[rowDir(lang), { justifyContent: "space-between", alignItems: "center", paddingBottom: 10 }]}>
-              <T weight="extrabold" size={13} color={colors.mutedSoft} style={{ letterSpacing: 0.8 }}>
+              <T lang={lang} weight="extrabold" size={13} color={colors.mutedSoft} style={{ letterSpacing: lang === "ar" ? 0 : 0.8 }}>
                 {tableLabel ? `${t.common.table.toUpperCase()} ${tableLabel} · ` : ""}
                 {formatClock(new Date(order.served_at ?? order.created_at), lang)}
               </T>
@@ -348,6 +382,10 @@ export function OrderScreen({ orderId }: { orderId: string }) {
               {/* Order summary (collapsible) */}
               <Pressable
                 onPress={() => setDetailsOpen((v) => !v)}
+                accessible
+                accessibilityRole="button"
+                accessibilityState={{ expanded: detailsOpen }}
+                accessibilityLabel={`${count} ${t.common.items} · ${millimesToDisplay(order.total_millimes, lang)} ${currencyLabel(lang)}`}
                 style={[
                   rowDir(lang),
                   {
@@ -442,10 +480,14 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   );
 }
 
-/** Rough countdown from a ~8 min baseline, clamped so it never claims zero. */
-function remainingEstimate(order: Order): number {
-  const elapsedMin = (Date.now() - new Date(order.created_at).getTime()) / 60000;
-  return Math.max(1, Math.round(8 - elapsedMin));
+/**
+ * Rough countdown from a ~8 min baseline. Returns null once the estimate would
+ * fall to zero (or the device clock is skewed out of a sane band) so the UI can
+ * fall back to an honest status phrase instead of freezing at a fake "~1 min".
+ */
+function remainingEstimate(order: Order): number | null {
+  const remaining = Math.round(8 - (Date.now() - new Date(order.created_at).getTime()) / 60000);
+  return remaining >= 1 && remaining <= 8 ? remaining : null;
 }
 
 function TimelineRow({

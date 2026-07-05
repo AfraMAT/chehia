@@ -112,6 +112,11 @@ const ACTIVE_ORDER_TTL_MS = 4 * 60 * 60 * 1000;
 // is NOT here — those hand the lines back to the cart for the customer to edit.
 const TRANSIENT_ORDER_ERRORS = new Set(["auth_failed", "rate_limited", "too_many_open_orders"]);
 
+// Bump when the cached VenueBundle shape changes so a stale-shape entry written
+// by a previous app version is discarded (cache miss) instead of hydrating a
+// mismatched object that could crash the offline menu.
+const MENU_CACHE_VERSION = 1;
+
 /** Shared menu load: categories, items, modifier structure for a restaurant. */
 async function fetchMenu(
   restaurantId: string,
@@ -257,7 +262,7 @@ export function VenueProvider(props: ProviderProps) {
         // Cache the full bundle (table included) keyed per slug+target.
         await AsyncStorage.setItem(
           menuCacheKey(slug, target),
-          JSON.stringify({ bundle, at: new Date().toISOString() }),
+          JSON.stringify({ v: MENU_CACHE_VERSION, bundle, at: new Date().toISOString() }),
         );
       } catch {
         // Network failure → cached menu.
@@ -265,10 +270,13 @@ export function VenueProvider(props: ProviderProps) {
         if (cancelled) return;
         if (raw) {
           try {
-            const { bundle, at } = JSON.parse(raw) as { bundle: VenueBundle; at: string };
-            setState({ status: "ready", bundle, fromCache: true });
-            setCachedAt(at);
-            return;
+            const parsed = JSON.parse(raw) as { v?: number; bundle: VenueBundle; at: string };
+            // Ignore a cache entry from an older, incompatible bundle shape.
+            if (parsed.v === MENU_CACHE_VERSION && parsed.bundle) {
+              setState({ status: "ready", bundle: parsed.bundle, fromCache: true });
+              setCachedAt(parsed.at);
+              return;
+            }
           } catch {
             // fall through
           }

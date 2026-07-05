@@ -77,7 +77,7 @@ export function MenuScreen() {
           <T lang={lang} weight="extrabold" size={16} numberOfLines={1} style={{ textAlign: isRtl ? "right" : "left" }}>
             {restaurant.name}
           </T>
-          <T lang={lang} weight="semibold" size={11.5} color={colors.mutedSoft} style={{ textAlign: isRtl ? "right" : "left" }}>
+          <T lang={lang} weight="semibold" size={11.5} color={colors.mutedSoft} numberOfLines={1} style={{ textAlign: isRtl ? "right" : "left" }}>
             {t.menu.title} · {lang === "fr" ? "Français" : lang === "ar" ? "العربية" : "English"}
           </T>
         </View>
@@ -144,6 +144,10 @@ export function MenuScreen() {
                 <Pressable
                   key={cat.id}
                   onPress={() => setActiveCategory(cat.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={tr(cat.name_i18n)}
+                  hitSlop={{ top: 8, bottom: 8 }}
                   style={[
                     isRtl ? { transform: [{ scaleX: -1 }] } : undefined,
                     {
@@ -205,6 +209,11 @@ export function MenuScreen() {
       <FlatList
         data={visibleItems}
         keyExtractor={(item) => item.id}
+        removeClippedSubviews
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: count > 0 ? 96 : 24, gap: 10 }}
         ListEmptyComponent={
           <View style={{ alignItems: "center", paddingVertical: 60, gap: 6 }}>
@@ -223,6 +232,15 @@ export function MenuScreen() {
             <Pressable
               disabled={!available}
               onPress={() => setOpenItem(item)}
+              accessible
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !available }}
+              accessibilityLabel={
+                `${tr(item.name_i18n)}, ${millimesToDisplay(item.price_millimes, lang)} ${currencyLabel(lang)}` +
+                (item.is_popular && available ? `, ${t.menu.popular}` : "") +
+                (available ? "" : `, ${t.menu.soldOut}`)
+              }
+              accessibilityHint={available ? t.item.addToCart : undefined}
               style={[
                 rowDir(lang),
                 {
@@ -319,6 +337,8 @@ export function MenuScreen() {
       {count > 0 && (
         <Pressable
           onPress={() => go(`${basePath}/cart`)}
+          accessibilityRole="button"
+          accessibilityLabel={`${t.menu.viewCart} — ${count} ${t.common.items}, ${millimesToDisplay(cartTotal(cart), lang)} ${currencyLabel(lang)}`}
           style={[
             rowDir(lang),
             shadowDark,

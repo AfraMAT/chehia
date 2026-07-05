@@ -42,7 +42,9 @@ export function Discover() {
     void (async () => {
       const { data } = await supabase
         .from("restaurants")
-        .select("id, slug, name, tagline_i18n, city, address, cover_url, logo_url, plan, latitude, longitude")
+        // Only the fields the discovery list actually renders — address/cover_url/
+        // logo_url are unused on mobile, so keep them off the wire on slow links.
+        .select("id, slug, name, tagline_i18n, city, plan, latitude, longitude")
         .eq("is_active", true)
         .order("name")
         .overrideTypes<DiscoveryVenue[], { merge: false }>();
@@ -115,6 +117,7 @@ export function Discover() {
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={LANGUAGE_LABELS[code as Language]}
+                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                 style={{
                   paddingHorizontal: 8,
                   height: 32,

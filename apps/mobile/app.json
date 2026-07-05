@@ -10,9 +10,11 @@
     "backgroundColor": "#FAF6EF",
     "ios": {
       "bundleIdentifier": "tn.chehia.app",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "supportsTablet": false,
-      "associatedDomains": ["applinks:chehia.app"],
+      "associatedDomains": [
+        "applinks:chehia.app"
+      ],
       "infoPlist": {
         "NSCameraUsageDescription": "Scan the QR code on your table to view the menu and order. / Chehia utilise la caméra pour scanner le code QR de votre table. / تستخدم شهية الكاميرا لمسح رمز QR الخاص بطاولتك.",
         "ITSAppUsesNonExemptEncryption": false
@@ -21,10 +23,30 @@
         "NSPrivacyTracking": false,
         "NSPrivacyCollectedDataTypes": [],
         "NSPrivacyAccessedAPITypes": [
-          { "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults", "NSPrivacyAccessedAPITypeReasons": ["CA92.1"] },
-          { "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp", "NSPrivacyAccessedAPITypeReasons": ["C617.1"] },
-          { "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime", "NSPrivacyAccessedAPITypeReasons": ["35F9.1"] },
-          { "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace", "NSPrivacyAccessedAPITypeReasons": ["E174.1"] }
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "C617.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "35F9.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "E174.1"
+            ]
+          }
         ]
       }
     },
@@ -43,10 +65,23 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "chehia.app", "pathPrefix": "/r" }
+            {
+              "scheme": "https",
+              "host": "chehia.app",
+              "pathPrefix": "/r"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
+      ],
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
@@ -80,6 +115,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7a5bf38b-0391-4bd6-8e6f-75c11eb4c762"
+      }
     }
   }
 }

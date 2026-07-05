@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ActivityIndicator, Modal, Pressable, TextInput, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { WaiterCallReason } from "@chehia/shared";
 import { CtaButton, Handle, T } from "../ui";
@@ -29,9 +30,11 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
     setState("sending");
     const ok = await callWaiter(reason, note);
     if (ok) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setState("sent");
       setTimeout(onClose, 1600);
     } else {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setState("error");
     }
   };
@@ -86,6 +89,9 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
                     <Pressable
                       key={opt.value}
                       onPress={() => setReason(opt.value)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={opt.label}
                       style={[
                         rowDir(lang),
                         {

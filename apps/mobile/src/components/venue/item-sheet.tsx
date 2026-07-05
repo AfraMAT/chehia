@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   buildLine,
@@ -30,6 +31,8 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
   );
   const [qty, setQty] = useState(1);
   const [touched, setTouched] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const groupY = useRef<Record<string, number>>({});
 
   const validation = validateModifiers(groups, selected);
   const line = buildLine(item, groups, selected, qty);
@@ -52,7 +55,16 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
 
   const submit = () => {
     setTouched(true);
-    if (!validation.ok) return;
+    if (!validation.ok) {
+      // Bring the first unsatisfied required group into view — its "Requis"
+      // state can be far below the fold — and buzz so the block is felt too.
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const firstMissing = groups.find((g) => validation.missingGroups.includes(g.id));
+      const y = firstMissing ? groupY.current[firstMissing.id] : undefined;
+      if (y != null) scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
+      return;
+    }
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     addToCart(buildLine(item, groups, selected, qty));
     onClose();
   };
@@ -76,6 +88,7 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
           <View>
             <PhotoPlaceholder width="100%" height={180} radius={0} mirrored={isRtl} />
             <Pressable
+              accessibilityRole="button"
               accessibilityLabel={t.common.close}
               onPress={onClose}
               style={{
@@ -96,7 +109,7 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
             </Pressable>
           </View>
 
-          <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
+          <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 20, gap: 16 }}>
             {/* Title + price */}
             <View style={{ gap: 4 }}>
               <View style={[rowDir(lang), { justifyContent: "space-between", alignItems: "flex-start", gap: 10 }]}>
@@ -126,7 +139,13 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
               const isMissing = touched && validation.missingGroups.includes(group.id);
               const multi = group.max_select > 1;
               return (
-                <View key={group.id} style={{ gap: 8 }}>
+                <View
+                  key={group.id}
+                  onLayout={(e) => {
+                    groupY.current[group.id] = e.nativeEvent.layout.y;
+                  }}
+                  style={{ gap: 8 }}
+                >
                   <View style={[rowDir(lang), { justifyContent: "space-between", alignItems: "center" }]}>
                     <T lang={lang} weight="extrabold" size={14}>
                       {tr(group.name_i18n)}
@@ -161,6 +180,9 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                           <Pressable
                             key={mod.id}
                             onPress={() => toggleModifier(group.id, mod.id)}
+                            accessibilityRole="checkbox"
+                            accessibilityState={{ checked: active }}
+                            accessibilityLabel={`${tr(mod.name_i18n)}, ${formatDelta(mod.price_delta_millimes, lang)}`}
                             style={[
                               rowDir(lang),
                               {
@@ -213,6 +235,9 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                           <Pressable
                             key={mod.id}
                             onPress={() => toggleModifier(group.id, mod.id)}
+                            accessibilityRole="radio"
+                            accessibilityState={{ selected: active }}
+                            accessibilityLabel={hasDelta ? `${tr(mod.name_i18n)}, ${formatDelta(mod.price_delta_millimes, lang)}` : tr(mod.name_i18n)}
                             style={{
                               flexGrow: blockStyle ? 1 : 0,
                               minWidth: blockStyle ? 72 : undefined,

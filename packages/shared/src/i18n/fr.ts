@@ -115,6 +115,7 @@ export const fr = {
     servedIn: "SERVIE EN {min} MIN",
     inProgress: "Commande en cours",
     trackOrder: "Suivre",
+    soon: "Bientôt prête",
   },
   waiter: {
     call: "Appeler le serveur",

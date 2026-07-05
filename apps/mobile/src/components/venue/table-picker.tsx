@@ -24,7 +24,7 @@ export function TablePicker({ onClose }: { onClose: () => void }) {
   return (
     <Modal animationType="slide" transparent onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: "rgba(34,26,19,0.45)", justifyContent: "flex-end" }}>
-        <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel={t.common.close} />
+        <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityRole="button" accessibilityLabel={t.common.close} />
         <View
           style={{
             maxHeight: "86%",
@@ -64,6 +64,8 @@ export function TablePicker({ onClose }: { onClose: () => void }) {
                     return (
                       <Pressable
                         key={tb.id}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
                         accessibilityLabel={`${t.common.table} ${tb.label}`}
                         onPress={() => {
                           setTable(tb);

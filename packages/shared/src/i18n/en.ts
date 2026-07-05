@@ -117,6 +117,7 @@ export const en: Dictionary = {
     servedIn: "SERVED IN {min} MIN",
     inProgress: "Order in progress",
     trackOrder: "Track",
+    soon: "Almost ready",
   },
   waiter: {
     call: "Call a waiter",

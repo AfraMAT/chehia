@@ -37,7 +37,7 @@ export function VenueHome() {
           <T lang={lang} weight="semibold" size={13} color={colors.muted} style={{ textAlign: "center", maxWidth: 280 }}>
             {browse ? t.discover.noResultsBody : t.landing.invalidQrBody}
           </T>
-          {browse && (
+          {browse ? (
             <CtaButton
               lang={lang}
               variant="outline"
@@ -45,6 +45,14 @@ export function VenueHome() {
               style={{ marginTop: 12, alignSelf: "stretch" }}
               label={t.common.back}
               onPress={() => go("/app", "replace")}
+            />
+          ) : (
+            <CtaButton
+              lang={lang}
+              height={46}
+              style={{ marginTop: 12, alignSelf: "stretch" }}
+              label={t.landing.scanPrompt}
+              onPress={() => go("/", "replace")}
             />
           )}
         </View>
@@ -75,6 +83,7 @@ export function VenueHome() {
           {browse && (
             <Pressable
               onPress={() => go("/app", "replace")}
+              accessibilityRole="button"
               accessibilityLabel={t.common.back}
               style={{
                 position: "absolute",
@@ -179,6 +188,9 @@ export function VenueHome() {
               {browse && (
                 <Pressable
                   onPress={() => setPickerOpen(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t.landing.changeTable}
+                  hitSlop={{ top: 8, bottom: 8 }}
                   style={{ backgroundColor: colors.harissaTint, borderRadius: 100, paddingHorizontal: 12, paddingVertical: 7 }}
                 >
                   <T lang={lang} weight="bold" size={13} color={colors.harissaPressed}>
@@ -191,6 +203,9 @@ export function VenueHome() {
             <Pressable
               disabled={noTables}
               onPress={() => setPickerOpen(true)}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: noTables }}
+              accessibilityLabel={noTables ? t.landing.noTables : t.landing.chooseTable}
               style={[
                 rowDir(lang),
                 {
@@ -258,6 +273,9 @@ export function VenueHome() {
                   <Pressable
                     key={code}
                     onPress={() => setLang(code)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={LANGUAGE_LABELS[code]}
                     style={{
                       flex: 1,
                       height: 44,

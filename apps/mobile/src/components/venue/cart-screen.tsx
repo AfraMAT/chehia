@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cartCount, cartHasTable, cartTotal, currencyLabel, millimesToDisplay } from "@chehia/shared";
 import { BackButton, CtaButton, Line, Stepper, T } from "../ui";
@@ -92,10 +93,12 @@ export function CartScreen() {
     const result = await placeOrder(lang);
     setSubmitting(false);
     if (result.ok && result.orderId) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       go(`${basePath}/order/${result.orderId}`, "replace");
       return;
     }
     if (result.queued) return; // queued banner takes over
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     setError(errorMessage(result.errorCode));
   };
 

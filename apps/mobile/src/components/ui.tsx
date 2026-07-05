@@ -1,9 +1,16 @@
 import { Pressable, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
+import Svg, { Defs, G, Pattern, Rect } from "react-native-svg";
 import type { Language } from "@chehia/shared";
 import { useI18n } from "../lib/i18n";
 import { colors, displayFace, faceFor, fontFamily, shadowCta, sizeFor } from "../lib/theme";
 
-/** The 8-point zellige star mark. */
+/**
+ * The Chehia "Scan & Fork" mark — a QR-scan finder + a fork, echoing the app
+ * icon (scan → order → eat). Matches the web brand mark (apps/web brand.tsx) so
+ * the launcher icon and the in-app mark are one identity. Reduced form (single
+ * finder + fork) stays legible from ~16px nav marks up. Export name kept as
+ * `ZelligeMark` so every existing caller keeps working.
+ */
 export function ZelligeMark({
   size = 30,
   color = colors.harissa,
@@ -15,32 +22,23 @@ export function ZelligeMark({
   inner?: string;
   radius?: number;
 }) {
-  const sq = size * 0.44;
-  const squareStyle: ViewStyle = {
-    position: "absolute",
-    left: size / 2 - sq / 2,
-    top: size / 2 - sq / 2,
-    width: sq,
-    height: sq,
-    backgroundColor: inner,
-    borderRadius: size * 0.07,
-  };
+  // rx is in the 0–100 viewBox space; default 30 == size * 0.3 rounded square.
+  const rx = radius != null ? (radius / size) * 100 : 30;
   return (
-    <View style={{ width: size, height: size, backgroundColor: color, borderRadius: radius ?? size * 0.3 }}>
-      <View style={squareStyle} />
-      <View style={[squareStyle, { transform: [{ rotate: "45deg" }] }]} />
-      <View
-        style={{
-          position: "absolute",
-          left: size / 2 - size * 0.08,
-          top: size / 2 - size * 0.08,
-          width: size * 0.16,
-          height: size * 0.16,
-          borderRadius: size * 0.08,
-          backgroundColor: color,
-        }}
-      />
-    </View>
+    <Svg width={size} height={size} viewBox="0 0 100 100">
+      <Rect width={100} height={100} rx={rx} fill={color} />
+      {/* "scan" QR finder, top-left */}
+      <Rect x={19} y={19} width={25} height={25} rx={7} fill="none" stroke={inner} strokeWidth={5.5} />
+      <Rect x={28} y={28} width={7} height={7} rx={2} fill={inner} />
+      {/* fork */}
+      <G fill={inner}>
+        <Rect x={52} y={40} width={4.4} height={23} rx={2.2} />
+        <Rect x={59} y={40} width={4.4} height={23} rx={2.2} />
+        <Rect x={66} y={40} width={4.4} height={23} rx={2.2} />
+        <Rect x={52} y={59} width={18.4} height={5} rx={2.5} />
+        <Rect x={59} y={62} width={4.8} height={21} rx={2.4} />
+      </G>
+    </Svg>
   );
 }
 
@@ -81,6 +79,9 @@ export function CtaButton({
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
       style={({ pressed }) => [
         {
           height: Math.max(height, 44),
@@ -96,7 +97,12 @@ export function CtaButton({
         style,
       ]}
     >
-      <Text style={{ fontFamily: faceFor(lang, "extrabold"), fontSize: sizeFor(lang, 16), color: s.fg }}>{label}</Text>
+      <Text
+        maxFontSizeMultiplier={1.4}
+        style={{ fontFamily: faceFor(lang, "extrabold"), fontSize: sizeFor(lang, 16), color: s.fg }}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -183,7 +189,10 @@ export function Stepper({
       >
         <Text style={{ color: colors.harissa, fontFamily: fontFamily.extrabold, fontSize: compact ? 17 : 22 }}>−</Text>
       </Pressable>
-      <Text style={{ width: 24, textAlign: "center", fontFamily: fontFamily.extrabold, fontSize: compact ? 14 : 17, color: colors.ink }}>
+      <Text
+        maxFontSizeMultiplier={1.3}
+        style={{ minWidth: 24, textAlign: "center", fontFamily: fontFamily.extrabold, fontSize: compact ? 14 : 17, color: colors.ink }}
+      >
         {value}
       </Text>
       <Pressable
@@ -200,7 +209,11 @@ export function Stepper({
   );
 }
 
-/** Diagonal-weave photo placeholder (design canvas style) built from stripes. */
+/**
+ * Diagonal-weave photo placeholder (design canvas style). Rendered as a single
+ * SVG pattern tile instead of ~30 stacked Views, so a full menu doesn't pay
+ * ~1000 extra layout nodes. Purely decorative → hidden from screen readers.
+ */
 export function PhotoPlaceholder({
   width,
   height,
@@ -212,24 +225,28 @@ export function PhotoPlaceholder({
   radius?: number;
   mirrored?: boolean;
 }) {
-  const stripes = Array.from({ length: 30 });
+  const pid = mirrored ? "weave-m" : "weave-n";
   return (
-    <View style={{ width, height, borderRadius: radius, backgroundColor: colors.photoPlaceholder, overflow: "hidden" }}>
-      <View
-        style={{
-          position: "absolute",
-          inset: -height,
-          flexDirection: "row",
-          transform: [{ rotate: mirrored ? "-45deg" : "45deg" }],
-        }}
-      >
-        {stripes.map((_, i) => (
-          <View
-            key={i}
-            style={{ width: 7, height: height * 4, backgroundColor: i % 2 ? colors.photoPlaceholderAlt : colors.photoPlaceholder, marginRight: 7 }}
-          />
-        ))}
-      </View>
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width, height, borderRadius: radius, backgroundColor: colors.photoPlaceholder, overflow: "hidden" }}
+    >
+      <Svg width="100%" height={height}>
+        <Defs>
+          <Pattern
+            id={pid}
+            patternUnits="userSpaceOnUse"
+            width={14}
+            height={14}
+            patternTransform={`rotate(${mirrored ? -45 : 45})`}
+          >
+            <Rect width={14} height={14} fill={colors.photoPlaceholder} />
+            <Rect width={7} height={14} fill={colors.photoPlaceholderAlt} />
+          </Pattern>
+        </Defs>
+        <Rect width="100%" height={height} fill={`url(#${pid})`} />
+      </Svg>
     </View>
   );
 }
@@ -305,6 +322,10 @@ export function T({
           fontSize: sizeFor(lang, size),
           color,
           lineHeight: lang === "ar" ? sizeFor(lang, size) * 1.5 : undefined,
+          // Arabic needs an explicit RTL base direction, otherwise a string
+          // that mixes Arabic with Latin/digits (prices, table numbers) renders
+          // its runs in scrambled bidi order even when right-aligned.
+          writingDirection: lang === "ar" ? "rtl" : undefined,
         },
         style,
       ]}
