@@ -115,6 +115,13 @@ create trigger reviews_aggregate_sync
   after insert or update or delete on public.reviews
   for each row execute function public.reviews_maintain_aggregates();
 
+-- Internal helpers: the trigger invokes them as definer regardless of grants,
+-- so they need not be part of the public API. Revoke the default execute grant
+-- so they aren't reachable via PostgREST /rpc.
+revoke execute on function public.recompute_restaurant_rating(uuid) from public, anon, authenticated;
+revoke execute on function public.recompute_item_rating(uuid) from public, anon, authenticated;
+revoke execute on function public.reviews_maintain_aggregates() from public, anon, authenticated;
+
 -- Stamp moderation + updated_at on status changes.
 create or replace function public.reviews_stamp_moderation()
 returns trigger
