@@ -136,7 +136,13 @@ Deno.serve(async (req) => {
   const venuePayload = hasVenue
     ? {
         rating: input.venue!.rating,
-        sentiment: input.venue!.sentiment ?? null,
+        // Validate against the enum allow-list: an unchecked value from the
+        // request body would violate the reviews.sentiment CHECK constraint and
+        // abort the whole tx as a 500. Coerce anything unexpected to null.
+        sentiment:
+          input.venue!.sentiment && (["love", "good", "meh"] as readonly string[]).includes(input.venue!.sentiment)
+            ? input.venue!.sentiment
+            : null,
         comment: clean(input.venue!.comment),
       }
     : null;

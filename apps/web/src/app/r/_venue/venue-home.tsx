@@ -61,7 +61,7 @@ export function VenueHome() {
               <Stars value={restaurant.rating_avg} size={15} />
               <span className="text-[13px] font-bold text-ink tabular-nums">{formatRating(restaurant.rating_avg, lang)}</span>
               <span className="text-[12.5px] text-muted-soft">
-                · {interpolate(t.rating.ratingsCount, { count: restaurant.rating_count ?? 0 })}
+                · {(restaurant.rating_count ?? 0) === 1 ? t.rating.ratingCountOne : interpolate(t.rating.ratingsCount, { count: restaurant.rating_count ?? 0 })}
               </span>
             </div>
           )}

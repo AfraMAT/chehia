@@ -43,8 +43,12 @@ export function Discover() {
     setLoadError(false);
     const { data, error } = await supabase
       .from("restaurants")
-      // Fields the discovery list renders (address/logo_url stay off the wire).
-      .select("id, slug, name, tagline_i18n, city, plan, latitude, longitude, cover_url, rating_avg, rating_count")
+      // select("*") not an explicit list: if this build runs against a backend
+      // where the reviews migration hasn't landed (rating_avg/rating_count
+      // absent), an explicit column name would hard-error (PostgREST 400) and
+      // brick discovery. select("*") returns whatever exists; the rating UI is
+      // guarded on rating_count, so ratings stay hidden until the columns exist.
+      .select("*")
       .eq("is_active", true)
       .order("name")
       .overrideTypes<DiscoveryVenue[], { merge: false }>();

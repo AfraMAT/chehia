@@ -150,7 +150,7 @@ export function VenueHome() {
                 {formatRating(restaurant.rating_avg, lang)}
               </T>
               <T lang={lang} weight="semibold" size={12.5} color={colors.mutedSoft}>
-                · {interpolate(t.rating.ratingsCount, { count: restaurant.rating_count ?? 0 })}
+                · {(restaurant.rating_count ?? 0) === 1 ? t.rating.ratingCountOne : interpolate(t.rating.ratingsCount, { count: restaurant.rating_count ?? 0 })}
               </T>
             </View>
           )}

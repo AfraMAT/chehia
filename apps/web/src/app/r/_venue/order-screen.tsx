@@ -39,7 +39,10 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   // and ticks down instead of freezing at the value computed on first paint.
   const [, setTick] = useState(0);
   const ratedKey = `chehia.rated.${orderId}`;
-  const reviewsOn = restaurant.reviews_enabled !== false;
+  // === true (not !== false): when the reviews backend isn't deployed the column
+  // is absent → undefined → reviews stay OFF, so no rating sheet pops to a
+  // submit that would 404. A real venue row defaults reviews_enabled=true.
+  const reviewsOn = restaurant.reviews_enabled === true;
 
   // Initial load + realtime subscription on this order row. The initial
   // fetch only fills the empty state (never clobbers a realtime update);

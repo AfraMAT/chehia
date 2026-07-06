@@ -128,7 +128,7 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                 <Stars value={item.rating_avg} size={15} />
                 <span className="text-[13px] font-bold text-ink tabular-nums">{formatRating(item.rating_avg, lang)}</span>
                 <span className="text-[12.5px] text-muted-soft">
-                  · {interpolate(t.rating.ratingsCount, { count: item.rating_count ?? 0 })}
+                  · {(item.rating_count ?? 0) === 1 ? t.rating.ratingCountOne : interpolate(t.rating.ratingsCount, { count: item.rating_count ?? 0 })}
                 </span>
               </div>
             )}

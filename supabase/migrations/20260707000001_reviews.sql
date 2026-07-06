@@ -134,6 +134,48 @@ $$;
 create trigger reviews_stamp before update on public.reviews
   for each row execute function public.reviews_stamp_moderation();
 
+-- Guard: a non-admin updater (owner/manager, via the "staff hide" policy below)
+-- may ONLY transition a review to 'hidden' — nothing else. RLS WITH CHECK can
+-- constrain the NEW row's columns but cannot reference the OLD row, so it can't
+-- forbid a status/rating/comment rewrite on rows the owner is otherwise allowed
+-- to touch. Without this guard an owner could call the table directly to approve
+-- pending/admin-rejected reviews, flip ratings to 5, or edit comments on their
+-- own venue — inflating the public average and defeating platform moderation.
+-- Platform admins are exempt (moderation is their job); service-role inserts go
+-- through place_review_tx, not UPDATE, so they never hit this path.
+create or replace function public.reviews_staff_hide_only()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  -- Platform admins moderate freely; service-role / seed connections have a null
+  -- auth.uid() and bypass RLS anyway (trusted). Every other caller reaching this
+  -- UPDATE is an owner/manager via the hide policy, and may only hide. (A real
+  -- staff/customer always has a uid, so this exemption never covers them.)
+  if public.is_platform_admin() or auth.uid() is null then
+    return new;
+  end if;
+  if new.status is distinct from 'hidden'
+     or new.rating is distinct from old.rating
+     or new.sentiment is distinct from old.sentiment
+     or new.comment is distinct from old.comment
+     or new.customer_name is distinct from old.customer_name
+     or new.restaurant_id is distinct from old.restaurant_id
+     or new.order_id is distinct from old.order_id
+     or new.item_id is distinct from old.item_id
+     or new.created_by is distinct from old.created_by then
+    raise exception 'staff may only hide a review, not modify its content or status';
+  end if;
+  return new;
+end;
+$$;
+
+-- Runs before reviews_stamp (name sorts earlier) so a disallowed edit aborts
+-- the transaction before any moderation stamp is written.
+create trigger reviews_staff_hide_guard before update on public.reviews
+  for each row execute function public.reviews_staff_hide_only();
+
 -- ------------------------------------------------------------
 -- RLS
 -- ------------------------------------------------------------

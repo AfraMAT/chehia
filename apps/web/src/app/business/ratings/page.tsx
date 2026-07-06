@@ -95,7 +95,7 @@ export default function RatingsPage() {
               </span>
               <Stars value={data?.rating_avg} size={20} />
               <span className="text-[12.5px] font-semibold text-muted-soft mt-0.5">
-                {interpolate(t.rating.ratingsCount, { count: total })}
+                {total === 1 ? t.rating.ratingCountOne : interpolate(t.rating.ratingsCount, { count: total })}
               </span>
               {(data?.pending_count ?? 0) > 0 && (
                 <span className="mt-1 text-[11.5px] font-extrabold text-warning-text bg-warning-tint rounded-full px-2.5 py-1">

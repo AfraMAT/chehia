@@ -151,7 +151,7 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                     {formatRating(item.rating_avg, lang)}
                   </T>
                   <T lang={lang} weight="semibold" size={12.5} color={colors.mutedSoft}>
-                    · {interpolate(t.rating.ratingsCount, { count: item.rating_count ?? 0 })}
+                    · {(item.rating_count ?? 0) === 1 ? t.rating.ratingCountOne : interpolate(t.rating.ratingsCount, { count: item.rating_count ?? 0 })}
                   </T>
                 </View>
               )}

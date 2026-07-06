@@ -17,7 +17,11 @@ export default async function AppHome() {
   const supabase = getServerSupabase();
   const { data, error } = await supabase
     .from("restaurants")
-    .select("id, slug, name, tagline_i18n, city, address, cover_url, logo_url, plan, latitude, longitude, rating_avg, rating_count")
+    // select("*") rather than an explicit column list: a prod deploy where the
+    // reviews migration hasn't landed yet (rating_avg/rating_count absent) still
+    // returns the catalogue instead of erroring on unknown columns. The rating
+    // UI is guarded on rating_count, so ratings simply stay hidden until then.
+    .select("*")
     .eq("is_active", true)
     .order("name")
     .overrideTypes<DiscoveryVenue[], { merge: false }>();

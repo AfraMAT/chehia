@@ -37,7 +37,10 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   const [waiterOpen, setWaiterOpen] = useState(false);
   const [ratingOpen, setRatingOpen] = useState(false);
   const ratingPromptedRef = useRef(false);
-  const reviewsOn = restaurant.reviews_enabled !== false;
+  // === true (not !== false): when the reviews backend isn't deployed the column
+  // is absent → undefined → reviews stay OFF, so no rating sheet pops to a
+  // submit that would 404. A real venue row defaults reviews_enabled=true.
+  const reviewsOn = restaurant.reviews_enabled === true;
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   // Distinct from loadFailed (genuine not-found): the order could not be loaded
