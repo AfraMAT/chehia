@@ -3,7 +3,7 @@ import { ActivityIndicator, Modal, Pressable, TextInput, View } from "react-nati
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { WaiterCallReason } from "@chehia/shared";
-import { CtaButton, Handle, T } from "../ui";
+import { CtaButton, Handle, SheetClose, T } from "../ui";
 import { useI18n } from "@/lib/i18n";
 import { colors, rowDir } from "@/lib/theme";
 import { useVenueState } from "@/lib/venue";
@@ -53,6 +53,7 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
             paddingBottom: insets.bottom + 18,
           }}
         >
+          <SheetClose onClose={onClose} isRtl={isRtl} />
           <Handle />
 
           {state === "sent" ? (

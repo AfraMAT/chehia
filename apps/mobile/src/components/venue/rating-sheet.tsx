@@ -9,7 +9,7 @@ import {
   type OrderItem,
   type Sentiment,
 } from "@chehia/shared";
-import { CtaButton, FaceInput, Handle, StarInput, T } from "../ui";
+import { CtaButton, FaceInput, Handle, SheetClose, StarInput, T } from "../ui";
 import { useI18n } from "@/lib/i18n";
 import { colors, rowDir } from "@/lib/theme";
 import { ensureCustomerSession, functionsUrl, supabase, supabaseAnonKey } from "@/lib/supabase";
@@ -104,6 +104,7 @@ export function RatingSheet({
             maxHeight: "88%",
           }}
         >
+          <SheetClose onClose={onClose} isRtl={isRtl} />
           <Handle />
           {phase === "done" ? (
             <View style={{ alignItems: "center", gap: 12, paddingVertical: 40, paddingHorizontal: 24 }}>

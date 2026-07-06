@@ -9,6 +9,7 @@ import { ZelligeMark } from "@/components/brand";
 import { PhotoPlaceholder, SearchIcon, Skeleton, Stars, Tag } from "@/components/ui";
 import { useVenue } from "./venue-provider";
 import { ItemSheet } from "./item-sheet";
+import { WaiterSheet } from "./waiter-sheet";
 import { OfflineBanner } from "./offline-banner";
 import { ActiveOrderBanner } from "./active-order-banner";
 
@@ -22,6 +23,7 @@ export function MenuScreen() {
   const [activeCategory, setActiveCategory] = useState<string>(categories[0]?.id ?? "");
   const [search, setSearch] = useState("");
   const [openItem, setOpenItem] = useState<MenuItem | null>(null);
+  const [waiterOpen, setWaiterOpen] = useState(false);
 
   const visibleItems = useMemo(() => {
     // Only items in active categories are on the menu — search included.
@@ -79,11 +81,25 @@ export function MenuScreen() {
             {table ? `${t.common.table} ${table.label}` : t.landing.chooseTable}
           </span>
         </Link>
+        {/* Waiter is reachable from the menu too, not only after ordering — a
+            dine-in guest may want water or the bill before they order. */}
+        {table && (
+          <button
+            type="button"
+            onClick={() => setWaiterOpen(true)}
+            aria-label={t.waiter.call}
+            className="shrink-0 w-10 h-10 rounded-full bg-white border-[1.5px] border-line flex items-center justify-center hover:border-harissa transition-colors cursor-pointer"
+          >
+            <span aria-hidden className="text-[17px]">🔔</span>
+          </button>
+        )}
       </header>
 
       {/* Return to an order placed from this device */}
       <ActiveOrderBanner className="mx-5 mt-3" />
 
+      {/* Sticky nav: search + category pills stay reachable while scrolling a long menu */}
+      <div className="sticky top-0 z-30 bg-cream/95 backdrop-blur-sm pb-1">
       {/* Search */}
       <div className="px-5 pt-3.5">
         <div className="h-[46px] rounded-lg bg-white border-[1.5px] border-line flex items-center gap-2.5 px-3.5 focus-within:border-harissa transition-colors">
@@ -100,7 +116,7 @@ export function MenuScreen() {
 
       {/* Category pills */}
       {!search && (
-        <div className="flex gap-2 px-5 pt-3.5 pb-1 overflow-x-auto no-scrollbar">
+        <div className="flex gap-2 px-5 pt-3 overflow-x-auto no-scrollbar">
           {categories.map((cat) => (
             <button
               key={cat.id}
@@ -117,6 +133,7 @@ export function MenuScreen() {
           ))}
         </div>
       )}
+      </div>
 
       {/* Items */}
       <main className="flex-1 px-5 pt-2.5 flex flex-col gap-2.5">
@@ -237,6 +254,7 @@ export function MenuScreen() {
 
       {/* P3 · Item detail sheet */}
       {openItem && <ItemSheet item={openItem} onClose={() => setOpenItem(null)} />}
+      {waiterOpen && <WaiterSheet onClose={() => setWaiterOpen(false)} />}
     </div>
   );
 }

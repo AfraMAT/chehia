@@ -1,6 +1,6 @@
 import { Modal, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Handle, T } from "../ui";
+import { Handle, SheetClose, T } from "../ui";
 import { useI18n } from "@/lib/i18n";
 import { colors, rowDir } from "@/lib/theme";
 import { useVenue, type TableChoice } from "@/lib/venue";
@@ -35,6 +35,7 @@ export function TablePicker({ onClose }: { onClose: () => void }) {
             overflow: "hidden",
           }}
         >
+          <SheetClose onClose={onClose} isRtl={isRtl} />
           <View style={{ paddingHorizontal: 20 }}>
             <Handle />
             <T lang={lang} display size={22} style={{ textAlign: isRtl ? "right" : "left" }}>

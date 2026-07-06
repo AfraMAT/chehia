@@ -56,6 +56,14 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true">
       <button aria-label={t.common.close} className="absolute inset-0 bg-ink/45 cursor-pointer" onClick={onClose} />
       <div className="relative w-full max-w-[520px] bg-card rounded-t-3xl px-5 pt-3 pb-5 shadow-[0_-12px_40px_rgba(34,26,19,0.3)]">
+        <button
+          type="button"
+          aria-label={t.common.close}
+          onClick={onClose}
+          className="absolute top-2.5 end-3 z-10 w-10 h-10 rounded-full bg-sand-deep text-muted flex items-center justify-center text-[15px] font-bold hover:text-ink hover:bg-line-strong cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-harissa"
+        >
+          ✕
+        </button>
         <div aria-hidden className="w-11 h-[5px] rounded bg-line-strong mx-auto mb-4" />
 
         {state === "sent" ? (

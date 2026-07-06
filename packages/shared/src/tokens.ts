@@ -18,7 +18,7 @@ export const colors = {
   // Neutrals (warm)
   ink: "#221A13", // encre — primary text
   muted: "#6E6257", // secondary text
-  mutedSoft: "#857868", // tertiary text / captions — darkened for WCAG AA (~4.5:1 on cream)
+  mutedSoft: "#786A5C", // tertiary text / captions — darkened to meet WCAG AA (≥4.5:1 on cream/card)
   disabled: "#C9BFB2",
   cream: "#FAF6EF", // app background
   card: "#FFFDF9", // card surfaces

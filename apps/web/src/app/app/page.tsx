@@ -15,12 +15,14 @@ export const metadata: Metadata = {
 /** app.chehia.app — consumer discovery: find a venue, browse the menu, order. */
 export default async function AppHome() {
   const supabase = getServerSupabase();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("restaurants")
     .select("id, slug, name, tagline_i18n, city, address, cover_url, logo_url, plan, latitude, longitude, rating_avg, rating_count")
     .eq("is_active", true)
     .order("name")
     .overrideTypes<DiscoveryVenue[], { merge: false }>();
 
-  return <Discover venues={data ?? []} />;
+  // Distinguish a genuine empty catalogue from a failed query so the client can
+  // offer a retry instead of a misleading "no restaurants" message.
+  return <Discover venues={data ?? []} loadError={!!error} />;
 }

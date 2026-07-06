@@ -385,6 +385,38 @@ export function Handle() {
   );
 }
 
+/**
+ * Visible close affordance for bottom sheets — the drag handle alone isn't an
+ * obvious tap target for an older guest. Sits in the top corner (leading edge in
+ * RTL), with a generous hitSlop so the real target clears 44px.
+ */
+export function SheetClose({ onClose, isRtl = false }: { onClose: () => void; isRtl?: boolean }) {
+  const { t } = useI18n();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t.common.close}
+      hitSlop={10}
+      onPress={onClose}
+      style={{
+        position: "absolute",
+        top: 10,
+        right: isRtl ? undefined : 12,
+        left: isRtl ? 12 : undefined,
+        zIndex: 10,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: colors.sandDeep,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text style={{ color: colors.muted, fontFamily: fontFamily.bold, fontSize: 15 }}>✕</Text>
+    </Pressable>
+  );
+}
+
 export function Line({ dashed = false, style }: { dashed?: boolean; style?: StyleProp<ViewStyle> }) {
   return (
     <View

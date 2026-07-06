@@ -37,6 +37,14 @@ export function TablePicker({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true">
       <button aria-label={t.common.close} className="absolute inset-0 bg-ink/45 cursor-pointer" onClick={onClose} />
       <div className="relative w-full max-w-[520px] max-h-[86dvh] bg-cream rounded-t-3xl flex flex-col overflow-hidden shadow-[0_-12px_40px_rgba(34,26,19,0.3)]">
+        <button
+          type="button"
+          aria-label={t.common.close}
+          onClick={onClose}
+          className="absolute top-2.5 end-3 z-10 w-10 h-10 rounded-full bg-sand-deep text-muted flex items-center justify-center text-[15px] font-bold hover:text-ink hover:bg-line-strong cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-harissa"
+        >
+          ✕
+        </button>
         <div className="shrink-0 px-5 pt-3 pb-2">
           <div aria-hidden className="w-11 h-[5px] rounded bg-line-strong mx-auto mb-3.5" />
           <h2 className="font-display font-extrabold text-[22px] text-ink">{t.landing.tablePickerTitle}</h2>

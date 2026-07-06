@@ -18,17 +18,17 @@ import { Logo, ZelligeMark } from "@/components/brand";
 import { PhotoPlaceholder, SearchIcon, Stars } from "@/components/ui";
 
 /** Consumer discovery — find a venue by name or near you, then browse & order. */
-export function Discover({ venues }: { venues: DiscoveryVenue[] }) {
+export function Discover({ venues, loadError = false }: { venues: DiscoveryVenue[]; loadError?: boolean }) {
   return (
     <I18nProvider storageKey="chehia.lang">
-      <DiscoverInner venues={venues} />
+      <DiscoverInner venues={venues} loadError={loadError} />
     </I18nProvider>
   );
 }
 
 type GeoState = "idle" | "locating" | "on" | "denied";
 
-function DiscoverInner({ venues }: { venues: DiscoveryVenue[] }) {
+function DiscoverInner({ venues, loadError }: { venues: DiscoveryVenue[]; loadError: boolean }) {
   const { t, tr, lang, setLang } = useI18n();
   const [search, setSearch] = useState("");
   const [coords, setCoords] = useState<Coords | null>(null);
@@ -120,12 +120,15 @@ function DiscoverInner({ venues }: { venues: DiscoveryVenue[] }) {
           type="button"
           onClick={locate}
           disabled={geo === "locating"}
+          aria-label={t.discover.nearMe}
           className={`shrink-0 h-[46px] px-3.5 rounded-lg font-bold text-[13px] flex items-center gap-1.5 transition-colors cursor-pointer ${
             sortedByDistance ? "bg-teal text-white" : "bg-white border-[1.5px] border-line-strong text-ink hover:border-teal"
           } disabled:opacity-60`}
         >
           <span aria-hidden className="text-[15px]">⌖</span>
-          <span className="hidden sm:inline">{geo === "locating" ? t.discover.locating : t.discover.nearMe}</span>
+          {/* Label always visible — a lone ⌖ glyph is not self-explanatory,
+              least of all to an older guest. */}
+          <span>{geo === "locating" ? t.discover.locating : t.discover.nearMe}</span>
         </button>
       </div>
 
@@ -142,7 +145,20 @@ function DiscoverInner({ venues }: { venues: DiscoveryVenue[] }) {
 
       {/* List */}
       <main className="flex-1 px-5 pt-1 pb-6 flex flex-col gap-2.5">
-        {venues.length === 0 ? (
+        {loadError && venues.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-16 text-center">
+            <ZelligeMark size={40} />
+            <span className="font-display font-extrabold text-xl text-ink mt-2">{t.errors.generic}</span>
+            <span className="text-sm text-muted max-w-[280px]">{t.errors.genericBody}</span>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-1 h-12 px-6 rounded-xl bg-harissa text-white font-extrabold text-[15px] flex items-center justify-center shadow-[0_4px_12px_rgba(188,75,38,0.25)] cursor-pointer"
+            >
+              {t.offline.retryNow}
+            </button>
+          </div>
+        ) : venues.length === 0 ? (
           <EmptyState title={t.discover.empty} body={t.discover.emptyBody} />
         ) : results.length === 0 ? (
           <EmptyState title={t.discover.noResults} body={t.discover.noResultsBody} />
@@ -155,16 +171,11 @@ function DiscoverInner({ venues }: { venues: DiscoveryVenue[] }) {
             >
               <PhotoPlaceholder src={venue.cover_url} alt={venue.name} className="w-[104px] shrink-0 object-cover self-stretch" />
               <div className="flex-1 min-w-0 p-3.5 flex flex-col gap-1 justify-center">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="font-display font-extrabold text-[17px] text-ink leading-tight truncate">
-                    {venue.name}
-                  </span>
-                  {venue.plan === "pro" && (
-                    <span className="shrink-0 text-[10px] font-extrabold text-harissa-pressed bg-harissa-tint rounded-full px-2 py-0.5">
-                      PRO
-                    </span>
-                  )}
-                </div>
+                {/* No plan/tier badge here — "PRO" is an internal billing
+                    concept and means nothing to a guest choosing where to eat. */}
+                <span className="font-display font-extrabold text-[17px] text-ink leading-tight truncate">
+                  {venue.name}
+                </span>
                 <span className="text-[12.5px] text-muted leading-snug line-clamp-1">{tr(venue.tagline_i18n)}</span>
                 <div className="flex items-center gap-2 text-[12px] font-semibold text-muted-soft">
                   {(venue.rating_count ?? 0) > 0 && (

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AccessibilityInfo, ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   currencyLabel,
@@ -44,6 +45,9 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   // Surfaces an escapable screen so the spinner can never trap the customer.
   const [loadStalled, setLoadStalled] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  // Bumped by a 30s interval while the order is open, so the rough ETA re-renders
+  // and ticks down instead of freezing at the value computed on first paint.
+  const [, setTick] = useState(0);
 
   // Initial fetch only fills empty state; a refetch on channel join closes
   // the pre-subscription gap so a stale fetch can't mask a newer status.
@@ -143,10 +147,22 @@ export function OrderScreen({ orderId }: { orderId: string }) {
       : t.order.received;
     if (prevStatusRef.current && prevStatusRef.current !== s) {
       AccessibilityInfo.announceForAccessibility(title);
+      // A distinct success buzz the moment it's ready, so a customer who set the
+      // phone down on the table feels it without watching the screen.
+      if (s === "ready") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     prevStatusRef.current = s;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order?.status]);
+
+  // Tick every 30s while the order is still being prepared so the rough ETA
+  // stays live. Stops once ready/served/cancelled — no work while nothing counts down.
+  const counting = order?.status === "new" || order?.status === "preparing";
+  useEffect(() => {
+    if (!counting) return;
+    const id = setInterval(() => setTick((n) => n + 1), 30000);
+    return () => clearInterval(id);
+  }, [counting]);
 
   const count = useMemo(() => lines.reduce((s, l) => s + l.qty, 0), [lines]);
   const tableLabel = table?.label ?? "";

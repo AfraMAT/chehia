@@ -13,7 +13,7 @@ import {
   type DiscoveryVenue,
   type Language,
 } from "@chehia/shared";
-import { PhotoPlaceholder, Stars, T, Wordmark, ZelligeMark } from "./ui";
+import { CtaButton, PhotoPlaceholder, Stars, T, Wordmark, ZelligeMark } from "./ui";
 import { useI18n } from "@/lib/i18n";
 import { go } from "@/lib/nav";
 import { supabase } from "@/lib/supabase";
@@ -34,26 +34,32 @@ export function Discover() {
   const { t, tr, lang, setLang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
   const [venues, setVenues] = useState<DiscoveryVenue[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [coords, setCoords] = useState<Coords | null>(null);
   const [geo, setGeo] = useState<GeoState>("idle");
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const { data } = await supabase
-        .from("restaurants")
-        // Fields the discovery list renders (address/logo_url stay off the wire).
-        .select("id, slug, name, tagline_i18n, city, plan, latitude, longitude, cover_url, rating_avg, rating_count")
-        .eq("is_active", true)
-        .order("name")
-        .overrideTypes<DiscoveryVenue[], { merge: false }>();
-      if (!cancelled) setVenues(data ?? []);
-    })();
-    return () => {
-      cancelled = true;
-    };
+  const load = useCallback(async () => {
+    setLoadError(false);
+    const { data, error } = await supabase
+      .from("restaurants")
+      // Fields the discovery list renders (address/logo_url stay off the wire).
+      .select("id, slug, name, tagline_i18n, city, plan, latitude, longitude, cover_url, rating_avg, rating_count")
+      .eq("is_active", true)
+      .order("name")
+      .overrideTypes<DiscoveryVenue[], { merge: false }>();
+    // A transient failure must not read as "no restaurants" — keep the list null
+    // and surface a retry instead of a misleading empty state.
+    if (error) {
+      setLoadError(true);
+      return;
+    }
+    setVenues(data ?? []);
   }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const locate = useCallback(async () => {
     setGeo("locating");
@@ -227,9 +233,21 @@ export function Discover() {
 
       {/* List */}
       {venues === null ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={colors.harissa} size="large" />
-        </View>
+        loadError ? (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40, gap: 12 }}>
+            <T lang={lang} display size={20} style={{ textAlign: "center" }}>
+              {t.errors.generic}
+            </T>
+            <T lang={lang} weight="semibold" size={13.5} color={colors.muted} style={{ textAlign: "center" }}>
+              {t.errors.genericBody}
+            </T>
+            <CtaButton lang={lang} height={50} label={t.offline.retryNow} onPress={() => void load()} style={{ alignSelf: "stretch" }} />
+          </View>
+        ) : (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <ActivityIndicator color={colors.harissa} size="large" />
+          </View>
+        )
       ) : (
         <FlatList
           data={results}
@@ -279,16 +297,10 @@ export function Discover() {
               <PhotoPlaceholder width={104} height={104} radius={0} mirrored={isRtl} src={venue.cover_url} />
               <View style={{ flex: 1, padding: 14, gap: 4, justifyContent: "center" }}>
                 <View style={[rowDir(lang), { justifyContent: "space-between", alignItems: "flex-start", gap: 8 }]}>
+                  {/* No plan/tier badge — "PRO" is internal billing, meaningless to a guest. */}
                   <T lang={lang} display size={17} numberOfLines={1} style={{ flexShrink: 1, ...align }}>
                     {venue.name}
                   </T>
-                  {venue.plan === "pro" && (
-                    <View style={{ backgroundColor: colors.harissaTint, borderRadius: 100, paddingHorizontal: 8, paddingVertical: 2 }}>
-                      <T weight="extrabold" size={10} color={colors.harissaPressed}>
-                        PRO
-                      </T>
-                    </View>
-                  )}
                 </View>
                 <T lang={lang} size={12.5} color={colors.muted} numberOfLines={1} style={align}>
                   {tr(venue.tagline_i18n)}

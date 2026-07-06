@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   currencyLabel,
@@ -21,7 +21,7 @@ import { RatingSheet } from "./rating-sheet";
 
 /** P5/P9 · Order tracking — live via realtime, animated preparing state, waiter one tap away. */
 export function OrderScreen({ orderId }: { orderId: string }) {
-  const { restaurant, table, basePath, activeOrder, forgetOrder } = useVenue();
+  const { restaurant, table, basePath, activeOrder, forgetOrder, online } = useVenue();
   const { t, tr, lang } = useI18n();
 
   const [order, setOrder] = useState<Order | null>(null);
@@ -29,7 +29,15 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [waiterOpen, setWaiterOpen] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
+  // Distinct from loadFailed (genuine not-found): the order could not be loaded
+  // at all — offline on a cold-start, or the realtime socket never connected.
+  // Surfaces an escapable screen so the skeleton can never trap the customer.
+  const [loadStalled, setLoadStalled] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [ratingOpen, setRatingOpen] = useState(false);
+  // Bumped by a 30s interval while the order is open, so the rough ETA re-renders
+  // and ticks down instead of freezing at the value computed on first paint.
+  const [, setTick] = useState(0);
   const ratedKey = `chehia.rated.${orderId}`;
   const reviewsOn = restaurant.reviews_enabled !== false;
 
@@ -42,14 +50,26 @@ export function OrderScreen({ orderId }: { orderId: string }) {
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const fetchOrder = async (overwrite: boolean) => {
-      const { data: o } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle<Order>();
+      const { data: o, error } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle<Order>();
       if (cancelled) return;
+      // A transient network/DB error must not masquerade as a missing order —
+      // keep the loading state and let the realtime subscribe + refetch recover
+      // (the stall timer below is the backstop if recovery never comes).
+      if (error) return;
       if (!o) {
         setLoadFailed(true);
         return;
       }
+      setLoadFailed(false);
+      setLoadStalled(false);
       setOrder((prev) => (overwrite || !prev ? o : prev));
     };
+
+    // Backstop: if nothing loads within a few seconds (offline cold-start, a
+    // blocked/failed realtime socket), stop spinning forever and offer a way out.
+    const stallTimer = setTimeout(() => {
+      if (!cancelled) setLoadStalled(true);
+    }, 7000);
 
     void (async () => {
       // Ensure the anonymous session is loaded before reading under RLS — covers
@@ -80,9 +100,10 @@ export function OrderScreen({ orderId }: { orderId: string }) {
 
     return () => {
       cancelled = true;
+      clearTimeout(stallTimer);
       if (channel) supabase.removeChannel(channel);
     };
-  }, [orderId]);
+  }, [orderId, reloadKey]);
 
   // Stop tracking once the order is done, so the "return to your order" banner
   // clears and doesn't surface to the next customer at the same table.
@@ -101,6 +122,38 @@ export function OrderScreen({ orderId }: { orderId: string }) {
     }
   }, [order?.status, reviewsOn, lines.length, ratedKey]);
 
+  // Tick every 30s while the order is still being prepared so the rough ETA
+  // stays live. Stops once ready/served/cancelled — no work while nothing counts down.
+  const counting = order?.status === "new" || order?.status === "preparing";
+  useEffect(() => {
+    if (!counting) return;
+    const id = window.setInterval(() => setTick((n) => n + 1), 30000);
+    return () => window.clearInterval(id);
+  }, [counting]);
+
+  // Fire a one-time cue the moment the kitchen marks the order ready, so a
+  // customer who set the phone down on the table notices without watching it:
+  // a short vibration (where supported) plus a title flash in the tab.
+  const prevStatusRef = useRef<string | null>(null);
+  useEffect(() => {
+    const s = order?.status;
+    if (!s) return;
+    if (prevStatusRef.current && prevStatusRef.current !== s && s === "ready") {
+      try {
+        navigator.vibrate?.([120, 60, 120]);
+      } catch {
+        /* vibration unsupported — the title flash still fires */
+      }
+      const prevTitle = document.title;
+      document.title = `✅ ${t.order.ready}`;
+      window.setTimeout(() => {
+        document.title = prevTitle;
+      }, 4000);
+    }
+    prevStatusRef.current = s;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order?.status]);
+
   const base = basePath;
   const step = order ? trackingStep(order.status) : 0;
   const count = useMemo(() => lines.reduce((s, l) => s + l.qty, 0), [lines]);
@@ -118,6 +171,45 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   }
 
   if (!order) {
+    // Load stalled (offline / socket never connected) → escapable screen with a
+    // retry and a way back to the menu, so the skeleton can't trap the customer.
+    if (loadStalled) {
+      return (
+        <div className="flex flex-col min-h-dvh">
+          <header className="px-5 pt-4 flex items-center">
+            <Link
+              href={`${base}/menu`}
+              aria-label={t.common.back}
+              className="w-10 h-10 rounded-full bg-white border-[1.5px] border-line flex items-center justify-center text-ink font-extrabold text-[17px]"
+            >
+              <span className="rtl:rotate-180 -mt-0.5">‹</span>
+            </Link>
+          </header>
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8 text-center">
+            <span className="font-display font-extrabold text-xl text-ink">
+              {online ? t.errors.generic : t.errors.network}
+            </span>
+            {!online && <span className="text-[13.5px] font-semibold text-muted">{t.errors.networkBody}</span>}
+            <button
+              type="button"
+              onClick={() => {
+                setLoadStalled(false);
+                setReloadKey((k) => k + 1);
+              }}
+              className="mt-1 h-12 px-6 rounded-xl bg-harissa text-white font-extrabold text-[15px] flex items-center justify-center shadow-[0_4px_12px_rgba(188,75,38,0.25)] cursor-pointer"
+            >
+              {t.offline.retryNow}
+            </button>
+            <Link
+              href={`${base}/menu`}
+              className="h-12 px-6 rounded-xl border-2 border-ink text-ink font-extrabold text-[15px] flex items-center justify-center"
+            >
+              {t.cart.browseMenu}
+            </Link>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col min-h-dvh">
         {/* Header */}
@@ -166,6 +258,17 @@ export function OrderScreen({ orderId }: { orderId: string }) {
       ? Math.max(1, Math.round((new Date(order.served_at).getTime() - new Date(order.created_at).getTime()) / 60000))
       : null;
 
+  const remaining = isServed || isCancelled ? null : remainingEstimate(order);
+  const statusSubtitle = isServed
+    ? t.order.servedSubtitle
+    : isCancelled
+      ? t.order.cancelledBody
+      : order.status === "ready"
+        ? `${t.order.readyBody}${tableSuffix}`
+        : remaining != null
+          ? `${interpolate(t.order.remaining, { min: remaining })}${tableSuffix}`
+          : `${t.order.soon}${tableSuffix}`;
+
   return (
     <div className="flex flex-col min-h-dvh pb-4">
       {/* Header */}
@@ -207,17 +310,9 @@ export function OrderScreen({ orderId }: { orderId: string }) {
             </div>
           </div>
         )}
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex flex-col items-center gap-1" role="status" aria-live="polite">
           <h1 className="font-display font-extrabold text-[30px] text-ink text-center leading-tight">{statusTitle}</h1>
-          <p className="text-sm font-semibold text-muted text-center leading-relaxed">
-            {isServed
-              ? t.order.servedSubtitle
-              : isCancelled
-                ? t.order.cancelledBody
-                : order.status === "ready"
-                  ? `${t.order.readyBody}${tableSuffix}`
-                  : `${interpolate(t.order.remaining, { min: remainingEstimate(order) })}${tableSuffix}`}
-          </p>
+          <p className="text-sm font-semibold text-muted text-center leading-relaxed">{statusSubtitle}</p>
         </div>
       </div>
 
@@ -382,10 +477,15 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   );
 }
 
-/** Rough countdown from a ~8 min baseline, clamped so it never claims zero. */
-function remainingEstimate(order: Order): number {
-  const elapsedMin = (Date.now() - new Date(order.created_at).getTime()) / 60000;
-  return Math.max(1, Math.round(8 - elapsedMin));
+/**
+ * Rough countdown from a ~8 min baseline. Returns null once the estimate would
+ * fall to zero (or the device clock is skewed out of a sane band) so the UI can
+ * fall back to an honest status phrase ("Bientôt prête") instead of freezing at
+ * a fake "~1 min" that never moves.
+ */
+function remainingEstimate(order: Order): number | null {
+  const remaining = Math.round(8 - (Date.now() - new Date(order.created_at).getTime()) / 60000);
+  return remaining >= 1 && remaining <= 8 ? remaining : null;
 }
 
 function TimelineRow({

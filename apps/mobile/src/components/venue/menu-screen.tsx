@@ -16,6 +16,7 @@ import { go } from "@/lib/nav";
 import { colors, rowDir, shadowDark } from "@/lib/theme";
 import { useVenue } from "@/lib/venue";
 import { ItemSheet } from "./item-sheet";
+import { WaiterSheet } from "./waiter-sheet";
 import { OfflineBanner } from "./offline-banner";
 
 /**
@@ -32,6 +33,7 @@ export function MenuScreen() {
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id ?? "");
   const [search, setSearch] = useState("");
   const [openItem, setOpenItem] = useState<MenuItem | null>(null);
+  const [waiterOpen, setWaiterOpen] = useState(false);
 
   const visibleItems = useMemo(() => {
     // Only items in active categories are on the menu — search included.
@@ -89,6 +91,28 @@ export function MenuScreen() {
               {t.common.table} {table.label}
             </T>
           </View>
+        )}
+        {/* Waiter reachable from the menu — a dine-in guest may want water or the
+            bill before they order, not only from the order-tracking screen. */}
+        {table && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.waiter.call}
+            onPress={() => setWaiterOpen(true)}
+            hitSlop={8}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: "#FFFFFF",
+              borderWidth: 1.5,
+              borderColor: colors.border,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <T size={17}>🔔</T>
+          </Pressable>
         )}
       </View>
 
@@ -384,6 +408,7 @@ export function MenuScreen() {
 
       {/* P3 · Item sheet */}
       {openItem && <ItemSheet item={openItem} onClose={() => setOpenItem(null)} />}
+      {waiterOpen && <WaiterSheet onClose={() => setWaiterOpen(false)} />}
     </View>
   );
 }
