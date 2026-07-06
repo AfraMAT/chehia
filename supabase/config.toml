@@ -414,3 +414,9 @@ verify_jwt = false
 # restaurant_id), so gateway JWT verification is disabled.
 [functions.extract-menu]
 verify_jwt = false
+
+# submit-review authenticates the anonymous customer in-code (getUser) and
+# validates the order (served, owned, in-window) itself, so gateway JWT
+# verification is disabled — matching place-order / call-waiter.
+[functions.submit-review]
+verify_jwt = false

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -6,13 +6,18 @@ import {
   buildLine,
   currencyLabel,
   formatDelta,
+  formatRating,
+  formatRelativeTime,
+  interpolate,
   millimesToDisplay,
   validateModifiers,
+  type ItemReviews,
   type MenuItem,
 } from "@chehia/shared";
-import { CtaButton, PhotoPlaceholder, Stepper, T, TagPill } from "../ui";
+import { CtaButton, PhotoPlaceholder, Stars, Stepper, T, TagPill } from "../ui";
 import { useI18n } from "@/lib/i18n";
 import { colors, rowDir } from "@/lib/theme";
+import { supabase } from "@/lib/supabase";
 import { useVenue } from "@/lib/venue";
 
 /** P3 · Item detail sheet — required vs optional groups, live price CTA, allergens. */
@@ -31,8 +36,21 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
   );
   const [qty, setQty] = useState(1);
   const [touched, setTouched] = useState(false);
+  const [reviews, setReviews] = useState<ItemReviews | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const groupY = useRef<Record<string, number>>({});
+
+  // Lazy-load this dish's reviews when the sheet opens (only if it has any).
+  useEffect(() => {
+    if (!item.rating_count) return;
+    let cancelled = false;
+    void supabase.rpc("item_reviews", { p_item_id: item.id }).then(({ data }) => {
+      if (!cancelled && data) setReviews(data as ItemReviews);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [item.id, item.rating_count]);
 
   const validation = validateModifiers(groups, selected);
   const line = buildLine(item, groups, selected, qty);
@@ -126,6 +144,17 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
               <T lang={lang} size={13.5} color={colors.muted} style={{ textAlign: isRtl ? "right" : "left" }}>
                 {tr(item.description_i18n)}
               </T>
+              {(item.rating_count ?? 0) > 0 && (
+                <View style={[rowDir(lang), { alignItems: "center", gap: 6, marginTop: 2 }]}>
+                  <Stars value={item.rating_avg} size={15} />
+                  <T lang={lang} weight="bold" size={13} color={colors.ink}>
+                    {formatRating(item.rating_avg, lang)}
+                  </T>
+                  <T lang={lang} weight="semibold" size={12.5} color={colors.mutedSoft}>
+                    · {interpolate(t.rating.ratingsCount, { count: item.rating_count ?? 0 })}
+                  </T>
+                </View>
+              )}
               <View style={[rowDir(lang), { gap: 6, marginTop: 2, flexWrap: "wrap" }]}>
                 {item.dietary_tags.includes("vegetarian") && <TagPill lang={lang} label={t.dietary.vegetarian} tone="green" />}
                 {item.dietary_tags.includes("spicy") && <TagPill lang={lang} label={t.dietary.spicy} tone="amber" />}
@@ -276,6 +305,40 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
               <T lang={lang} weight="bold" size={13} color={colors.dangerText}>
                 {t.item.chooseRequired}
               </T>
+            )}
+
+            {reviews && reviews.reviews.length > 0 && (
+              <View style={{ gap: 10 }}>
+                <T lang={lang} weight="extrabold" size={14} style={{ textAlign: isRtl ? "right" : "left" }}>
+                  {t.rating.reviewsTitle}
+                </T>
+                {reviews.reviews.slice(0, 6).map((rv, i) => (
+                  <View
+                    key={i}
+                    style={{
+                      backgroundColor: "#FFFFFF",
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderRadius: 14,
+                      paddingHorizontal: 14,
+                      paddingVertical: 10,
+                      gap: 4,
+                    }}
+                  >
+                    <View style={[rowDir(lang), { justifyContent: "space-between", alignItems: "center", gap: 8 }]}>
+                      <Stars value={rv.rating} size={13} />
+                      <T lang={lang} weight="semibold" size={11.5} color={colors.mutedSoft}>
+                        {(rv.name || t.rating.anon) + " · " + formatRelativeTime(rv.created_at, lang)}
+                      </T>
+                    </View>
+                    {rv.comment ? (
+                      <T lang={lang} size={13} color={colors.muted} style={{ textAlign: isRtl ? "right" : "left" }}>
+                        {rv.comment}
+                      </T>
+                    ) : null}
+                  </View>
+                ))}
+              </View>
             )}
           </ScrollView>
 

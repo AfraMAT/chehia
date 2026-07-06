@@ -327,3 +327,87 @@ insert into public.ai_insights (restaurant_id, generated_for, language, title, b
 
 -- Start per-tenant order numbering above the seeded demo orders.
 update public.restaurants set order_seq = 500;
+
+-- ---------- demo customers (anonymous-style auth users for reviews) ----------
+do $$
+declare
+  u record;
+begin
+  for u in
+    select * from (values
+      ('44444444-4444-4444-4444-444444444401'::uuid),
+      ('44444444-4444-4444-4444-444444444402'::uuid),
+      ('44444444-4444-4444-4444-444444444403'::uuid)
+    ) as t(uid)
+  loop
+    insert into auth.users (
+      instance_id, id, aud, role, is_anonymous, raw_app_meta_data, raw_user_meta_data,
+      created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change
+    ) values (
+      '00000000-0000-0000-0000-000000000000', u.uid, 'authenticated', 'authenticated', true,
+      '{"provider":"anonymous","providers":["anonymous"]}', '{}', now(), now(), '', '', '', ''
+    );
+  end loop;
+end;
+$$;
+
+-- ---------- demo reviews (Café El Marsa) ----------
+-- Venue "visit" ratings on served orders + a few dish ratings, so the
+-- customer app, business dashboard, and admin queue all have real data.
+do $$
+declare
+  rid uuid := 'aaaaaaaa-0000-0000-0000-000000000001';
+  c1 uuid := '44444444-4444-4444-4444-444444444401';
+  c2 uuid := '44444444-4444-4444-4444-444444444402';
+  c3 uuid := '44444444-4444-4444-4444-444444444403';
+  names text[] := array['Ahmed', 'Leïla', 'Sami', '', 'Nour', 'Karim', ''];
+  vo record;
+  i int := 0;
+begin
+  -- One approved visit rating per served order (skewed positive, realistic spread).
+  for vo in
+    select id from public.orders
+    where restaurant_id = rid and status = 'served'
+    order by created_at desc limit 24
+  loop
+    i := i + 1;
+    insert into public.reviews (restaurant_id, order_id, created_by, rating, sentiment, comment, customer_name, status, created_at)
+    values (
+      rid, vo.id,
+      (array[c1, c2, c3])[1 + (i % 3)],
+      case when i % 7 = 0 then 3 when i % 11 = 0 then 4 else 5 end,
+      case when i % 7 = 0 then 'meh' when i % 11 = 0 then 'good' else 'love' end,
+      case when i % 4 = 0 then 'Service rapide et souriant, merci !' when i % 5 = 0 then 'Ambiance top sur la terrasse.' else '' end,
+      names[1 + (i % array_length(names, 1))],
+      'approved',
+      now() - (i || ' hours')::interval
+    ) on conflict (order_id, item_key) do nothing;
+  end loop;
+
+  -- Dish ratings attached to real served-order lines (cappuccino, bambalouni, citronnade).
+  insert into public.reviews (restaurant_id, order_id, item_id, created_by, rating, comment, customer_name, status, created_at)
+  select distinct on (oi.order_id, oi.item_id)
+    rid, oi.order_id, oi.item_id,
+    '44444444-4444-4444-4444-444444444401'::uuid,
+    case when random() < 0.7 then 5 when random() < 0.85 then 4 else 3 end,
+    case when random() < 0.4 then 'Excellent, comme toujours.' else '' end,
+    (array['Ahmed', 'Leïla', '', 'Sami', ''])[1 + (random() * 4)::int],
+    'approved',
+    now() - (random() * 72 || ' hours')::interval
+  from public.order_items oi
+  join public.orders o on o.id = oi.order_id
+  where o.restaurant_id = rid and o.status = 'served'
+    and oi.item_id in (
+      'dddddddd-0000-0000-0000-000000000003',  -- cappuccino
+      'dddddddd-0000-0000-0000-000000000031',  -- bambalouni
+      'dddddddd-0000-0000-0000-000000000021')  -- citronnade
+  limit 40
+  on conflict (order_id, item_key) do nothing;
+
+  -- Leave two reviews PENDING so the admin moderation queue isn't empty.
+  update public.reviews set status = 'pending'
+  where id in (
+    select id from public.reviews where restaurant_id = rid order by created_at desc limit 2
+  );
+end;
+$$;

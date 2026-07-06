@@ -190,3 +190,92 @@ export function Spinner({ className = "" }: { className?: string }) {
 export function Skeleton({ className = "" }: { className?: string }) {
   return <div aria-hidden className={`bg-sand-deep rounded-md animate-ch-pulse ${className}`} />;
 }
+
+const STAR_GOLD = "#E0A63C";
+const STAR_EMPTY = "#E3D9CB";
+
+/** Read-only star row with fractional fill (e.g. 4.3 → 4.3 gold stars). */
+export function Stars({ value, size = 16, className = "" }: { value: number | null | undefined; size?: number; className?: string }) {
+  const pct = Math.max(0, Math.min(100, ((value ?? 0) / 5) * 100));
+  return (
+    <span
+      aria-hidden
+      className={`relative inline-block whitespace-nowrap align-middle ${className}`}
+      style={{ fontSize: size, lineHeight: 1, letterSpacing: "1px" }}
+    >
+      <span style={{ color: STAR_EMPTY }}>★★★★★</span>
+      <span className="absolute left-0 top-0 overflow-hidden" style={{ color: STAR_GOLD, width: `${pct}%` }}>
+        ★★★★★
+      </span>
+    </span>
+  );
+}
+
+/** Interactive 1–5 star picker with 44px targets. */
+export function StarInput({
+  value,
+  onChange,
+  size = 40,
+  ariaLabel,
+}: {
+  value: number;
+  onChange: (n: number) => void;
+  size?: number;
+  ariaLabel?: string;
+}) {
+  return (
+    <div role="radiogroup" aria-label={ariaLabel} className="inline-flex gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          role="radio"
+          aria-checked={n === value}
+          aria-label={`${n} / 5`}
+          onClick={() => onChange(n)}
+          className="flex items-center justify-center rounded-lg cursor-pointer transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-harissa"
+          style={{ width: 44, height: 44, fontSize: size, lineHeight: 1, color: n <= value ? STAR_GOLD : STAR_EMPTY }}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Three big emoji faces for the overall visit rating. */
+export function FaceInput({
+  value,
+  onChange,
+  options,
+}: {
+  value: "love" | "good" | "meh" | null;
+  onChange: (s: "love" | "good" | "meh") => void;
+  options: { key: "love" | "good" | "meh"; emoji: string; label: string }[];
+}) {
+  return (
+    <div role="radiogroup" className="grid grid-cols-3 gap-2.5">
+      {options.map((o) => {
+        const selected = value === o.key;
+        return (
+          <button
+            key={o.key}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            aria-label={o.label}
+            onClick={() => onChange(o.key)}
+            className={`flex flex-col items-center gap-1.5 rounded-2xl py-4 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-harissa ${
+              selected
+                ? "bg-harissa-tint border-[1.5px] border-harissa scale-[1.02]"
+                : "bg-card border-[1.5px] border-line hover:border-line-strong"
+            }`}
+          >
+            <span style={{ fontSize: 40, lineHeight: 1, filter: selected ? "none" : "grayscale(0.35)" }}>{o.emoji}</span>
+            <span className={`text-[13px] font-bold ${selected ? "text-harissa-pressed" : "text-muted"}`}>{o.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}

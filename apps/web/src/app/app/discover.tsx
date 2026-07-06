@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   formatDistanceKm,
+  formatRating,
   haversineKm,
   interpolate,
   LANGUAGE_LABELS,
@@ -14,7 +15,7 @@ import {
 } from "@chehia/shared";
 import { I18nProvider, useI18n } from "@/components/i18n-provider";
 import { Logo, ZelligeMark } from "@/components/brand";
-import { PhotoPlaceholder, SearchIcon } from "@/components/ui";
+import { PhotoPlaceholder, SearchIcon, Stars } from "@/components/ui";
 
 /** Consumer discovery — find a venue by name or near you, then browse & order. */
 export function Discover({ venues }: { venues: DiscoveryVenue[] }) {
@@ -166,6 +167,15 @@ function DiscoverInner({ venues }: { venues: DiscoveryVenue[] }) {
                 </div>
                 <span className="text-[12.5px] text-muted leading-snug line-clamp-1">{tr(venue.tagline_i18n)}</span>
                 <div className="flex items-center gap-2 text-[12px] font-semibold text-muted-soft">
+                  {(venue.rating_count ?? 0) > 0 && (
+                    <>
+                      <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                        <Stars value={venue.rating_avg} size={12} />
+                        <span className="text-ink font-bold tabular-nums">{formatRating(venue.rating_avg, lang)}</span>
+                      </span>
+                      <span aria-hidden>·</span>
+                    </>
+                  )}
                   <span className="truncate">{venue.city}</span>
                   {dist != null && (
                     <>

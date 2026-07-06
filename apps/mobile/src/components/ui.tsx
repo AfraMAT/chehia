@@ -1,8 +1,97 @@
+import { useState } from "react";
 import { Pressable, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import Svg, { Defs, G, Pattern, Rect } from "react-native-svg";
-import type { Language } from "@chehia/shared";
+import type { Language, Sentiment } from "@chehia/shared";
 import { useI18n } from "../lib/i18n";
 import { colors, displayFace, faceFor, fontFamily, shadowCta, sizeFor } from "../lib/theme";
+
+const STAR_GOLD = "#E0A63C";
+const STAR_EMPTY = "#E3D9CB";
+
+/** Read-only star row with fractional fill (e.g. 4.3 → 4.3 gold stars). */
+export function Stars({ value, size = 14 }: { value: number | null | undefined; size?: number }) {
+  const [w, setW] = useState(0);
+  const pct = Math.max(0, Math.min(1, (value ?? 0) / 5));
+  return (
+    <View style={{ position: "relative" }}>
+      <Text
+        onLayout={(e) => setW(e.nativeEvent.layout.width)}
+        style={{ fontSize: size, color: STAR_EMPTY, letterSpacing: 1 }}
+      >
+        ★★★★★
+      </Text>
+      {w > 0 && (
+        <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: w * pct, overflow: "hidden" }}>
+          <Text style={{ fontSize: size, color: STAR_GOLD, letterSpacing: 1 }}>★★★★★</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+/** Interactive 1–5 star picker with 44px targets. */
+export function StarInput({ value, onChange, size = 30 }: { value: number; onChange: (n: number) => void; size?: number }) {
+  return (
+    <View style={{ flexDirection: "row" }}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Pressable
+          key={n}
+          accessibilityRole="radio"
+          accessibilityState={{ selected: n === value }}
+          accessibilityLabel={`${n} / 5`}
+          hitSlop={4}
+          onPress={() => onChange(n)}
+          style={{ width: 40, height: 44, alignItems: "center", justifyContent: "center" }}
+        >
+          <Text style={{ fontSize: size, color: n <= value ? STAR_GOLD : STAR_EMPTY }}>★</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+/** Three big emoji faces for the overall visit rating. */
+export function FaceInput({
+  value,
+  onChange,
+  options,
+}: {
+  value: Sentiment | null;
+  onChange: (s: Sentiment) => void;
+  options: { key: Sentiment; emoji: string; label: string }[];
+}) {
+  return (
+    <View style={{ flexDirection: "row", gap: 10 }}>
+      {options.map((o) => {
+        const selected = value === o.key;
+        return (
+          <Pressable
+            key={o.key}
+            accessibilityRole="radio"
+            accessibilityState={{ selected }}
+            accessibilityLabel={o.label}
+            onPress={() => onChange(o.key)}
+            style={{
+              flex: 1,
+              alignItems: "center",
+              gap: 6,
+              paddingVertical: 16,
+              borderRadius: 18,
+              borderWidth: 1.5,
+              borderColor: selected ? colors.harissa : colors.border,
+              backgroundColor: selected ? colors.harissaTint : colors.card,
+            }}
+          >
+            <Text style={{ fontSize: 38, opacity: selected ? 1 : 0.7 }}>{o.emoji}</Text>
+            <Text style={{ fontFamily: fontFamily.bold, fontSize: 13, color: selected ? colors.harissaPressed : colors.muted }}>
+              {o.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
 
 /**
  * The Chehia "Scan & Fork" mark — a QR-scan finder + a fork, echoing the app

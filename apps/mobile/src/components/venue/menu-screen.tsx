@@ -6,10 +6,11 @@ import {
   cartCount,
   cartTotal,
   currencyLabel,
+  formatRating,
   millimesToDisplay,
   type MenuItem,
 } from "@chehia/shared";
-import { PhotoPlaceholder, T, TagPill, ZelligeMark } from "../ui";
+import { PhotoPlaceholder, Stars, T, TagPill, ZelligeMark } from "../ui";
 import { useI18n } from "@/lib/i18n";
 import { go } from "@/lib/nav";
 import { colors, rowDir, shadowDark } from "@/lib/theme";
@@ -298,7 +299,15 @@ export function MenuScreen() {
                     <T lang={lang} size={12.5} color={colors.muted} numberOfLines={2} style={{ textAlign: isRtl ? "right" : "left" }}>
                       {tr(item.description_i18n)}
                     </T>
-                    <View style={[rowDir(lang), { gap: 5, marginTop: 2, flexWrap: "wrap" }]}>
+                    <View style={[rowDir(lang), { gap: 5, marginTop: 2, flexWrap: "wrap", alignItems: "center" }]}>
+                      {(item.rating_count ?? 0) > 0 && (
+                        <View style={[rowDir(lang), { alignItems: "center", gap: 4 }]}>
+                          <Stars value={item.rating_avg} size={12} />
+                          <T lang={lang} weight="bold" size={12} color={colors.ink}>
+                            {formatRating(item.rating_avg, lang)}
+                          </T>
+                        </View>
+                      )}
                       {item.dietary_tags.slice(0, 2).map((tag) => {
                         const d = dietaryTag(tag);
                         return d ? <TagPill key={tag} lang={lang} label={d.label} tone={d.tone} /> : null;

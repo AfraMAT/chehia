@@ -11,8 +11,10 @@ import {
   type Order,
   type OrderItem,
 } from "@chehia/shared";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BackButton, CtaButton, Line, T } from "../ui";
 import { WaiterSheet } from "./waiter-sheet";
+import { RatingSheet } from "./rating-sheet";
 import { useI18n } from "@/lib/i18n";
 import { go } from "@/lib/nav";
 import { colors, rowDir } from "@/lib/theme";
@@ -25,13 +27,16 @@ import { useVenue } from "@/lib/venue";
  * from the provider's basePath. Render only under a "ready" venue guard.
  */
 export function OrderScreen({ orderId }: { orderId: string }) {
-  const { table, basePath, activeOrder, forgetOrder, online } = useVenue();
+  const { restaurant, table, basePath, activeOrder, forgetOrder, online } = useVenue();
   const { t, tr, lang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [lines, setLines] = useState<OrderItem[]>([]);
   const [waiterOpen, setWaiterOpen] = useState(false);
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const ratingPromptedRef = useRef(false);
+  const reviewsOn = restaurant.reviews_enabled !== false;
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   // Distinct from loadFailed (genuine not-found): the order could not be loaded
@@ -109,6 +114,20 @@ export function OrderScreen({ orderId }: { orderId: string }) {
       forgetOrder();
     }
   }, [order, activeOrder, orderId, forgetOrder]);
+
+  // Invite a rating once, the moment the order is served — never nag: a persisted
+  // flag means it won't reopen on relaunch, but the customer can still tap "Rate".
+  useEffect(() => {
+    if (order?.status !== "served" || !reviewsOn || lines.length === 0 || ratingPromptedRef.current) return;
+    ratingPromptedRef.current = true;
+    const key = `chehia.rated.${orderId}`;
+    void AsyncStorage.getItem(key).then((seen) => {
+      if (!seen) {
+        void AsyncStorage.setItem(key, "1");
+        setRatingOpen(true);
+      }
+    });
+  }, [order?.status, reviewsOn, lines.length, orderId]);
 
   // Speak each status transition so a VoiceOver/TalkBack user who set the phone
   // down hears "Ready"/"Served" without re-focusing the text. Skip first mount.
@@ -456,7 +475,16 @@ export function OrderScreen({ orderId }: { orderId: string }) {
         <View style={{ paddingHorizontal: 16, gap: 10 }}>
           {isServed ? (
             <>
-              <CtaButton lang={lang} height={54} label={t.order.orderAgain} onPress={() => go(`${basePath}/menu`, "replace")} />
+              {reviewsOn && (
+                <CtaButton lang={lang} height={54} label={`🌟  ${t.rating.rateCta}`} onPress={() => setRatingOpen(true)} />
+              )}
+              <CtaButton
+                lang={lang}
+                variant={reviewsOn ? "secondary" : "primary"}
+                height={reviewsOn ? 48 : 54}
+                label={t.order.orderAgain}
+                onPress={() => go(`${basePath}/menu`, "replace")}
+              />
               <CtaButton lang={lang} variant="outline" height={48} label={t.waiter.call} onPress={() => setWaiterOpen(true)} />
             </>
           ) : (
@@ -476,6 +504,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
       </ScrollView>
 
       {waiterOpen && <WaiterSheet onClose={() => setWaiterOpen(false)} />}
+      {ratingOpen && <RatingSheet orderId={orderId} lines={lines} onClose={() => setRatingOpen(false)} />}
     </View>
   );
 }

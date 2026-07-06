@@ -4,6 +4,7 @@ import { ActivityIndicator, FlatList, Pressable, TextInput, View } from "react-n
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   formatDistanceKm,
+  formatRating,
   haversineKm,
   interpolate,
   LANGUAGE_LABELS,
@@ -12,7 +13,7 @@ import {
   type DiscoveryVenue,
   type Language,
 } from "@chehia/shared";
-import { PhotoPlaceholder, T, Wordmark, ZelligeMark } from "./ui";
+import { PhotoPlaceholder, Stars, T, Wordmark, ZelligeMark } from "./ui";
 import { useI18n } from "@/lib/i18n";
 import { go } from "@/lib/nav";
 import { supabase } from "@/lib/supabase";
@@ -44,7 +45,7 @@ export function Discover() {
         .from("restaurants")
         // Only the fields the discovery list actually renders — address/cover_url/
         // logo_url are unused on mobile, so keep them off the wire on slow links.
-        .select("id, slug, name, tagline_i18n, city, plan, latitude, longitude")
+        .select("id, slug, name, tagline_i18n, city, plan, latitude, longitude, rating_avg, rating_count")
         .eq("is_active", true)
         .order("name")
         .overrideTypes<DiscoveryVenue[], { merge: false }>();
@@ -294,6 +295,17 @@ export function Discover() {
                   {tr(venue.tagline_i18n)}
                 </T>
                 <View style={[rowDir(lang), { alignItems: "center", gap: 6 }]}>
+                  {(venue.rating_count ?? 0) > 0 && (
+                    <>
+                      <View style={[rowDir(lang), { alignItems: "center", gap: 4 }]}>
+                        <Stars value={venue.rating_avg} size={12} />
+                        <T lang={lang} weight="bold" size={12} color={colors.ink}>
+                          {formatRating(venue.rating_avg, lang)}
+                        </T>
+                      </View>
+                      <T size={12} color={colors.mutedSoft}>·</T>
+                    </>
+                  )}
                   <T lang={lang} weight="semibold" size={12} color={colors.mutedSoft} numberOfLines={1} style={{ flexShrink: 1 }}>
                     {venue.city}
                   </T>

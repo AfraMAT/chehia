@@ -3,10 +3,10 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { cartCount, cartTotal, formatPrice, millimesToDisplay, currencyLabel, type MenuItem } from "@chehia/shared";
+import { cartCount, cartTotal, formatPrice, formatRating, millimesToDisplay, currencyLabel, type MenuItem } from "@chehia/shared";
 import { useI18n } from "@/components/i18n-provider";
 import { ZelligeMark } from "@/components/brand";
-import { PhotoPlaceholder, SearchIcon, Skeleton, Tag } from "@/components/ui";
+import { PhotoPlaceholder, SearchIcon, Skeleton, Stars, Tag } from "@/components/ui";
 import { useVenue } from "./venue-provider";
 import { ItemSheet } from "./item-sheet";
 import { OfflineBanner } from "./offline-banner";
@@ -177,7 +177,13 @@ export function MenuScreen() {
                     <span className="text-[12.5px] text-muted leading-snug line-clamp-2">
                       {tr(item.description_i18n)}
                     </span>
-                    <div className="flex gap-1.5 mt-0.5 flex-wrap">
+                    <div className="flex gap-1.5 mt-0.5 flex-wrap items-center">
+                      {(item.rating_count ?? 0) > 0 && (
+                        <span className="inline-flex items-center gap-1">
+                          <Stars value={item.rating_avg} size={12} />
+                          <span className="text-[12px] font-bold text-ink tabular-nums">{formatRating(item.rating_avg, lang)}</span>
+                        </span>
+                      )}
                       {item.dietary_tags.slice(0, 2).map((tag) => {
                         const d = dietaryLabel(tag);
                         return d ? (

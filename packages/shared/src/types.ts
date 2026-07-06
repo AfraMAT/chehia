@@ -35,6 +35,11 @@ export interface Restaurant {
   /** Map pin for discovery / "near me" sorting; null until geocoded. */
   latitude: number | null;
   longitude: number | null;
+  /** Average visit rating (approved reviews only); null until first review. */
+  rating_avg?: number | null;
+  rating_count?: number;
+  /** Per-venue switch for the customer ratings prompt (defaults on). */
+  reviews_enabled?: boolean;
 }
 
 /** A venue as shown in the discovery list (public fields only). */
@@ -50,6 +55,8 @@ export interface DiscoveryVenue {
   plan: "starter" | "pro";
   latitude: number | null;
   longitude: number | null;
+  rating_avg?: number | null;
+  rating_count?: number;
 }
 
 export interface Category {
@@ -73,6 +80,9 @@ export interface MenuItem {
   allergens: string[];
   dietary_tags: string[];
   sort_order: number;
+  /** Average dish rating (approved reviews only); null until first review. */
+  rating_avg?: number | null;
+  rating_count?: number;
 }
 
 export interface ModifierGroup {

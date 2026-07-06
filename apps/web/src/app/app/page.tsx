@@ -17,7 +17,7 @@ export default async function AppHome() {
   const supabase = getServerSupabase();
   const { data } = await supabase
     .from("restaurants")
-    .select("id, slug, name, tagline_i18n, city, address, cover_url, logo_url, plan, latitude, longitude")
+    .select("id, slug, name, tagline_i18n, city, address, cover_url, logo_url, plan, latitude, longitude, rating_avg, rating_count")
     .eq("is_active", true)
     .order("name")
     .overrideTypes<DiscoveryVenue[], { merge: false }>();

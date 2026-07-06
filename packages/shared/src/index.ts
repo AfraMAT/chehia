@@ -7,3 +7,4 @@ export * from "./i18n";
 export * from "./deeplink";
 export * from "./geo";
 export * from "./menu-import";
+export * from "./reviews";

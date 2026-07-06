@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LANGUAGE_LABELS, type Language } from "@chehia/shared";
-import { CtaButton, PhotoPlaceholder, T, Wordmark, ZelligeMark } from "../ui";
+import { LANGUAGE_LABELS, formatRating, interpolate, type Language } from "@chehia/shared";
+import { CtaButton, PhotoPlaceholder, Stars, T, Wordmark, ZelligeMark } from "../ui";
 import { useI18n } from "@/lib/i18n";
 import { go } from "@/lib/nav";
 import { colors, rowDir, shadowCard } from "@/lib/theme";
@@ -143,6 +143,17 @@ export function VenueHome() {
             {tr(restaurant.tagline_i18n)}
             {closingTime ? ` · ${t.landing.openUntil} ${closingTime}` : ""}
           </T>
+          {(restaurant.rating_count ?? 0) > 0 && (
+            <View style={[rowDir(lang), { alignItems: "center", gap: 6, marginTop: 5 }]}>
+              <Stars value={restaurant.rating_avg} size={15} />
+              <T lang={lang} weight="bold" size={13} color={colors.ink}>
+                {formatRating(restaurant.rating_avg, lang)}
+              </T>
+              <T lang={lang} weight="semibold" size={12.5} color={colors.mutedSoft}>
+                · {interpolate(t.rating.ratingsCount, { count: restaurant.rating_count ?? 0 })}
+              </T>
+            </View>
+          )}
 
           {/* Table card (scanned or already picked) — or a pick prompt (browse) */}
           {table ? (

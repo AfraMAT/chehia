@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { LANGUAGE_LABELS, type Language } from "@chehia/shared";
+import { LANGUAGE_LABELS, formatRating, interpolate, type Language } from "@chehia/shared";
 import { useI18n } from "@/components/i18n-provider";
 import { ZelligeMark, Wordmark } from "@/components/brand";
-import { PhotoPlaceholder } from "@/components/ui";
+import { PhotoPlaceholder, Stars } from "@/components/ui";
 import { useVenue } from "./venue-provider";
 import { TablePicker } from "./table-picker";
 import { ActiveOrderBanner } from "./active-order-banner";
@@ -50,12 +50,21 @@ export function VenueHome() {
 
       {/* Sheet */}
       <div className="flex-1 flex flex-col bg-cream rounded-t-3xl -mt-7 px-5 pt-6 pb-5 relative">
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-1">
           <h1 className="font-display font-extrabold text-[28px] leading-tight text-ink">{restaurant.name}</h1>
           <p className="text-sm font-semibold text-muted">
             {tr(restaurant.tagline_i18n)}
             {closingTime ? ` · ${t.landing.openUntil} ${closingTime}` : ""}
           </p>
+          {(restaurant.rating_count ?? 0) > 0 && (
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <Stars value={restaurant.rating_avg} size={15} />
+              <span className="text-[13px] font-bold text-ink tabular-nums">{formatRating(restaurant.rating_avg, lang)}</span>
+              <span className="text-[12.5px] text-muted-soft">
+                · {interpolate(t.rating.ratingsCount, { count: restaurant.rating_count ?? 0 })}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Return to an order placed from this device */}

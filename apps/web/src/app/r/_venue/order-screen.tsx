@@ -12,14 +12,16 @@ import {
   type OrderItem,
 } from "@chehia/shared";
 import { ensureCustomerSession, getSupabase } from "@/lib/supabase";
+import { storageGet, storageSet } from "@/lib/storage";
 import { useI18n } from "@/components/i18n-provider";
 import { Skeleton } from "@/components/ui";
 import { useVenue } from "./venue-provider";
 import { WaiterSheet } from "./waiter-sheet";
+import { RatingSheet } from "./rating-sheet";
 
 /** P5/P9 · Order tracking — live via realtime, animated preparing state, waiter one tap away. */
 export function OrderScreen({ orderId }: { orderId: string }) {
-  const { table, basePath, activeOrder, forgetOrder } = useVenue();
+  const { restaurant, table, basePath, activeOrder, forgetOrder } = useVenue();
   const { t, tr, lang } = useI18n();
 
   const [order, setOrder] = useState<Order | null>(null);
@@ -27,6 +29,9 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [waiterOpen, setWaiterOpen] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const ratedKey = `chehia.rated.${orderId}`;
+  const reviewsOn = restaurant.reviews_enabled !== false;
 
   // Initial load + realtime subscription on this order row. The initial
   // fetch only fills the empty state (never clobbers a realtime update);
@@ -86,6 +91,15 @@ export function OrderScreen({ orderId }: { orderId: string }) {
       forgetOrder();
     }
   }, [order, activeOrder, orderId, forgetOrder]);
+
+  // Invite a rating once, the moment the order is served — never nag: a persisted
+  // flag means it won't reopen on refresh, but the customer can still tap "Rate".
+  useEffect(() => {
+    if (order?.status === "served" && reviewsOn && lines.length > 0 && !storageGet(ratedKey)) {
+      storageSet(ratedKey, "1");
+      setRatingOpen(true);
+    }
+  }, [order?.status, reviewsOn, lines.length, ratedKey]);
 
   const base = basePath;
   const step = order ? trackingStep(order.status) : 0;
@@ -316,9 +330,21 @@ export function OrderScreen({ orderId }: { orderId: string }) {
       <div className="px-4 flex flex-col gap-2.5">
         {isServed ? (
           <>
+            {reviewsOn && (
+              <button
+                type="button"
+                onClick={() => setRatingOpen(true)}
+                className="h-[54px] rounded-xl bg-harissa text-white font-extrabold text-base flex items-center justify-center gap-2 shadow-[0_6px_16px_rgba(188,75,38,0.3)] cursor-pointer"
+              >
+                <span style={{ fontSize: 18 }}>🌟</span>
+                {t.rating.rateCta}
+              </button>
+            )}
             <Link
               href={`${base}/menu`}
-              className="h-[54px] rounded-xl bg-harissa text-white font-extrabold text-base flex items-center justify-center shadow-[0_6px_16px_rgba(188,75,38,0.3)]"
+              className={`h-12 rounded-lg font-extrabold text-[14.5px] flex items-center justify-center ${
+                reviewsOn ? "bg-harissa-tint text-harissa-pressed" : "bg-harissa text-white shadow-[0_6px_16px_rgba(188,75,38,0.3)]"
+              }`}
             >
               {t.order.orderAgain}
             </Link>
@@ -351,6 +377,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
       </div>
 
       {waiterOpen && <WaiterSheet onClose={() => setWaiterOpen(false)} />}
+      {ratingOpen && <RatingSheet orderId={orderId} lines={lines} onClose={() => setRatingOpen(false)} />}
     </div>
   );
 }

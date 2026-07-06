@@ -5,12 +5,17 @@ import {
   buildLine,
   currencyLabel,
   formatDelta,
+  formatRating,
+  formatRelativeTime,
+  interpolate,
   millimesToDisplay,
   validateModifiers,
+  type ItemReviews,
   type MenuItem,
 } from "@chehia/shared";
+import { getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
-import { PhotoPlaceholder, Stepper, Tag } from "@/components/ui";
+import { PhotoPlaceholder, Stars, Stepper, Tag } from "@/components/ui";
 import { useVenue } from "./venue-provider";
 
 /** P3 · Item detail — required vs optional modifier groups, live price in CTA, allergens declared. */
@@ -28,6 +33,21 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
   );
   const [qty, setQty] = useState(1);
   const [touched, setTouched] = useState(false);
+  const [reviews, setReviews] = useState<ItemReviews | null>(null);
+
+  // Lazy-load this dish's reviews when the sheet opens (only if it has any).
+  useEffect(() => {
+    if (!item.rating_count) return;
+    let cancelled = false;
+    void getSupabase()
+      .rpc("item_reviews", { p_item_id: item.id })
+      .then(({ data }) => {
+        if (!cancelled && data) setReviews(data as ItemReviews);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [item.id, item.rating_count]);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
@@ -103,6 +123,15 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
               </span>
             </div>
             <p className="text-[13.5px] text-muted leading-relaxed">{tr(item.description_i18n)}</p>
+            {(item.rating_count ?? 0) > 0 && (
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <Stars value={item.rating_avg} size={15} />
+                <span className="text-[13px] font-bold text-ink tabular-nums">{formatRating(item.rating_avg, lang)}</span>
+                <span className="text-[12.5px] text-muted-soft">
+                  · {interpolate(t.rating.ratingsCount, { count: item.rating_count ?? 0 })}
+                </span>
+              </div>
+            )}
             <div className="flex gap-1.5 mt-0.5 flex-wrap">
               {item.dietary_tags.includes("vegetarian") && <Tag tone="green">{t.dietary.vegetarian}</Tag>}
               {item.dietary_tags.includes("spicy") && <Tag tone="amber">{t.dietary.spicy}</Tag>}
@@ -212,6 +241,23 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
           })}
           {touched && !validation.ok && (
             <p className="text-[13px] font-bold text-danger-text">{t.item.chooseRequired}</p>
+          )}
+
+          {reviews && reviews.reviews.length > 0 && (
+            <div className="flex flex-col gap-2.5 pt-1">
+              <span className="font-extrabold text-sm text-ink">{t.rating.reviewsTitle}</span>
+              {reviews.reviews.slice(0, 6).map((rv, i) => (
+                <div key={i} className="bg-white border border-line rounded-xl px-3.5 py-2.5 flex flex-col gap-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <Stars value={rv.rating} size={13} />
+                    <span className="text-[11.5px] font-semibold text-muted-soft">
+                      {rv.name || t.rating.anon} · {formatRelativeTime(rv.created_at, lang)}
+                    </span>
+                  </div>
+                  {rv.comment && <p className="text-[13px] text-muted leading-snug">{rv.comment}</p>}
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
