@@ -6,6 +6,7 @@ import { callFunction, getSupabase } from "@/lib/supabase";
 import { PhotoPlaceholder, Spinner, Toggle } from "@/components/ui";
 import { useI18n } from "@/components/i18n-provider";
 import { usePortal } from "../portal-provider";
+import { SetPasswordForm } from "../set-password-gate";
 
 interface StaffRow {
   id: string;
@@ -303,8 +304,9 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* Team */}
-        <div className="w-full xl:w-[380px] bg-card border border-line rounded-2xl p-5 flex flex-col gap-3">
+        {/* Team + Security */}
+        <div className="w-full xl:w-[380px] flex flex-col gap-4">
+        <div className="bg-card border border-line rounded-2xl p-5 flex flex-col gap-3">
           <span className="font-extrabold text-[15px] text-ink">{t.portal.staff.title}</span>
           <div className="flex flex-col gap-2">
             {staffRows.map((row) => (
@@ -328,7 +330,60 @@ export default function SettingsPage() {
           </div>
           {canManage && <AddStaff onAdded={loadStaff} />}
         </div>
+        <SecurityCard />
+        </div>
       </div>
+    </div>
+  );
+}
+
+/** Every signed-in member can change their own password (hidden for Google-only accounts). */
+function SecurityCard() {
+  const { t } = useI18n();
+  const s = t.auth.setPassword;
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
+  const [changed, setChanged] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await getSupabase().auth.getUser();
+      const u = data.user;
+      if (!u) {
+        setHasPassword(false);
+        return;
+      }
+      const appMeta = (u.app_metadata ?? {}) as Record<string, unknown>;
+      const providers = Array.isArray(appMeta.providers)
+        ? (appMeta.providers as string[])
+        : appMeta.provider
+          ? [appMeta.provider as string]
+          : [];
+      const has = (u.identities ?? []).some((i) => i.provider === "email") || providers.includes("email");
+      setHasPassword(has);
+    })();
+  }, []);
+
+  return (
+    <div className="bg-card border border-line rounded-2xl p-5 flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <span className="font-extrabold text-[15px] text-ink">{s.security}</span>
+        {changed && (
+          <span className="text-[11px] font-extrabold text-success-text bg-success-tint rounded-full px-2.5 py-1">✓ {s.changed}</span>
+        )}
+      </div>
+      {hasPassword === null ? (
+        <Spinner className="text-harissa" />
+      ) : hasPassword === false ? (
+        <p className="text-[13px] text-muted leading-relaxed">{s.googleNote}</p>
+      ) : (
+        <SetPasswordForm
+          ctaLabel={s.changeCta}
+          onDone={() => {
+            setChanged(true);
+            setTimeout(() => setChanged(false), 2500);
+          }}
+        />
+      )}
     </div>
   );
 }

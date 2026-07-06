@@ -9,6 +9,7 @@ import { Spinner } from "@/components/ui";
 import { useI18n } from "@/components/i18n-provider";
 import { usePortal } from "../portal-provider";
 import { MenuImport } from "../menu/menu-import";
+import { StockStep } from "./stock-step";
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 type Day = (typeof DAYS)[number];
@@ -31,13 +32,27 @@ export default function OnboardingPage() {
   const defaultLang = restaurant.default_language as Language;
 
   const STEPS = useMemo(
-    () => [t.onboarding.stepProfile, t.onboarding.stepHours, t.onboarding.stepMenu, t.onboarding.stepTables, t.onboarding.stepStaff],
+    () => [
+      t.onboarding.stepProfile,
+      t.onboarding.stepHours,
+      t.onboarding.stepMenu,
+      t.onboarding.stepStock,
+      t.onboarding.stepTables,
+      t.onboarding.stepStaff,
+    ],
     [t],
   );
   const [step, setStep] = useState(0);
   const [finishing, setFinishing] = useState(false);
   const [done, setDone] = useState(false);
   const [menuValid, setMenuValid] = useState(false);
+
+  // The wizard is setup-only: an already-onboarded venue must not re-enter it
+  // (its steps show stale data and the Stock step could edit live inventory).
+  // `done` guards the just-finished screen from bouncing before its CTA.
+  useEffect(() => {
+    if (restaurant.onboarding_completed_at && !done) router.replace("/business/orders");
+  }, [restaurant.onboarding_completed_at, done, router]);
 
   const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
   const back = () => setStep((s) => Math.max(s - 1, 0));
@@ -117,8 +132,9 @@ export default function OnboardingPage() {
           {step === 0 && <ProfileStep />}
           {step === 1 && <HoursStep />}
           {step === 2 && <MenuStep defaultLang={defaultLang} onValidChange={setMenuValid} />}
-          {step === 3 && <TablesStep />}
-          {step === 4 && <StaffStep />}
+          {step === 3 && <StockStep />}
+          {step === 4 && <TablesStep />}
+          {step === 5 && <StaffStep />}
         </div>
 
         {/* Nav */}
@@ -133,7 +149,7 @@ export default function OnboardingPage() {
             </button>
           )}
           <div className="flex-1" />
-          {step === 4 && (
+          {step === STEPS.length - 1 && (
             <button
               type="button"
               onClick={() => void finish()}

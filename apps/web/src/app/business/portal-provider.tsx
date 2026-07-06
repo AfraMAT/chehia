@@ -5,6 +5,29 @@ import { usePathname, useRouter } from "next/navigation";
 import type { Language, Restaurant, StaffRole } from "@chehia/shared";
 import { getSupabase } from "@/lib/supabase";
 import { I18nProvider } from "@/components/i18n-provider";
+import { SetPasswordGate } from "./set-password-gate";
+
+/**
+ * A provisioned owner/staff is nudged to replace their starter password on first
+ * login (a UX-only flag in user_metadata). Skip Google-only accounts — they have
+ * no password to change. We key off the *email identity existing*, not the
+ * current provider, so a linked email+Google account is still handled correctly.
+ */
+function needsPasswordChange(user: {
+  user_metadata?: Record<string, unknown> | null;
+  app_metadata?: Record<string, unknown> | null;
+  identities?: { provider?: string }[] | null;
+}): boolean {
+  if (user.user_metadata?.must_change_password !== true) return false;
+  const appMeta = user.app_metadata ?? {};
+  const providers = Array.isArray(appMeta.providers)
+    ? (appMeta.providers as string[])
+    : appMeta.provider
+      ? [appMeta.provider as string]
+      : [];
+  const hasPasswordIdentity = (user.identities ?? []).some((i) => i.provider === "email") || providers.includes("email");
+  return hasPasswordIdentity;
+}
 
 export interface StaffProfile {
   id: string;
@@ -32,6 +55,7 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
   const [staff, setStaff] = useState<StaffProfile | null>(null);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "unauthenticated" | "no-staff" | "error">("loading");
+  const [mustChangePw, setMustChangePw] = useState(false);
 
   const load = useCallback(async () => {
     const supabase = getSupabase();
@@ -41,6 +65,7 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
       setState("unauthenticated");
       return;
     }
+    setMustChangePw(needsPasswordChange(user));
     const { data: staffRow, error: staffError } = await supabase
       .from("staff")
       .select("id, restaurant_id, role, display_name")
@@ -96,10 +121,11 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
   // onboarding wizard; other staff wait until the owner finishes.
   const needsOnboarding = !!restaurant && !restaurant.onboarding_completed_at;
   useEffect(() => {
-    if (state === "ready" && needsOnboarding && staff?.role === "owner" && pathname !== ONBOARDING_PATH) {
+    // Set-password comes first; hold the onboarding redirect until it's cleared.
+    if (state === "ready" && !mustChangePw && needsOnboarding && staff?.role === "owner" && pathname !== ONBOARDING_PATH) {
       router.replace(ONBOARDING_PATH);
     }
-  }, [state, needsOnboarding, staff, pathname, router]);
+  }, [state, mustChangePw, needsOnboarding, staff, pathname, router]);
 
   const refreshRestaurant = useCallback(async () => {
     if (!staff) return;
@@ -170,6 +196,16 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </div>
+    );
+  }
+
+  // First login with a starter password: set a personal one before anything
+  // else (before onboarding, before the "setup in progress" wait screen).
+  if (state === "ready" && value && mustChangePw) {
+    return (
+      <I18nProvider initial={(restaurant?.default_language ?? "fr") as Language} storageKey="chehia.portal.lang">
+        <SetPasswordGate onDone={() => setMustChangePw(false)} />
+      </I18nProvider>
     );
   }
 

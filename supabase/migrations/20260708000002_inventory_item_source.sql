@@ -1,0 +1,15 @@
+-- ============================================================
+-- Provenance marker for inventory products.
+--
+-- The onboarding "Stock" step auto-creates a per-dish "piece" product when the
+-- owner toggles a dish ON. It must be able to tell those products apart from
+-- real ingredients the owner manages by hand — a shared ingredient can have the
+-- exact same shape (unit 'piece', linked to a dish at qty 1), so shape alone is
+-- unsafe to key destructive actions on. `source` is that durable marker:
+--   'onboarding_dish' → auto-created for a dish in the onboarding wizard
+--   'onboarding'      → a standalone ingredient added in the onboarding wizard
+--   NULL              → created/managed normally (the Stock page, seed, etc.)
+-- The wizard only ever edits/deletes products it created (source is set); it
+-- never touches a NULL-source product.
+-- ============================================================
+alter table public.inventory_items add column if not exists source text;

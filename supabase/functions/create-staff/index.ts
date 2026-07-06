@@ -55,7 +55,9 @@ Deno.serve(async (req) => {
     email,
     password,
     email_confirm: true,
-    user_metadata: { display_name: displayName },
+    // Starter password relayed by the owner/manager; the member chooses their
+    // own on first login (the portal clears this flag then).
+    user_metadata: { display_name: displayName, must_change_password: true },
   });
   if (cErr || !created.user) {
     const dup = (cErr?.message ?? "").toLowerCase().includes("already");

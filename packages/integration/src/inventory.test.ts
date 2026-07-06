@@ -264,6 +264,77 @@ describe("inventory — auto-depletion & restock", () => {
   });
 });
 
+describe("inventory — onboarding stock setup", () => {
+  // Mirrors StockStep.applyBalance: create at threshold 0 → count the opening
+  // balance → set the real threshold via a plain update + reset the alert
+  // baseline. Must NOT raise a low/out notification during setup, even when the
+  // opening balance is at or below the chosen threshold.
+  it("setting an opening balance below the threshold raises NO alert", async () => {
+    const owner = await staffClient("owner@elmarsa.tn");
+    const { data: inv } = await owner
+      .from("inventory_items")
+      .insert({ restaurant_id: EL_MARSA_ID, name: `TEST onb ${crypto.randomUUID().slice(0, 6)}`, category: "food", unit: "piece", reorder_threshold: 0, track: true })
+      .select("id")
+      .single();
+    const id = inv!.id as string;
+    created.push(id);
+
+    // opening 3 while threshold is still 0 → level 'ok', no alert.
+    const { error: countErr } = await owner.rpc("set_stock_count", { p_item_id: id, p_new_qty: 3, p_reason: "opening" });
+    expect(countErr).toBeNull();
+    // now set the real threshold (5) via a plain update — no movement, no alert.
+    await owner.from("inventory_items").update({ reorder_threshold: 5, last_alert_level: "ok" }).eq("id", id);
+
+    const { data: row } = await owner.from("inventory_items").select("qty_on_hand, reorder_threshold").eq("id", id).single();
+    expect(Number(row!.qty_on_hand)).toBe(3);
+    expect(Number(row!.reorder_threshold)).toBe(5);
+
+    // The product is genuinely "low" (3 <= 5) but setup created zero alerts.
+    const { data: notifs } = await owner.from("notifications").select("id").eq("inventory_item_id", id);
+    expect(notifs ?? []).toHaveLength(0);
+  });
+
+  it("the onboarding source-guard cannot delete a real (source NULL) product", async () => {
+    // A real shared ingredient with unit 'piece' (the exact shape a naive guard
+    // would mistake for an auto-created dish product). The wizard's toggle-OFF
+    // delete is scoped to source='onboarding_dish', so it must NOT remove this.
+    const owner = await staffClient("owner@elmarsa.tn");
+    const { data: inv } = await owner
+      .from("inventory_items")
+      .insert({ restaurant_id: EL_MARSA_ID, name: "TEST shared eggs", unit: "piece", reorder_threshold: 0, track: true })
+      .select("id")
+      .single();
+    const id = inv!.id as string;
+    created.push(id);
+    // Simulate the onboarding untrack delete (guarded by source).
+    await owner.from("inventory_items").delete().eq("id", id).eq("source", "onboarding_dish");
+    const { data: still } = await owner.from("inventory_items").select("id, source").eq("id", id);
+    expect(still ?? []).toHaveLength(1); // real product survives
+    expect(still![0].source).toBeNull();
+  });
+
+  it("a piece product created for a dish links 1:1 so each sale deducts one", async () => {
+    // This is the exact shape StockStep produces; the depletion path is covered
+    // above, here we assert the link shape the onboarding step relies on.
+    const owner = await staffClient("owner@elmarsa.tn");
+    const { data: inv } = await owner
+      .from("inventory_items")
+      .insert({ restaurant_id: EL_MARSA_ID, name: "TEST dish product", category: "food", unit: "piece", reorder_threshold: 0, track: true })
+      .select("id")
+      .single();
+    const invId = inv!.id as string;
+    created.push(invId);
+    const { error } = await owner
+      .from("item_ingredients")
+      .insert({ restaurant_id: EL_MARSA_ID, item_id: "dddddddd-0000-0000-0000-000000000006", inventory_item_id: invId, qty_per_unit: 1 });
+    expect(error).toBeNull();
+    const { data: link } = await owner.from("item_ingredients").select("qty_per_unit").eq("inventory_item_id", invId).single();
+    expect(Number(link!.qty_per_unit)).toBe(1);
+    // clean the link so it doesn't linger on the seeded Thé à la menthe dish.
+    await owner.from("item_ingredients").delete().eq("inventory_item_id", invId);
+  });
+});
+
 describe("inventory — notifications RLS", () => {
   it("staff read + mark-read their venue feed; other tenants cannot", async () => {
     // Ensure at least one notification exists for El Marsa (seed has low/out items).

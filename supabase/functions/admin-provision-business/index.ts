@@ -103,7 +103,9 @@ Deno.serve(async (req) => {
     email: ownerEmail,
     password,
     email_confirm: true,
-    user_metadata: { display_name: ownerName },
+    // The password is a starter the admin relays; the owner is prompted to
+    // choose their own on first login (the portal clears this flag then).
+    user_metadata: { display_name: ownerName, must_change_password: true },
   });
   if (cErr || !created.user) {
     await admin.from("restaurants").delete().eq("id", resto.id); // roll back

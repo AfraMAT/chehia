@@ -22,6 +22,27 @@ orders come in, and alert owners **before** they run out.
 - **Auto-86** (optional, per product) — when a tracked product hits zero and `auto_86` is on, the
   dishes that use it are marked sold out; restocking above zero re-enables them.
 
+## Onboarding integration
+
+New owners meet inventory during setup. The provisioning flow is:
+
+1. A platform admin creates the venue + owner (`admin-provision-business`) and relays a **starter
+   password**. Both provisioning functions stamp `user_metadata.must_change_password: true`.
+2. On first login the portal shows a **"Choose your password"** gate (`SetPasswordGate` in
+   PortalProvider) — the owner sets a personal password, which clears the flag in one atomic
+   `updateUser`. Google-only accounts are exempt (no password). Settings has a matching "Security"
+   card so anyone can change their password later.
+3. The onboarding wizard has an optional **Stock** step (Profile → Hours → Menu → **Stock** → Tables →
+   Team). Toggling a just-listed dish ON creates a `piece`-unit product named after the dish
+   (`source='onboarding_dish'`) + an `item_ingredients` link at `qty_per_unit 1`, plus an opening
+   balance and a low-stock threshold — so from day one, **every sale deducts one** and the owner is
+   alerted before running out. A collapsible "ingredients" area adds standalone products
+   (`source='onboarding'`). The step is skippable; skipping tracks nothing.
+
+The wizard only ever edits/deletes products **it** created (keyed on the `source` marker), never a
+real ingredient, and an already-onboarded owner is redirected out of the wizard. Opening balances go
+through `set_stock_count` while the threshold is temporarily 0, so setup raises no spurious alert.
+
 ## Portal
 
 - **`/business/inventory`** (owner/manager) — the stock board: summary (products / low / out / stock
@@ -48,12 +69,14 @@ with the cron secret). It is safe to run repeatedly — `sync_stock_alerts` is i
 
 ## Cloud deploy checklist (when shipping to prod — needs your go-ahead)
 
-1. Apply migration `supabase/migrations/20260708000001_inventory.sql` to **chehia-dev** and
-   **chehia-prod** (via `supabase db push` or the Supabase MCP `apply_migration`).
+1. Apply migrations `20260708000001_inventory.sql` **and** `20260708000002_inventory_item_source.sql`
+   to **chehia-dev** and **chehia-prod** (via `supabase db push` or the Supabase MCP `apply_migration`).
 2. Deploy the `inventory-alerts` edge function (self-contained; inline `_shared/cors.ts`,
    `verify_jwt = false`) — same pattern as the other functions.
-3. Redeploy the redefined `place-order` path is **not** needed (the depletion lives in
-   `place_order_tx`, which the migration replaces); `place-order` itself is unchanged.
+3. Redeploy `admin-provision-business` + `create-staff` — they now stamp
+   `user_metadata.must_change_password: true` so first-login owners/staff set their own password.
+   (The `place-order` function is unchanged; depletion lives in `place_order_tx`, which the migration
+   replaces.)
 4. Optional: `RESEND_API_KEY` (+ verified sender domain) for the nightly digest, and a pg_cron
    schedule for `inventory-alerts`.
 
