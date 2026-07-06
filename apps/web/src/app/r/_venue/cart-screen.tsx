@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -82,6 +82,16 @@ export function CartScreen() {
       setSubmitting(false);
     }
   };
+
+  // Honour the queued-order promise ("sent automatically when the network
+  // returns"): when connectivity comes back, resubmit. The stable client_ref
+  // makes this idempotent, so an auto-retry can never place a duplicate order.
+  const submitRef = useRef(submit);
+  submitRef.current = submit;
+  useEffect(() => {
+    if (online && queued && !submitting) void submitRef.current();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [online, queued]);
 
   if (navigating) {
     return (

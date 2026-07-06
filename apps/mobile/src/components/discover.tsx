@@ -43,9 +43,8 @@ export function Discover() {
     void (async () => {
       const { data } = await supabase
         .from("restaurants")
-        // Only the fields the discovery list actually renders — address/cover_url/
-        // logo_url are unused on mobile, so keep them off the wire on slow links.
-        .select("id, slug, name, tagline_i18n, city, plan, latitude, longitude, rating_avg, rating_count")
+        // Fields the discovery list renders (address/logo_url stay off the wire).
+        .select("id, slug, name, tagline_i18n, city, plan, latitude, longitude, cover_url, rating_avg, rating_count")
         .eq("is_active", true)
         .order("name")
         .overrideTypes<DiscoveryVenue[], { merge: false }>();
@@ -277,7 +276,7 @@ export function Discover() {
                 },
               ]}
             >
-              <PhotoPlaceholder width={104} height={104} radius={0} mirrored={isRtl} />
+              <PhotoPlaceholder width={104} height={104} radius={0} mirrored={isRtl} src={venue.cover_url} />
               <View style={{ flex: 1, padding: 14, gap: 4, justifyContent: "center" }}>
                 <View style={[rowDir(lang), { justifyContent: "space-between", alignItems: "flex-start", gap: 8 }]}>
                   <T lang={lang} display size={17} numberOfLines={1} style={{ flexShrink: 1, ...align }}>

@@ -380,6 +380,10 @@ export const ar: Dictionary = {
       requireQrHint: "يعطّل الطلب عن بُعد: لا يمكن الطلب إلا لمن يمسح رمز QR الخاص بطاولته.",
       reviewsEnabled: "تفعيل آراء الحرفاء",
       reviewsEnabledHint: "بعد تقديم الطلب، يمكن للحريف تقييم زيارته وأطباقه. تُراجَع كل الآراء قبل نشرها.",
+      cover: "صورة الغلاف",
+      addCover: "إضافة صورة",
+      changeCover: "تغيير الصورة",
+      removeCover: "إزالة",
     },
     staff: {
       title: "الفريق",

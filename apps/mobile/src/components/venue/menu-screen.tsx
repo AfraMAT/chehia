@@ -257,7 +257,7 @@ export function MenuScreen() {
               ]}
             >
               <View>
-                <PhotoPlaceholder width={68} height={68} mirrored={isRtl} />
+                <PhotoPlaceholder width={68} height={68} mirrored={isRtl} src={item.photo_url} />
                 {item.is_popular && available && (
                   <View
                     style={{

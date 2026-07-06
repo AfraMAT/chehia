@@ -380,6 +380,10 @@ export const en: Dictionary = {
       requireQrHint: "Turns off remote ordering — only guests who scan their table's QR can order.",
       reviewsEnabled: "Enable guest reviews",
       reviewsEnabledHint: "After a served order, guests can rate their visit and dishes. Every review is checked before it's published.",
+      cover: "Cover photo",
+      addCover: "Add a photo",
+      changeCover: "Change photo",
+      removeCover: "Remove",
     },
     staff: {
       title: "Team",

@@ -379,6 +379,10 @@ export const fr = {
       requireQrHint: "Désactive la commande à distance : seuls les clients qui scannent le QR de leur table peuvent commander.",
       reviewsEnabled: "Activer les avis clients",
       reviewsEnabledHint: "Après une commande servie, le client peut noter sa visite et ses plats. Chaque avis est vérifié avant publication.",
+      cover: "Photo de couverture",
+      addCover: "Ajouter une photo",
+      changeCover: "Changer la photo",
+      removeCover: "Retirer",
     },
     staff: {
       title: "Équipe",

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { LANGUAGE_LABELS, LANGUAGES, type Language, type StaffRole } from "@chehia/shared";
 import { callFunction, getSupabase } from "@/lib/supabase";
-import { Spinner, Toggle } from "@/components/ui";
+import { PhotoPlaceholder, Spinner, Toggle } from "@/components/ui";
 import { useI18n } from "@/components/i18n-provider";
 import { usePortal } from "../portal-provider";
 
@@ -33,9 +33,28 @@ export default function SettingsPage() {
   const [hours, setHours] = useState<Record<Day, DayHours>>(() => parseHours(restaurant.opening_hours));
   const [requireQr, setRequireQr] = useState(restaurant.require_qr ?? false);
   const [reviewsEnabled, setReviewsEnabled] = useState(restaurant.reviews_enabled !== false);
+  const [coverUrl, setCoverUrl] = useState<string | null>(restaurant.cover_url);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [staffRows, setStaffRows] = useState<StaffRow[]>([]);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Upload a venue cover to the tenant-scoped folder (reuses the item-photos
+  // bucket; storage RLS rejects writes outside the caller's own restaurant).
+  const onPickCover = async (file: File) => {
+    if (!/^image\/(png|jpe?g|webp)$/.test(file.type) || file.size > 5_000_000) return;
+    setUploadingCover(true);
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+    const path = `${restaurant.id}/cover-${crypto.randomUUID()}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("item-photos")
+      .upload(path, file, { upsert: false, contentType: file.type });
+    if (!upErr) {
+      const { data } = supabase.storage.from("item-photos").getPublicUrl(path);
+      setCoverUrl(data.publicUrl);
+    }
+    setUploadingCover(false);
+  };
 
   const loadStaff = useCallback(async () => {
     const { data } = await supabase
@@ -69,7 +88,7 @@ export default function SettingsPage() {
     for (const d of DAYS) if (!hours[d].closed) opening[d] = `${hours[d].open}-${hours[d].close}`;
     await supabase
       .from("restaurants")
-      .update({ name, address, city, phone, languages, default_language: defaultLanguage, opening_hours: opening, require_qr: requireQr, reviews_enabled: reviewsEnabled })
+      .update({ name, address, city, phone, languages, default_language: defaultLanguage, opening_hours: opening, require_qr: requireQr, reviews_enabled: reviewsEnabled, cover_url: coverUrl })
       .eq("id", restaurant.id);
     await refreshRestaurant();
     // Don't force the operator's portal UI language to the venue default on save —
@@ -117,6 +136,39 @@ export default function SettingsPage() {
         <div className="flex-1 w-full max-w-[560px] flex flex-col gap-4">
           <div className="bg-card border border-line rounded-2xl p-5 flex flex-col gap-4">
             <span className="font-extrabold text-[15px] text-ink">{t.portal.settings.venueProfile}</span>
+
+            <Field label={t.portal.settings.cover}>
+              <div className="flex items-center gap-3">
+                <div className="w-[104px] h-[64px] rounded-lg overflow-hidden shrink-0 border border-line">
+                  <PhotoPlaceholder src={coverUrl} alt="" className="w-full h-full" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className={`inline-flex items-center justify-center h-9 px-3.5 rounded-lg border-[1.5px] border-line-strong bg-white text-[13px] font-bold text-ink ${canManage ? "cursor-pointer hover:border-harissa" : "opacity-50 cursor-not-allowed"}`}>
+                    {uploadingCover ? <Spinner className="w-4 h-4 text-harissa" /> : coverUrl ? t.portal.settings.changeCover : t.portal.settings.addCover}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      disabled={!canManage || uploadingCover}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void onPickCover(f);
+                        e.target.value = "";
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  {coverUrl && canManage && (
+                    <button
+                      type="button"
+                      onClick={() => setCoverUrl(null)}
+                      className="text-[12px] font-bold text-muted hover:text-danger-text cursor-pointer text-start"
+                    >
+                      {t.portal.settings.removeCover}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </Field>
 
             <Field label={t.portal.settings.venueName}>
               <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} disabled={!canManage} />

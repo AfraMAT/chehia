@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import Svg, { Defs, G, Pattern, Rect } from "react-native-svg";
 import type { Language, Sentiment } from "@chehia/shared";
 import { useI18n } from "../lib/i18n";
@@ -299,22 +299,27 @@ export function Stepper({
 }
 
 /**
- * Diagonal-weave photo placeholder (design canvas style). Rendered as a single
- * SVG pattern tile instead of ~30 stacked Views, so a full menu doesn't pay
- * ~1000 extra layout nodes. Purely decorative → hidden from screen readers.
+ * Photo with a diagonal-weave fallback (design canvas style). When `src` is set
+ * the real image renders over the weave; a load error falls back to the weave.
+ * The weave is a single SVG pattern tile (not ~30 stacked Views). Decorative →
+ * hidden from screen readers.
  */
 export function PhotoPlaceholder({
   width,
   height,
   radius = 12,
   mirrored = false,
+  src,
 }: {
   width: number | "100%";
   height: number;
   radius?: number;
   mirrored?: boolean;
+  src?: string | null;
 }) {
   const pid = mirrored ? "weave-m" : "weave-n";
+  const [failed, setFailed] = useState(false);
+  const showImage = !!src && !failed;
   return (
     <View
       accessibilityElementsHidden
@@ -336,6 +341,14 @@ export function PhotoPlaceholder({
         </Defs>
         <Rect width="100%" height={height} fill={`url(#${pid})`} />
       </Svg>
+      {showImage && (
+        <Image
+          source={{ uri: src! }}
+          onError={() => setFailed(true)}
+          resizeMode="cover"
+          style={StyleSheet.absoluteFill}
+        />
+      )}
     </View>
   );
 }

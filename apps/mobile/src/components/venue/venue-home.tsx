@@ -79,7 +79,7 @@ export function VenueHome() {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} bounces={false}>
         {/* Venue photo */}
         <View style={{ height: 280 }}>
-          <PhotoPlaceholder width="100%" height={280} radius={0} mirrored={isRtl} />
+          <PhotoPlaceholder width="100%" height={280} radius={0} mirrored={isRtl} src={restaurant.cover_url} />
           {browse && (
             <Pressable
               onPress={() => go("/app", "replace")}

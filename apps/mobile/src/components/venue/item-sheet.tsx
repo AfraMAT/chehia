@@ -104,7 +104,7 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
         >
           {/* Photo */}
           <View>
-            <PhotoPlaceholder width="100%" height={180} radius={0} mirrored={isRtl} />
+            <PhotoPlaceholder width="100%" height={180} radius={0} mirrored={isRtl} src={item.photo_url} />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t.common.close}
