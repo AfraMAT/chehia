@@ -23,7 +23,8 @@ supabase/
   seed.sql       Demo venue (Café El Marsa) with trilingual menu, tables, staff, sample orders
   functions/     Edge functions: place-order, call-waiter, generate-insights (nightly AI),
                  admin-provision-business (platform admin creates a venue + owner),
-                 create-staff (owner/manager adds a team member)
+                 create-staff (owner/manager adds a team member),
+                 inventory-alerts (nightly low-stock digest)
 ```
 
 ## Local development
@@ -65,8 +66,8 @@ directly on that table, otherwise the web experience serves the same flow.
 ### Tests
 
 ```bash
-pnpm --filter @chehia/shared test        # 46 unit tests (money, cart, reconcile, i18n parity, status machine, deep links)
-pnpm --filter @chehia/integration test   # 30 integration tests (RLS isolation, table-token scoping, storage RLS, order flow, idempotency, abuse caps)
+pnpm --filter @chehia/shared test        # 96 unit tests (money, cart, reconcile, i18n parity, status machine, deep links, reviews, inventory)
+pnpm --filter @chehia/integration test   # integration tests (RLS isolation, table-token scoping, storage RLS, order flow, idempotency, abuse caps, inventory depletion/alerts)
 pnpm typecheck                           # all workspaces
 ```
 
@@ -105,6 +106,16 @@ only writes the "what should I do" narrative.
   capability. Orders are inserted only by the `place-order` edge function, which **recomputes all
   prices server-side** and validates modifier min/max rules. Customers can read/subscribe to only
   their own orders (live tracking).
+- **Inventory / stock** — `inventory_items` (on-hand, reorder threshold, par level, unit cost) with an
+  append-only `stock_movements` ledger (receive / waste / adjustment / count / sale / cancel_return).
+  A dish links to the stock it consumes via `item_ingredients`, so `place-order` **auto-depletes** the
+  linked products (best-effort — never blocks an order) and a cancellation **returns** them. Every
+  movement runs through one audited `apply_stock_change` path that raises an **edge-triggered** low/out
+  alert into `notifications` (fires once per worsening crossing, re-arms on recovery). The business
+  portal (`/business/inventory`) manages products + movements and a live **notification bell** shows
+  alerts in realtime; `inventory-alerts` emails owners a nightly digest when a `RESEND_API_KEY` is set
+  (in-portal alerts always work without it). Optional per-product **auto-86** hides linked dishes at
+  zero and restores them on restock. Owner/manager write; all staff read; RLS enforces tenant scope.
 - **Realtime** — portal floor/kitchen views and the customer tracking screen subscribe to
   `postgres_changes`; RLS scopes what each role can see. New orders ring in the portal.
 - **Offline (mobile)** — menu snapshot cached in AsyncStorage; failed order submissions are queued
@@ -141,7 +152,7 @@ merge to `main` → production deploys to chehia.app (runs against the prod proj
   `@chehia/shared`). Production branch is `main`; every other branch gets an automatic preview. No
   Supabase env vars are required (selected in code, above).
 - **Supabase** — both projects carry the same migrations (`supabase/migrations/`), seed, and the five
-  edge functions (`place-order`, `call-waiter`, `generate-insights`, `admin-provision-business`,
+  edge functions (`place-order`, `call-waiter`, `generate-insights`, `inventory-alerts`, `admin-provision-business`,
   `create-staff`). The `item-photos` Storage bucket + RLS come from migration `20260703000002`.
   Schedule `generate-insights` nightly via `pg_cron` + `pg_net` on prod. **Enable anonymous sign-ins**
   (Auth → Providers) on **each** project — customer ordering signs in anonymously.

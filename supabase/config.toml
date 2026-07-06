@@ -420,3 +420,8 @@ verify_jwt = false
 # verification is disabled — matching place-order / call-waiter.
 [functions.submit-review]
 verify_jwt = false
+
+# inventory-alerts is invoked by cron with x-cron-secret (or the service-role
+# key) and validated in-code, not a user JWT — disable gateway JWT verification.
+[functions.inventory-alerts]
+verify_jwt = false

@@ -33,6 +33,7 @@ export default function SettingsPage() {
   const [hours, setHours] = useState<Record<Day, DayHours>>(() => parseHours(restaurant.opening_hours));
   const [requireQr, setRequireQr] = useState(restaurant.require_qr ?? false);
   const [reviewsEnabled, setReviewsEnabled] = useState(restaurant.reviews_enabled !== false);
+  const [inventoryAlerts, setInventoryAlerts] = useState(restaurant.inventory_alerts_enabled !== false);
   const [coverUrl, setCoverUrl] = useState<string | null>(restaurant.cover_url);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [staffRows, setStaffRows] = useState<StaffRow[]>([]);
@@ -88,7 +89,7 @@ export default function SettingsPage() {
     for (const d of DAYS) if (!hours[d].closed) opening[d] = `${hours[d].open}-${hours[d].close}`;
     await supabase
       .from("restaurants")
-      .update({ name, address, city, phone, languages, default_language: defaultLanguage, opening_hours: opening, require_qr: requireQr, reviews_enabled: reviewsEnabled, cover_url: coverUrl })
+      .update({ name, address, city, phone, languages, default_language: defaultLanguage, opening_hours: opening, require_qr: requireQr, reviews_enabled: reviewsEnabled, inventory_alerts_enabled: inventoryAlerts, cover_url: coverUrl })
       .eq("id", restaurant.id);
     await refreshRestaurant();
     // Don't force the operator's portal UI language to the venue default on save —
@@ -237,6 +238,14 @@ export default function SettingsPage() {
                 <span className="text-[11.5px] text-muted leading-relaxed">{t.portal.settings.reviewsEnabledHint}</span>
               </div>
               <Toggle checked={reviewsEnabled} onChange={setReviewsEnabled} label={t.portal.settings.reviewsEnabled} disabled={!canManage} />
+            </div>
+
+            <div className="flex items-start justify-between gap-3 pt-3 mt-1 border-t border-line">
+              <div className="flex flex-col gap-0.5 flex-1">
+                <span className="text-[13px] font-extrabold text-ink">{t.portal.settings.inventoryAlerts}</span>
+                <span className="text-[11.5px] text-muted leading-relaxed">{t.portal.settings.inventoryAlertsHint}</span>
+              </div>
+              <Toggle checked={inventoryAlerts} onChange={setInventoryAlerts} label={t.portal.settings.inventoryAlerts} disabled={!canManage} />
             </div>
           </div>
 

@@ -40,6 +40,8 @@ export interface Restaurant {
   rating_count?: number;
   /** Per-venue switch for the customer ratings prompt (defaults on). */
   reviews_enabled?: boolean;
+  /** Per-venue switch for the nightly low-stock email digest (defaults on). */
+  inventory_alerts_enabled?: boolean;
 }
 
 /** A venue as shown in the discovery list (public fields only). */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type I18nText,
   type Language,
@@ -13,6 +13,20 @@ import { useI18n } from "@/components/i18n-provider";
 import { PhotoPlaceholder, Toggle } from "@/components/ui";
 import { usePortal } from "../portal-provider";
 import { ConfirmDialog } from "../confirm-dialog";
+import { useInventoryUnit } from "../inventory/unit-label";
+
+interface InvOption {
+  id: string;
+  name: string;
+  unit: string;
+}
+
+interface EditableIngredient {
+  key: string;
+  id?: string;
+  inventory_item_id: string;
+  qtyText: string;
+}
 
 interface EditableModifier {
   id?: string;
@@ -76,6 +90,41 @@ export function ItemEditor({
   const [uploading, setUploading] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const unitLabel = useInventoryUnit();
+  const [availableInv, setAvailableInv] = useState<InvOption[]>([]);
+  const [ingredients, setIngredients] = useState<EditableIngredient[]>([]);
+  const [origIngredientIds, setOrigIngredientIds] = useState<string[]>([]);
+
+  // Load the venue's stock products (for the picker) + this dish's existing
+  // ingredient links, so the owner can wire auto-depletion per sale.
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      const { data: invs } = await supabase
+        .from("inventory_items")
+        .select("id, name, unit")
+        .eq("restaurant_id", restaurant.id)
+        .eq("is_active", true)
+        .order("name")
+        .overrideTypes<InvOption[], { merge: false }>();
+      if (!alive) return;
+      setAvailableInv(invs ?? []);
+      if (item) {
+        const { data: links } = await supabase
+          .from("item_ingredients")
+          .select("id, inventory_item_id, qty_per_unit")
+          .eq("item_id", item.id);
+        if (!alive) return;
+        const rows = (links ?? []) as { id: string; inventory_item_id: string; qty_per_unit: number }[];
+        setIngredients(rows.map((r) => ({ key: r.id, id: r.id, inventory_item_id: r.inventory_item_id, qtyText: String(r.qty_per_unit) })));
+        setOrigIngredientIds(rows.map((r) => r.id));
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [item, restaurant.id, supabase]);
 
   const parsePrice = (value: string): number | null => {
     const normalized = value.replace(",", ".").trim();
@@ -198,6 +247,40 @@ export function ItemEditor({
           } else {
             track(
               await supabase.from("modifiers").insert({ ...modPayload, restaurant_id: restaurant.id, group_id: groupId }),
+            );
+          }
+        }
+      }
+
+      // Reconcile recipe ingredient links (dish → stock product, qty per sale).
+      {
+        const cleaned = ingredients
+          .map((g) => ({ id: g.id, inventory_item_id: g.inventory_item_id, qty: Number(g.qtyText.replace(",", ".")) }))
+          .filter((g) => g.inventory_item_id && Number.isFinite(g.qty) && g.qty > 0);
+        // The (item, inventory_item) pair is unique — dedupe, last wins.
+        const byInv = new Map<string, (typeof cleaned)[number]>();
+        for (const g of cleaned) byInv.set(g.inventory_item_id, g);
+        const kept = [...byInv.values()];
+        const keptIds = kept.map((g) => g.id).filter(Boolean) as string[];
+        for (const origId of origIngredientIds) {
+          if (!keptIds.includes(origId)) track(await supabase.from("item_ingredients").delete().eq("id", origId));
+        }
+        for (const g of kept) {
+          if (g.id) {
+            track(
+              await supabase
+                .from("item_ingredients")
+                .update({ qty_per_unit: g.qty, inventory_item_id: g.inventory_item_id })
+                .eq("id", g.id),
+            );
+          } else {
+            track(
+              await supabase.from("item_ingredients").insert({
+                restaurant_id: restaurant.id,
+                item_id: itemId,
+                inventory_item_id: g.inventory_item_id,
+                qty_per_unit: g.qty,
+              }),
             );
           }
         }
@@ -445,6 +528,69 @@ export function ItemEditor({
         >
           {t.portal.menu.addOptionGroup}
         </button>
+      </div>
+
+      {/* Recipe / stock consumption — powers automatic depletion per sale. */}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[11px] font-extrabold text-muted-soft tracking-wide uppercase">{t.portal.inventory.recipe}</span>
+        <span className="text-[11px] font-semibold text-muted-soft -mt-0.5 leading-snug">{t.portal.inventory.recipeHint}</span>
+        {availableInv.length === 0 ? (
+          <span className="text-[11.5px] text-muted-soft leading-snug">{t.portal.inventory.ingredientEmpty}</span>
+        ) : (
+          <>
+            {ingredients.map((ing, ii) => {
+              const opt = availableInv.find((o) => o.id === ing.inventory_item_id);
+              return (
+                <div key={ing.key} className="flex items-center gap-1.5" dir="ltr">
+                  <select
+                    aria-label={t.portal.inventory.recipe}
+                    className="flex-1 h-8 rounded-sm border border-line-strong bg-white px-2 text-xs font-bold text-ink outline-none min-w-0"
+                    value={ing.inventory_item_id}
+                    onChange={(e) =>
+                      setIngredients((prev) => prev.map((g, i) => (i === ii ? { ...g, inventory_item_id: e.target.value } : g)))
+                    }
+                  >
+                    <option value="">—</option>
+                    {availableInv.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    inputMode="decimal"
+                    aria-label={t.portal.inventory.perUnit}
+                    className="w-[58px] h-8 rounded-sm border border-line-strong bg-white px-1.5 text-xs font-bold text-center outline-none"
+                    value={ing.qtyText}
+                    onChange={(e) =>
+                      setIngredients((prev) => prev.map((g, i) => (i === ii ? { ...g, qtyText: e.target.value } : g)))
+                    }
+                  />
+                  <span className="text-[10px] font-bold text-muted-soft w-[52px] shrink-0 leading-tight">
+                    {opt ? unitLabel(opt.unit) : ""} {t.portal.inventory.perUnit}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={t.common.delete}
+                    onClick={() => setIngredients((prev) => prev.filter((_, i) => i !== ii))}
+                    className="text-muted-soft hover:text-danger font-extrabold text-[10px] cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() =>
+                setIngredients((prev) => [...prev, { key: crypto.randomUUID(), inventory_item_id: "", qtyText: "1" }])
+              }
+              className="text-[11px] font-extrabold text-muted-soft hover:text-harissa text-start cursor-pointer"
+            >
+              {t.portal.inventory.addIngredient}
+            </button>
+          </>
+        )}
       </div>
 
       {error && <p className="text-[12.5px] font-bold text-danger-text">{error}</p>}

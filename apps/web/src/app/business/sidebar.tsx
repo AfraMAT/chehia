@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand";
 import { useI18n } from "@/components/i18n-provider";
 import { usePortal } from "./portal-provider";
+import { NotificationsBell } from "./notifications-bell";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -15,6 +16,7 @@ export function Sidebar() {
     { href: "/business/orders", label: t.portal.nav.orders },
     { href: "/business/kitchen", label: t.portal.nav.kitchen },
     ...(canManage ? [{ href: "/business/menu", label: t.portal.nav.menu }] : []),
+    ...(canManage ? [{ href: "/business/inventory", label: t.portal.nav.inventory }] : []),
     ...(canManage ? [{ href: "/business/tables", label: t.portal.nav.tables }] : []),
     { href: "/business/stats", label: t.portal.nav.stats },
     ...(canManage ? [{ href: "/business/ratings", label: t.portal.nav.ratings }] : []),
@@ -30,9 +32,12 @@ export function Sidebar() {
 
   return (
     <aside className="w-[218px] shrink-0 bg-card border-e border-line flex flex-col p-3.5 sticky top-0 h-dvh no-print">
-      <Link href="/business/orders" className="flex items-center gap-2 px-2 pb-4">
-        <Logo markSize={30} textSize={19} />
-      </Link>
+      <div className="flex items-center justify-between gap-2 px-2 pb-4">
+        <Link href="/business/orders" className="flex items-center gap-2">
+          <Logo markSize={30} textSize={19} />
+        </Link>
+        <NotificationsBell />
+      </div>
 
       <nav className="flex flex-col gap-1">
         {items.map((item) => {

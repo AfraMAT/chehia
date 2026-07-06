@@ -325,6 +325,41 @@ insert into public.ai_insights (restaurant_id, generated_for, language, title, b
    'Noté, à suivre',
    '{"stockout_days": 3, "missed_tnd_per_day": 26}');
 
+-- ---------- demo inventory / stock (Café El Marsa) ----------
+-- A realistic pantry: some healthy, a couple low, one out — so the Stock board,
+-- the status filters and the low-stock alerts all have something to show.
+insert into public.inventory_items
+  (id, restaurant_id, name, category, unit, qty_on_hand, reorder_threshold, par_level, unit_cost_millimes, supplier_name, supplier_phone) values
+  ('10000000-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'Café en grains', 'food', 'kg', 8, 3, 12, 42000, 'Torréfaction Sidi Bou', '+216 71 000 001'),
+  ('10000000-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', 'Lait frais', 'drinks', 'l', 2, 4, 20, 1800, 'Délice', '+216 71 000 002'),
+  ('10000000-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000001', 'Citrons', 'food', 'piece', 40, 20, 100, 400, 'Marché de La Marsa', ''),
+  ('10000000-0000-0000-0000-000000000004', 'aaaaaaaa-0000-0000-0000-000000000001', 'Farine', 'food', 'kg', 15, 5, 25, 2500, 'Grand Moulin', ''),
+  ('10000000-0000-0000-0000-000000000005', 'aaaaaaaa-0000-0000-0000-000000000001', 'Sucre', 'food', 'kg', 0.5, 2, 10, 2200, 'Grand Moulin', ''),
+  ('10000000-0000-0000-0000-000000000006', 'aaaaaaaa-0000-0000-0000-000000000001', 'Menthe fraîche', 'food', 'piece', 0, 3, 15, 800, 'Marché de La Marsa', ''),
+  ('10000000-0000-0000-0000-000000000007', 'aaaaaaaa-0000-0000-0000-000000000001', 'Gobelets carton', 'supplies', 'piece', 300, 100, 1000, 120, 'EmballagePro', ''),
+  ('10000000-0000-0000-0000-000000000008', 'aaaaaaaa-0000-0000-0000-000000000001', 'Œufs', 'food', 'piece', 60, 24, 120, 350, 'Ferme Raoued', ''),
+  ('10000000-0000-0000-0000-000000000009', 'aaaaaaaa-0000-0000-0000-000000000001', 'Oranges', 'food', 'piece', 50, 20, 100, 500, 'Marché de La Marsa', '');
+
+-- Recipe links: how much stock each dish consumes per sale (auto-depletion).
+insert into public.item_ingredients (restaurant_id, item_id, inventory_item_id, qty_per_unit) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 0.014),  -- Express → café
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 0.016),  -- Direct → café
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 0.12),   -- Direct → lait
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', 0.018),  -- Cappuccino → café
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 0.15),   -- Cappuccino → lait
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 0.012),  -- Café turc → café
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000001', 0.016),  -- Café glacé → café
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000002', 0.10),   -- Café glacé → lait
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000006', 1),      -- Thé menthe → menthe
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000011', '10000000-0000-0000-0000-000000000008', 1),      -- Plateau → œuf
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000012', '10000000-0000-0000-0000-000000000008', 2),      -- Ojja → œufs
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000013', '10000000-0000-0000-0000-000000000004', 0.08),   -- Croissant → farine
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000021', '10000000-0000-0000-0000-000000000003', 3),      -- Citronnade → citrons
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000021', '10000000-0000-0000-0000-000000000005', 0.03),   -- Citronnade → sucre
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000022', '10000000-0000-0000-0000-000000000009', 3),      -- Jus d'orange → oranges
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000031', '10000000-0000-0000-0000-000000000004', 0.06),   -- Bambalouni → farine
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000031', '10000000-0000-0000-0000-000000000005', 0.02);   -- Bambalouni → sucre
+
 -- Start per-tenant order numbering above the seeded demo orders.
 update public.restaurants set order_seq = 500;
 
