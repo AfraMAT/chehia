@@ -32,6 +32,7 @@ export default function SettingsPage() {
   const [defaultLanguage, setDefaultLanguage] = useState<Language>(restaurant.default_language as Language);
   const [hours, setHours] = useState<Record<Day, DayHours>>(() => parseHours(restaurant.opening_hours));
   const [requireQr, setRequireQr] = useState(restaurant.require_qr ?? false);
+  const [reviewsEnabled, setReviewsEnabled] = useState(restaurant.reviews_enabled !== false);
   const [staffRows, setStaffRows] = useState<StaffRow[]>([]);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -68,7 +69,7 @@ export default function SettingsPage() {
     for (const d of DAYS) if (!hours[d].closed) opening[d] = `${hours[d].open}-${hours[d].close}`;
     await supabase
       .from("restaurants")
-      .update({ name, address, city, phone, languages, default_language: defaultLanguage, opening_hours: opening, require_qr: requireQr })
+      .update({ name, address, city, phone, languages, default_language: defaultLanguage, opening_hours: opening, require_qr: requireQr, reviews_enabled: reviewsEnabled })
       .eq("id", restaurant.id);
     await refreshRestaurant();
     // Don't force the operator's portal UI language to the venue default on save —
@@ -176,6 +177,14 @@ export default function SettingsPage() {
                 <span className="text-[11.5px] text-muted leading-relaxed">{t.portal.settings.requireQrHint}</span>
               </div>
               <Toggle checked={requireQr} onChange={setRequireQr} label={t.portal.settings.requireQr} disabled={!canManage} />
+            </div>
+
+            <div className="flex items-start justify-between gap-3 pt-3 mt-1 border-t border-line">
+              <div className="flex flex-col gap-0.5 flex-1">
+                <span className="text-[13px] font-extrabold text-ink">{t.portal.settings.reviewsEnabled}</span>
+                <span className="text-[11.5px] text-muted leading-relaxed">{t.portal.settings.reviewsEnabledHint}</span>
+              </div>
+              <Toggle checked={reviewsEnabled} onChange={setReviewsEnabled} label={t.portal.settings.reviewsEnabled} disabled={!canManage} />
             </div>
           </div>
 

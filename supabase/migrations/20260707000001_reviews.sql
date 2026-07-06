@@ -349,7 +349,7 @@ as $$
     limit 50
   ),
   recent as (
-    select rating, sentiment, comment, customer_name, created_at, status, item_id
+    select id, rating, sentiment, comment, customer_name, created_at, status, item_id
     from public.reviews
     where restaurant_id = p_restaurant_id
     order by created_at desc
@@ -363,9 +363,9 @@ as $$
     'per_item', coalesce((select jsonb_agg(jsonb_build_object(
         'item_id', id, 'name', name_i18n, 'rating_avg', rating_avg, 'rating_count', rating_count)) from per_item), '[]'::jsonb),
     'recent', coalesce((select jsonb_agg(jsonb_build_object(
-        'rating', rating, 'sentiment', sentiment, 'comment', comment,
+        'id', id, 'rating', rating, 'sentiment', sentiment, 'comment', comment,
         'name', nullif(customer_name, ''), 'created_at', created_at,
-        'status', status, 'item_id', item_id)) from recent), '[]'::jsonb)
+        'status', status, 'item_id', item_id) order by created_at desc) from recent), '[]'::jsonb)
   );
 $$;
 

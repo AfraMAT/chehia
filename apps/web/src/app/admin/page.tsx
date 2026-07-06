@@ -8,6 +8,8 @@ import { useI18n } from "@/components/i18n-provider";
 import { useAdmin } from "./admin-provider";
 import { CreateBusiness } from "./create-business";
 import { LeadsPanel } from "./leads-panel";
+import { ReviewsModeration } from "./reviews-moderation";
+import { ReviewsConfig } from "./reviews-config";
 import { PortalFooter } from "../business/portal-footer";
 
 interface VenueOverview {
@@ -39,7 +41,7 @@ export default function AdminDashboard() {
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [tab, setTab] = useState<"venues" | "leads">("venues");
+  const [tab, setTab] = useState<"venues" | "leads" | "moderation" | "config">("venues");
 
   const load = useCallback(async () => {
     const { data } = await supabase.rpc("admin_venue_overview");
@@ -109,8 +111,8 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-[960px] mx-auto px-6 py-6 flex flex-col gap-4">
-        <div className="flex gap-1 bg-sand-deep rounded-lg p-1 self-start">
-          {(["venues", "leads"] as const).map((k) => (
+        <div className="flex gap-1 bg-sand-deep rounded-lg p-1 self-start flex-wrap">
+          {(["venues", "leads", "moderation", "config"] as const).map((k) => (
             <button
               key={k}
               type="button"
@@ -119,13 +121,23 @@ export default function AdminDashboard() {
                 tab === k ? "bg-card text-ink shadow-sm" : "text-muted hover:text-ink"
               }`}
             >
-              {k === "venues" ? t.admin.venuesTab : t.admin.leadsTab}
+              {k === "venues"
+                ? t.admin.venuesTab
+                : k === "leads"
+                  ? t.admin.leadsTab
+                  : k === "moderation"
+                    ? t.admin.reviewsTab
+                    : t.admin.configTab}
             </button>
           ))}
         </div>
 
         {tab === "leads" ? (
           <LeadsPanel />
+        ) : tab === "moderation" ? (
+          <ReviewsModeration />
+        ) : tab === "config" ? (
+          <ReviewsConfig />
         ) : (
           <>
         <div className="flex items-center gap-3 flex-wrap">
