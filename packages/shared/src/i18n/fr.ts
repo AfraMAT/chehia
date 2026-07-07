@@ -785,6 +785,8 @@ export const fr = {
     goToPortal: "Ouvrir le portail",
     waitingTitle: "Configuration en cours",
     waitingBody: "Le propriétaire finalise la mise en place. Revenez bientôt.",
+    stepAppearance: "Apparence",
+    stepAppearanceBody: "Choisissez le thème, la disposition et les images de votre menu. Les clients le voient dans ces couleurs. Vous pourrez le modifier à tout moment.",
     stepStock: "Stock",
     stepStockBody: "Optionnel — activez le suivi d'un plat et Chehia décompte le stock à chaque vente, avec une alerte avant la rupture.",
     stockTrackDishes: "Suivre mes plats",

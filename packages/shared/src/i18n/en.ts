@@ -786,6 +786,8 @@ export const en: Dictionary = {
     goToPortal: "Open the portal",
     waitingTitle: "Setup in progress",
     waitingBody: "The owner is finishing the venue setup. Check back soon.",
+    stepAppearance: "Appearance",
+    stepAppearanceBody: "Choose your menu's theme, layout and images. Customers see it in these colors. You can change it anytime.",
     stepStock: "Stock",
     stepStockBody: "Optional — turn on tracking for a dish and Chehia counts down the stock on every sale, with an alert before you run out.",
     stockTrackDishes: "Track my dishes",

@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LANGUAGES, LANGUAGE_LABELS, type Language } from "@chehia/shared";
+import { LANGUAGES, LANGUAGE_LABELS, type Category, type Language } from "@chehia/shared";
 import { callFunction, getSupabase } from "@/lib/supabase";
 import { Logo } from "@/components/brand";
 import { Spinner } from "@/components/ui";
 import { useI18n } from "@/components/i18n-provider";
 import { usePortal } from "../portal-provider";
 import { MenuImport } from "../menu/menu-import";
+import { AppearanceStudio } from "../appearance/appearance-studio";
 import { StockStep } from "./stock-step";
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
@@ -36,6 +37,7 @@ export default function OnboardingPage() {
       t.onboarding.stepProfile,
       t.onboarding.stepHours,
       t.onboarding.stepMenu,
+      t.onboarding.stepAppearance,
       t.onboarding.stepStock,
       t.onboarding.stepTables,
       t.onboarding.stepStaff,
@@ -132,9 +134,10 @@ export default function OnboardingPage() {
           {step === 0 && <ProfileStep />}
           {step === 1 && <HoursStep />}
           {step === 2 && <MenuStep defaultLang={defaultLang} onValidChange={setMenuValid} />}
-          {step === 3 && <StockStep />}
-          {step === 4 && <TablesStep />}
-          {step === 5 && <StaffStep />}
+          {step === 3 && <AppearanceStep />}
+          {step === 4 && <StockStep />}
+          {step === 5 && <TablesStep />}
+          {step === 6 && <StaffStep />}
         </div>
 
         {/* Nav */}
@@ -541,6 +544,30 @@ function AddItemRow({ onAdd }: { onAdd: (name: string, price: string) => void })
       <button type="button" onClick={submit} className="h-10 px-3 rounded-md bg-harissa-tint text-harissa-pressed font-extrabold text-[13px] cursor-pointer whitespace-nowrap">
         {t.onboarding.addItem}
       </button>
+    </div>
+  );
+}
+
+function AppearanceStep() {
+  const { t } = useI18n();
+  const { restaurant, refreshRestaurant } = usePortal();
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    void getSupabase()
+      .from("categories")
+      .select("*")
+      .eq("restaurant_id", restaurant.id)
+      .eq("is_active", true)
+      .order("sort_order")
+      .overrideTypes<Category[], { merge: false }>()
+      .then(({ data }) => setCategories(data ?? []));
+  }, [restaurant.id]);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <StepHeading title={t.onboarding.stepAppearance} body={t.onboarding.stepAppearanceBody} />
+      <AppearanceStudio restaurant={restaurant} categories={categories} onSaved={() => void refreshRestaurant()} />
     </div>
   );
 }

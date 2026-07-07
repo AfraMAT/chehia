@@ -785,6 +785,8 @@ export const ar: Dictionary = {
     goToPortal: "فتح البوابة",
     waitingTitle: "الإعداد جارٍ",
     waitingBody: "المالك يُنهي إعداد المطعم. عد قريبًا.",
+    stepAppearance: "المظهر",
+    stepAppearanceBody: "اختر سمة قائمتك وطريقة عرضها وصورها. يراها الحرفاء بهذه الألوان. يمكنك تغييرها في أي وقت.",
     stepStock: "المخزون",
     stepStockBody: "اختياري — فعّل تتبّع طبق ما وسيحسب شهية المخزون عند كل بيعة، مع تنبيه قبل النفاد.",
     stockTrackDishes: "تتبّع أطباقي",
