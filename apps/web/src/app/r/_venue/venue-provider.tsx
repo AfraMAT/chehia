@@ -19,6 +19,7 @@ import {
 import { getSupabase } from "@/lib/supabase";
 import { storageGet, storageRemove, storageSet } from "@/lib/storage";
 import { I18nProvider } from "@/components/i18n-provider";
+import { SessionProvider } from "./group/session-provider";
 
 /** A table the customer is ordering to — carries qr_token only in the scanned flow. */
 export type TableChoice = Pick<Table, "id" | "label" | "zone"> & { qr_token?: string };
@@ -261,7 +262,9 @@ export function VenueProvider({
       initial={bundle.restaurant.default_language as Language}
       storageKey={`chehia.lang.${bundle.restaurant.slug}`}
     >
-      <VenueContext.Provider value={value}>{children}</VenueContext.Provider>
+      <VenueContext.Provider value={value}>
+        <SessionProvider>{children}</SessionProvider>
+      </VenueContext.Provider>
     </I18nProvider>
   );
 }

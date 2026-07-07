@@ -42,6 +42,11 @@ export interface Restaurant {
   reviews_enabled?: boolean;
   /** Per-venue switch for the nightly low-stock email digest (defaults on). */
   inventory_alerts_enabled?: boolean;
+  /**
+   * Per-venue menu appearance (color theme + layout choices). Stored as a raw
+   * jsonb blob; always read through `resolveAppearance()` from ./appearance.
+   */
+  appearance?: Record<string, unknown> | null;
 }
 
 /** A venue as shown in the discovery list (public fields only). */
@@ -67,6 +72,14 @@ export interface Category {
   name_i18n: I18nText;
   sort_order: number;
   is_active: boolean;
+  /** Parent category id for a subcategory; null for a top-level category. */
+  parent_id: string | null;
+  /** Optional category imagery for image-based landing layouts. */
+  image_url: string | null;
+  /** Optional emoji / icon key for icon/circle landing layouts. */
+  icon: string | null;
+  /** Chosen default illustration id (from menu-art) when no image_url is set. */
+  art: string | null;
 }
 
 export interface MenuItem {
@@ -77,6 +90,8 @@ export interface MenuItem {
   description_i18n: I18nText;
   price_millimes: number;
   photo_url: string | null;
+  /** Chosen default illustration id (from menu-art) when no photo_url is set. */
+  art: string | null;
   is_available: boolean;
   is_popular: boolean;
   allergens: string[];
@@ -133,6 +148,8 @@ export interface Order {
   total_millimes: number;
   /** How the order was placed: a scanned QR, or the remote browse/discovery flow. */
   origin: "scan" | "browse";
+  /** Set when this order came from a shared group session (one order for the table). */
+  session_id?: string | null;
   created_at: string;
   accepted_at: string | null;
   ready_at: string | null;
@@ -149,6 +166,8 @@ export interface OrderItem {
   unit_price_millimes: number;
   modifiers_snapshot: ModifierSnapshot[];
   note: string;
+  /** Group ordering: who added this line (snapshot); empty for solo orders. */
+  participant_nickname?: string;
 }
 
 export interface WaiterCall {

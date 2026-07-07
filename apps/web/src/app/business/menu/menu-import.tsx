@@ -2,11 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  extractedPresetFromRaw,
   parseMenuPrice,
   validateDraft,
+  withExtractedPalette,
   type I18nText,
   type Language,
   type MenuDraft,
+  type ThemePreset,
 } from "@chehia/shared";
 import { callFunction, getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
@@ -90,6 +93,7 @@ export function MenuImport({ onClose, onImported }: { onClose: () => void; onImp
   const [editLang, setEditLang] = useState<Language>(languages[0] ?? "fr");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [extractedPreset, setExtractedPreset] = useState<ThemePreset | null>(null);
   const importRefRef = useRef<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -106,8 +110,16 @@ export function MenuImport({ onClose, onImported }: { onClose: () => void; onImp
       setError(null);
       const accepted: string[] = [];
       for (const file of Array.from(files)) {
-        if (!/^image\/(png|jpe?g|webp)$/.test(file.type) || file.size > 5_000_000) {
+        // Wrong format is a distinct problem from "too big". We downscale every
+        // photo to <=1600px JPEG below, so a large original (phone photos are
+        // routinely 3-8MB) is fine — only reject genuinely huge files the
+        // browser might struggle to decode.
+        if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) {
           setError(tx.errorBadFile);
+          continue;
+        }
+        if (file.size > 30_000_000) {
+          setError(tx.errorTooLarge);
           continue;
         }
         try {
@@ -121,25 +133,43 @@ export function MenuImport({ onClose, onImported }: { onClose: () => void; onImp
     [tx],
   );
 
+  /** Map an edge-function failure (HTTP status + error code) to a clear message. */
+  const extractErrorMessage = (status: number, code?: string): string => {
+    if (code === "rate_limited" || status === 429) return tx.errorRateLimited;
+    if (code === "ai_unavailable" || status === 503) return tx.errorUnavailable;
+    if (code === "image_too_large" || code === "too_many_images" || status === 413)
+      return tx.errorTooLarge;
+    if (code === "ai_failed" || status === 502) return tx.errorFailed;
+    return t.errors.generic;
+  };
+
   const extract = async () => {
     if (photos.length === 0) return;
     setPhase("extracting");
     setError(null);
-    const { ok, data } = await callFunction<{ draft?: unknown; error?: { code?: string } }>("extract-menu", {
-      restaurant_id: restaurant.id,
-      images: photos,
-    });
+    const { ok, status, data } = await callFunction<{ draft?: unknown; error?: { code?: string } }>(
+      "extract-menu",
+      { restaurant_id: restaurant.id, images: photos },
+    );
     if (!ok || !data?.draft) {
-      setError(tx.errorNoItems);
+      // A failed request means the scan itself broke (service down, rate limit,
+      // photos too large…), NOT that the menu is unreadable — surface the real
+      // cause so the owner doesn't blame a perfectly good photo.
+      setError(extractErrorMessage(status, data?.error?.code));
       setPhase("capture");
       return;
     }
     const { ok: hasItems, draft } = validateDraft(data.draft, languages);
     if (!hasItems) {
+      // Request succeeded but the model found nothing orderable — this is the
+      // only case where "try a clearer photo" is the right advice.
       setError(tx.errorNoItems);
       setPhase("capture");
       return;
     }
+    // Capture a color theme derived from the menu's design, if any.
+    const rawPalette = (data.draft as Record<string, unknown> | undefined)?.palette;
+    setExtractedPreset(extractedPresetFromRaw(rawPalette, `extracted-${crypto.randomUUID()}`));
     setCats(draftToEdit(draft));
     setPhase("review");
   };
@@ -170,11 +200,24 @@ export function MenuImport({ onClose, onImported }: { onClose: () => void; onImp
       p_draft: { categories },
       p_import_ref: importRefRef.current,
     });
-    setBusy(false);
     if (rpcErr) {
+      setBusy(false);
       setError(t.errors.generic);
       return;
     }
+    // Best-effort: persist the theme derived from the menu photo so it appears
+    // as a selectable preset in Appearance. Never fail the import over this.
+    if (extractedPreset) {
+      try {
+        const supabase = getSupabase();
+        const { data: rrow } = await supabase.from("restaurants").select("appearance").eq("id", restaurant.id).maybeSingle();
+        const next = withExtractedPalette(rrow?.appearance, extractedPreset);
+        await supabase.from("restaurants").update({ appearance: next }).eq("id", restaurant.id);
+      } catch {
+        // ignore — the menu still imported
+      }
+    }
+    setBusy(false);
     onImported();
   };
 
@@ -324,6 +367,14 @@ export function MenuImport({ onClose, onImported }: { onClose: () => void; onImp
               )}
             </div>
 
+            {extractedPreset && (
+              <div className="mx-5 mt-2 flex items-center gap-2 rounded-lg bg-harissa-tint/50 px-3 py-2">
+                <span aria-hidden>🎨</span>
+                <span className="text-[12px] font-bold text-harissa-pressed">{t.portal.appearance.extractedThemes}</span>
+                <span className="w-3.5 h-3.5 rounded-full border border-white/60" style={{ background: extractedPreset.palette.primary }} />
+                <span className="w-3.5 h-3.5 rounded-full border border-white/60" style={{ background: extractedPreset.palette.accent }} />
+              </div>
+            )}
             <div className="flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-3">
               {cats.map((cat, ci) => (
                 <div key={ci} className={`rounded-xl border p-3 flex flex-col gap-2 ${cat.keep ? "border-line bg-white" : "border-line bg-sand opacity-60"}`}>

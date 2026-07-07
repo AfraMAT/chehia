@@ -20,6 +20,7 @@ const cappuccino: MenuItem = {
   description_i18n: {},
   price_millimes: 5500,
   photo_url: null,
+  art: null,
   is_available: true,
   is_popular: true,
   allergens: ["milk"],

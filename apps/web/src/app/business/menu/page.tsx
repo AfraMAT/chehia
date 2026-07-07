@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  buildCategoryTree,
   millimesToDisplay,
   type Category,
   type Language,
@@ -16,6 +17,7 @@ import { PhotoPlaceholder, Toggle } from "@/components/ui";
 import { usePortal } from "../portal-provider";
 import { ConfirmDialog } from "../confirm-dialog";
 import { ItemEditor } from "./item-editor";
+import { CategoryEditor } from "./category-editor";
 import { MenuImport } from "./menu-import";
 
 /** W3 · Menu management — categories, items, availability, trilingual completeness. */
@@ -33,6 +35,7 @@ export default function MenuManagementPage() {
   const [savedFlash, setSavedFlash] = useState<string | null>(null);
   const [saveError, setSaveError] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [editingCat, setEditingCat] = useState<{ category: Category | null; parentId: string | null; hasChildren: boolean } | null>(null);
   const [importing, setImporting] = useState(false);
 
   // Menu management is owner/manager only — RLS silently discards writes
@@ -72,6 +75,10 @@ export default function MenuManagementPage() {
     [items, activeCategory],
   );
 
+  const tree = useMemo(() => buildCategoryTree(categories), [categories]);
+  const topLevel = useMemo(() => categories.filter((c) => !c.parent_id), [categories]);
+  const itemCount = useCallback((catId: string) => items.filter((i) => i.category_id === catId).length, [items]);
+
   const toggleAvailability = async (item: MenuItem, available: boolean) => {
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_available: available } : i)));
     const { error } = await supabase
@@ -87,17 +94,10 @@ export default function MenuManagementPage() {
     flashSaved(!error, t.portal.menu.availabilitySaved);
   };
 
-  const addCategory = async () => {
-    const name = window.prompt(t.portal.menu.categoryName);
-    if (!name?.trim()) return;
-    const { error } = await supabase.from("categories").insert({
-      restaurant_id: restaurant.id,
-      name_i18n: { [lang]: name.trim() },
-      sort_order: categories.length,
-    });
-    await reload();
-    flashSaved(!error);
-  };
+  const openNewCategory = () => setEditingCat({ category: null, parentId: null, hasChildren: false });
+  const openNewSubcategory = (parentId: string) => setEditingCat({ category: null, parentId, hasChildren: false });
+  const openEditCategory = (cat: Category, hasChildren: boolean) =>
+    setEditingCat({ category: cat, parentId: cat.parent_id, hasChildren });
 
   const confirmDeleteCategory = async () => {
     const cat = categoryToDelete;
@@ -119,6 +119,47 @@ export default function MenuManagementPage() {
       supabase.from("items").update({ sort_order: item.sort_order }).eq("id", swapWith.id),
     ]);
     await reload();
+  };
+
+  const renderCatRow = (cat: Category, depth: 0 | 1) => {
+    const active = activeCategory === cat.id;
+    const hasChildren = depth === 0 && (tree.find((n) => n.id === cat.id)?.children.length ?? 0) > 0;
+    return (
+      <div key={cat.id} className="group relative">
+        <button
+          type="button"
+          onClick={() => setActiveCategory(cat.id)}
+          className={`w-full flex items-center justify-between rounded-md cursor-pointer transition-colors ${
+            depth ? "ps-6 pe-3 py-2.5" : "px-3.5 py-3"
+          } ${active ? "bg-ink" : "bg-card border border-line hover:border-line-strong"}`}
+        >
+          <span className={`text-[13px] truncate flex items-center gap-1.5 ${active ? "font-extrabold text-cream" : "font-bold text-muted"}`}>
+            {depth === 1 && <span className="text-muted-soft" aria-hidden>↳</span>}
+            {cat.icon && <span aria-hidden>{cat.icon}</span>}
+            {tr(cat.name_i18n)}
+          </span>
+          <span className={`text-[11.5px] font-extrabold ${active ? "text-cream/60" : "text-disabled"}`}>{itemCount(cat.id)}</span>
+        </button>
+        <div className="absolute -top-1.5 -end-1.5 hidden group-hover:flex gap-1">
+          <button
+            type="button"
+            aria-label={t.common.edit}
+            onClick={() => openEditCategory(cat, hasChildren)}
+            className="w-5 h-5 rounded-full bg-ink text-cream text-[9px] font-extrabold flex items-center justify-center cursor-pointer"
+          >
+            ✎
+          </button>
+          <button
+            type="button"
+            aria-label={t.common.delete}
+            onClick={() => setCategoryToDelete(cat)}
+            className="w-5 h-5 rounded-full bg-danger text-white text-[10px] font-extrabold flex items-center justify-center cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -182,39 +223,24 @@ export default function MenuManagementPage() {
       </div>
 
       <div className="flex-1 flex gap-4 px-6 pb-5 items-start">
-        {/* Categories rail */}
-        <div className="w-[200px] shrink-0 flex flex-col gap-1.5">
-          {categories.map((cat) => {
-            const active = cat.id === activeCategory;
-            const count = items.filter((i) => i.category_id === cat.id).length;
-            return (
-              <div key={cat.id} className="group relative">
-                <button
-                  type="button"
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`w-full flex items-center justify-between rounded-md px-3.5 py-3 cursor-pointer transition-colors ${
-                    active ? "bg-ink" : "bg-card border border-line hover:border-line-strong"
-                  }`}
-                >
-                  <span className={`text-[13px] truncate ${active ? "font-extrabold text-cream" : "font-bold text-muted"}`}>
-                    {tr(cat.name_i18n)}
-                  </span>
-                  <span className={`text-[11.5px] font-extrabold ${active ? "text-cream/60" : "text-disabled"}`}>{count}</span>
-                </button>
-                <button
-                  type="button"
-                  aria-label={t.common.delete}
-                  onClick={() => setCategoryToDelete(cat)}
-                  className="absolute -top-1.5 -end-1.5 hidden group-hover:flex w-5 h-5 rounded-full bg-danger text-white text-[10px] font-extrabold items-center justify-center cursor-pointer"
-                >
-                  ✕
-                </button>
-              </div>
-            );
-          })}
+        {/* Categories rail (2 levels) */}
+        <div className="w-[230px] shrink-0 flex flex-col gap-1.5">
+          {tree.map((node) => (
+            <div key={node.id} className="flex flex-col gap-1">
+              {renderCatRow(node, 0)}
+              {node.children.map((sub) => renderCatRow(sub, 1))}
+              <button
+                type="button"
+                onClick={() => openNewSubcategory(node.id)}
+                className="ms-4 text-start text-[11.5px] font-extrabold text-muted-soft hover:text-harissa cursor-pointer"
+              >
+                {t.portal.menu.addSubcategory}
+              </button>
+            </div>
+          ))}
           <button
             type="button"
-            onClick={() => void addCategory()}
+            onClick={openNewCategory}
             className="border-[1.5px] border-dashed border-line-dashed rounded-md px-3.5 py-3 text-muted-soft font-extrabold text-[12.5px] cursor-pointer hover:border-harissa hover:text-harissa transition-colors"
           >
             {t.portal.menu.addCategory}
@@ -346,9 +372,32 @@ export default function MenuManagementPage() {
 
       {categoryToDelete && (
         <ConfirmDialog
-          body={t.portal.menu.deleteCategoryConfirm}
+          body={categoryToDelete.parent_id ? t.portal.menu.deleteSubcategoryConfirm : t.portal.menu.deleteCategoryConfirm}
           onConfirm={() => void confirmDeleteCategory()}
           onCancel={() => setCategoryToDelete(null)}
+        />
+      )}
+
+      {editingCat && (
+        <CategoryEditor
+          restaurant={restaurant}
+          category={editingCat.category}
+          parentId={editingCat.parentId}
+          topLevel={topLevel}
+          hasChildren={editingCat.hasChildren}
+          nextSortOrder={
+            editingCat.category
+              ? editingCat.category.sort_order
+              : editingCat.parentId
+                ? tree.find((n) => n.id === editingCat.parentId)?.children.length ?? 0
+                : topLevel.length
+          }
+          onClose={() => setEditingCat(null)}
+          onSaved={(ok) => {
+            setEditingCat(null);
+            void reload();
+            flashSaved(ok);
+          }}
         />
       )}
 

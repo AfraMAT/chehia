@@ -246,6 +246,11 @@ function OrderCard({
               {t.portal.orders.remoteOrder}
             </span>
           )}
+          {order.session_id && (
+            <span className="self-start mt-0.5 text-[10px] font-extrabold text-teal-pressed bg-teal-tint rounded-full px-2 py-0.5">
+              👥 {t.portal.orders.groupOrder}
+            </span>
+          )}
         </div>
         {isNew && <span className="ms-auto w-2.5 h-2.5 rounded-full bg-harissa animate-ch-pulse shrink-0" />}
       </div>
