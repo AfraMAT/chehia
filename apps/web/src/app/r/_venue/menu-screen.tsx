@@ -194,7 +194,7 @@ export function MenuScreen() {
           ) : (
             <div className={containerCls}>
               {searchResults.map((item) => (
-                <ItemCard key={item.id} item={item} groups={groupsByItem[item.id] ?? []} layout={appearance.itemLayout} onOpen={setOpenItem} />
+                <ItemCard key={item.id} item={item} groups={groupsByItem[item.id] ?? []} layout={appearance.itemLayout} imageStyle={appearance.imageStyle} onOpen={setOpenItem} />
               ))}
             </div>
           )}
@@ -205,6 +205,7 @@ export function MenuScreen() {
           items={onMenuItems}
           groupsByItem={groupsByItem}
           itemLayout={appearance.itemLayout}
+          imageStyle={appearance.imageStyle}
           onBack={() => setSelectedRootId(null)}
           onOpen={setOpenItem}
         />
@@ -212,6 +213,7 @@ export function MenuScreen() {
         <CategoryLanding
           tree={tree}
           layout={appearance.categoryLayout}
+          imageStyle={appearance.imageStyle}
           itemCountByCategory={itemCountByCategory}
           onSelect={(node) => setSelectedRootId(node.id)}
         />
@@ -225,7 +227,7 @@ export function MenuScreen() {
           ) : (
             <div className={containerCls}>
               {classicItems.map((item) => (
-                <ItemCard key={item.id} item={item} groups={groupsByItem[item.id] ?? []} layout={appearance.itemLayout} onOpen={setOpenItem} />
+                <ItemCard key={item.id} item={item} groups={groupsByItem[item.id] ?? []} layout={appearance.itemLayout} imageStyle={appearance.imageStyle} categoryName={tree.find((n) => n.id === activeCategory)?.name_i18n} onOpen={setOpenItem} />
               ))}
             </div>
           )}

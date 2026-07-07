@@ -78,6 +78,8 @@ export interface Category {
   image_url: string | null;
   /** Optional emoji / icon key for icon/circle landing layouts. */
   icon: string | null;
+  /** Chosen default illustration id (from menu-art) when no image_url is set. */
+  art: string | null;
 }
 
 export interface MenuItem {
@@ -88,6 +90,8 @@ export interface MenuItem {
   description_i18n: I18nText;
   price_millimes: number;
   photo_url: string | null;
+  /** Chosen default illustration id (from menu-art) when no photo_url is set. */
+  art: string | null;
   is_available: boolean;
   is_popular: boolean;
   allergens: string[];

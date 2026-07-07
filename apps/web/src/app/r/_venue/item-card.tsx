@@ -4,12 +4,15 @@ import {
   currencyLabel,
   formatRating,
   millimesToDisplay,
+  type I18nText,
+  type ImageStyle,
   type ItemLayout,
   type MenuItem,
   type ModifierGroup,
 } from "@chehia/shared";
 import { useI18n } from "@/components/i18n-provider";
-import { PhotoPlaceholder, Stars, Tag } from "@/components/ui";
+import { Stars, Tag } from "@/components/ui";
+import { MenuImage } from "@/components/menu-art";
 
 type DietaryTone = "green" | "amber" | "neutral";
 
@@ -18,11 +21,16 @@ export function ItemCard({
   item,
   groups,
   layout,
+  imageStyle,
+  categoryName,
   onOpen,
 }: {
   item: MenuItem;
   groups: ModifierGroup[];
   layout: ItemLayout;
+  imageStyle: ImageStyle;
+  /** Parent category name, to pick default art when the item name is inconclusive. */
+  categoryName?: I18nText;
   onOpen: (item: MenuItem) => void;
 }) {
   const { t, tr, lang } = useI18n();
@@ -100,7 +108,7 @@ export function ItemCard({
         }`}
       >
         <div className="relative">
-          <PhotoPlaceholder src={item.photo_url} alt="" className="w-full aspect-[4/3]" />
+          <MenuImage src={item.photo_url} name={item.name_i18n} art={item.art} fallbackName={categoryName} imageStyle={imageStyle} className="w-full aspect-[4/3]" />
           {item.is_popular && available && (
             <span className="absolute top-2 start-2 bg-harissa text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full">
               {t.menu.popular}
@@ -143,7 +151,7 @@ export function ItemCard({
       }`}
     >
       <div className="relative shrink-0">
-        <PhotoPlaceholder src={item.photo_url} alt="" className={`${compact ? "w-14 h-14" : "w-[68px] h-[68px]"} rounded-lg`} />
+        <MenuImage src={item.photo_url} name={item.name_i18n} art={item.art} fallbackName={categoryName} imageStyle={imageStyle} className={`${compact ? "w-14 h-14" : "w-[68px] h-[68px]"} rounded-lg`} />
         {item.is_popular && available && (
           <span className="absolute -top-2 -start-2 bg-harissa text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full">
             {t.menu.popular}

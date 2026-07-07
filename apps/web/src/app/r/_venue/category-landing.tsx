@@ -5,19 +5,22 @@ import {
   nodeItemCount,
   type CategoryLayout,
   type CategoryNode,
+  type ImageStyle,
 } from "@chehia/shared";
 import { useI18n } from "@/components/i18n-provider";
-import { PhotoPlaceholder } from "@/components/ui";
+import { MenuImage } from "@/components/menu-art";
 
 /** The category-first landing — renders the business's chosen layout. */
 export function CategoryLanding({
   tree,
   layout,
+  imageStyle,
   itemCountByCategory,
   onSelect,
 }: {
   tree: CategoryNode[];
   layout: CategoryLayout;
+  imageStyle: ImageStyle;
   itemCountByCategory: Record<string, number>;
   onSelect: (node: CategoryNode) => void;
 }) {
@@ -29,14 +32,14 @@ export function CategoryLanding({
     <h2 className="px-5 pt-3 pb-1 font-display font-extrabold text-[19px] text-ink">{t.menu.browseByCategory}</h2>
   );
 
-  // Emoji icon or the photo weave, used across layouts.
+  // Emoji icon (if set and no photo), else the photo / default illustration.
   const media = (node: CategoryNode, className: string) =>
     node.icon && !node.image_url ? (
       <div className={`flex items-center justify-center bg-harissa-tint text-[26px] ${className}`} aria-hidden>
         {node.icon}
       </div>
     ) : (
-      <PhotoPlaceholder src={node.image_url} alt="" className={className} />
+      <MenuImage src={node.image_url} name={node.name_i18n} art={node.art} imageStyle={imageStyle} className={className} />
     );
 
   if (layout === "list") {

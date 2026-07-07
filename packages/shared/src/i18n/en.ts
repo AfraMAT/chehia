@@ -390,6 +390,8 @@ export const en: Dictionary = {
       parentCategory: "Parent category",
       topLevel: "Top-level category",
       deleteSubcategoryConfirm: "Delete this subcategory and its items?",
+      defaultImage: "Default image",
+      autoImage: "Auto",
     },
     appearance: {
       title: "Appearance",
@@ -410,6 +412,9 @@ export const en: Dictionary = {
       showLandingHint: "Customers see categories first, then the dishes.",
       preview: "Customer preview",
       saved: "Appearance saved",
+      imageStyle: "Default images",
+      imageStyleHint: "Used when a dish or category has no photo.",
+      imageStyles: { illustration: "Illustrations", pattern: "Pattern", plain: "Plain" },
       layouts: {
         grid: "Grid",
         list: "List",

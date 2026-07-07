@@ -11,3 +11,4 @@ export * from "./reviews";
 export * from "./inventory";
 export * from "./appearance";
 export * from "./menu-tree";
+export * from "./menu-art";

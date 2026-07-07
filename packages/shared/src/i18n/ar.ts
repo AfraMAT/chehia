@@ -390,6 +390,8 @@ export const ar: Dictionary = {
       parentCategory: "الفئة الأم",
       topLevel: "فئة رئيسية",
       deleteSubcategoryConfirm: "حذف هذه الفئة الفرعية وأصنافها؟",
+      defaultImage: "الصورة الافتراضية",
+      autoImage: "تلقائي",
     },
     appearance: {
       title: "المظهر",
@@ -410,6 +412,9 @@ export const ar: Dictionary = {
       showLandingHint: "يرى الحرفاء الفئات أولًا ثمّ الأطباق.",
       preview: "معاينة الحريف",
       saved: "تم حفظ المظهر",
+      imageStyle: "الصور الافتراضية",
+      imageStyleHint: "تُستخدم عندما لا يحتوي الصنف أو الفئة على صورة.",
+      imageStyles: { illustration: "رسوم", pattern: "نقش", plain: "سادة" },
       layouts: {
         grid: "شبكة",
         list: "قائمة",

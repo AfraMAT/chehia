@@ -171,6 +171,7 @@ describe("buildCategoryTree", () => {
     parent_id,
     image_url: null,
     icon: null,
+    art: null,
   });
 
   it("nests subcategories under their parent, in sort order", () => {

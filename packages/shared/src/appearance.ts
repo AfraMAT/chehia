@@ -1,4 +1,5 @@
 import type { I18nText } from "./types";
+import { IMAGE_STYLES, type ImageStyle } from "./menu-art";
 
 /**
  * Per-venue menu appearance — color themes + layout choices that re-skin and
@@ -90,6 +91,8 @@ export interface MenuAppearance {
   itemLayout: ItemLayout;
   /** When false, the menu opens straight to items (the pre-feature behaviour). */
   showCategoryLanding: boolean;
+  /** How item/category images with no uploaded photo are filled. */
+  imageStyle: ImageStyle;
 }
 
 // ------------------------------------------------------------------
@@ -303,6 +306,7 @@ export const DEFAULT_APPEARANCE: MenuAppearance = {
   categoryLayout: "grid",
   itemLayout: "list",
   showCategoryLanding: true,
+  imageStyle: "illustration",
 };
 
 // ------------------------------------------------------------------
@@ -362,6 +366,7 @@ export function resolveAppearance(raw: unknown): MenuAppearance {
     itemLayout: coerceEnum(obj.itemLayout, ITEM_LAYOUTS, DEFAULT_APPEARANCE.itemLayout),
     showCategoryLanding:
       typeof obj.showCategoryLanding === "boolean" ? obj.showCategoryLanding : DEFAULT_APPEARANCE.showCategoryLanding,
+    imageStyle: coerceEnum(obj.imageStyle, IMAGE_STYLES, DEFAULT_APPEARANCE.imageStyle),
   };
 }
 

@@ -11,6 +11,7 @@ import {
 import { getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
 import { PhotoPlaceholder, Toggle } from "@/components/ui";
+import { ArtPicker } from "@/components/art-picker";
 import { usePortal } from "../portal-provider";
 import { ConfirmDialog } from "../confirm-dialog";
 import { useInventoryUnit } from "../inventory/unit-label";
@@ -87,6 +88,7 @@ export function ItemEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(item?.photo_url ?? null);
+  const [art, setArt] = useState<string | null>(item?.art ?? null);
   const [uploading, setUploading] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -180,6 +182,7 @@ export function ItemEditor({
         is_available: available,
         is_popular: popular,
         photo_url: photoUrl,
+        art,
       };
       if (itemId) {
         const { error: e } = await supabase.from("items").update(payload).eq("id", itemId).select("id").single();
@@ -396,6 +399,12 @@ export function ItemEditor({
           e.target.value = "";
         }}
       />
+
+      {/* Default illustration — shown when no photo is uploaded */}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[11px] font-extrabold text-muted-soft tracking-wide uppercase">{t.portal.menu.defaultImage}</span>
+        <ArtPicker value={art} onChange={setArt} autoLabel={t.portal.menu.autoImage} />
+      </div>
 
       {/* Option groups */}
       <div className="flex flex-col gap-1.5">

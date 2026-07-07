@@ -389,6 +389,8 @@ export const fr = {
       parentCategory: "Catégorie parente",
       topLevel: "Catégorie principale",
       deleteSubcategoryConfirm: "Supprimer cette sous-catégorie et ses articles ?",
+      defaultImage: "Image par défaut",
+      autoImage: "Auto",
     },
     appearance: {
       title: "Apparence",
@@ -409,6 +411,9 @@ export const fr = {
       showLandingHint: "Les clients voient d'abord les catégories, puis les plats.",
       preview: "Aperçu client",
       saved: "Apparence enregistrée",
+      imageStyle: "Images par défaut",
+      imageStyleHint: "Utilisées quand un plat ou une catégorie n'a pas de photo.",
+      imageStyles: { illustration: "Illustrations", pattern: "Motif", plain: "Uni" },
       layouts: {
         grid: "Grille",
         list: "Liste",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CategoryNode, ItemLayout, MenuItem, ModifierGroup } from "@chehia/shared";
+import type { CategoryNode, ImageStyle, ItemLayout, MenuItem, ModifierGroup } from "@chehia/shared";
 import { useI18n } from "@/components/i18n-provider";
 import { ItemCard } from "./item-card";
 
@@ -11,6 +11,7 @@ export function CategoryItems({
   items,
   groupsByItem,
   itemLayout,
+  imageStyle,
   onBack,
   onOpen,
 }: {
@@ -18,6 +19,7 @@ export function CategoryItems({
   items: MenuItem[];
   groupsByItem: Record<string, ModifierGroup[]>;
   itemLayout: ItemLayout;
+  imageStyle: ImageStyle;
   onBack: () => void;
   onOpen: (item: MenuItem) => void;
 }) {
@@ -37,7 +39,7 @@ export function CategoryItems({
   const renderItems = (list: MenuItem[]) => (
     <div className={containerCls}>
       {list.map((item) => (
-        <ItemCard key={item.id} item={item} groups={groupsByItem[item.id] ?? []} layout={itemLayout} onOpen={onOpen} />
+        <ItemCard key={item.id} item={item} groups={groupsByItem[item.id] ?? []} layout={itemLayout} imageStyle={imageStyle} categoryName={node.name_i18n} onOpen={onOpen} />
       ))}
     </div>
   );

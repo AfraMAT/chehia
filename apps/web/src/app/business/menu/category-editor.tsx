@@ -5,6 +5,7 @@ import type { Category, I18nText, Language, Restaurant } from "@chehia/shared";
 import { getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
 import { PhotoPlaceholder, Spinner } from "@/components/ui";
+import { ArtPicker } from "@/components/art-picker";
 
 /** Create / edit a category or subcategory: name (i18n), parent, icon, image. */
 export function CategoryEditor({
@@ -37,6 +38,7 @@ export function CategoryEditor({
 
   const [name, setName] = useState<I18nText>(category?.name_i18n ?? {});
   const [icon, setIcon] = useState(category?.icon ?? "");
+  const [art, setArt] = useState<string | null>(category?.art ?? null);
   const [imageUrl, setImageUrl] = useState<string | null>(category?.image_url ?? null);
   const [parent, setParent] = useState<string | null>(category ? category.parent_id : parentId ?? null);
   const [uploading, setUploading] = useState(false);
@@ -72,6 +74,7 @@ export function CategoryEditor({
     const payload = {
       name_i18n: name,
       icon: icon.trim() || null,
+      art,
       image_url: imageUrl,
       parent_id: parent,
     };
@@ -153,6 +156,12 @@ export function CategoryEditor({
                 <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { if (e.target.files?.[0]) void onPickImage(e.target.files[0]); e.target.value = ""; }} />
               </label>
             </div>
+          </div>
+
+          {/* Default illustration — shown when no image is uploaded */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-extrabold text-muted-soft tracking-wide uppercase">{tx.defaultImage}</span>
+            <ArtPicker value={art} onChange={setArt} autoLabel={tx.autoImage} />
           </div>
 
           {error && <p className="text-[13px] font-bold text-danger-text">{t.errors.generic}</p>}

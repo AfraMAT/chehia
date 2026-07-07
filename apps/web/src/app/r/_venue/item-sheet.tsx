@@ -9,21 +9,24 @@ import {
   formatRelativeTime,
   interpolate,
   millimesToDisplay,
+  resolveAppearance,
   validateModifiers,
   type ItemReviews,
   type MenuItem,
 } from "@chehia/shared";
 import { getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
-import { PhotoPlaceholder, Stars, Stepper, Tag } from "@/components/ui";
+import { Stars, Stepper, Tag } from "@/components/ui";
+import { MenuImage } from "@/components/menu-art";
 import { useVenue } from "./venue-provider";
 import { useSession } from "./group/session-provider";
 
 /** P3 · Item detail — required vs optional modifier groups, live price in CTA, allergens declared. */
 export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => void }) {
-  const { groupsByItem, addToCart } = useVenue();
+  const { restaurant, groupsByItem, addToCart } = useVenue();
   const { session, addLine } = useSession();
   const { t, tr, lang } = useI18n();
+  const imageStyle = resolveAppearance(restaurant.appearance).imageStyle;
   const groups = useMemo(
     () => [...(groupsByItem[item.id] ?? [])].sort((a, b) => a.sort_order - b.sort_order),
     [groupsByItem, item.id],
@@ -106,7 +109,7 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
       <div className="relative w-full max-w-[520px] max-h-[92dvh] bg-cream rounded-t-3xl flex flex-col overflow-hidden shadow-[0_-12px_40px_rgba(34,26,19,0.3)]">
         {/* Photo */}
         <div className="relative h-[180px] shrink-0">
-          <PhotoPlaceholder src={item.photo_url} alt="" className="absolute inset-0 w-full h-full" />
+          <MenuImage src={item.photo_url} name={item.name_i18n} art={item.art} imageStyle={imageStyle} className="absolute inset-0 w-full h-full" />
           <button
             type="button"
             aria-label={t.common.close}

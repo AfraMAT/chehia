@@ -4,6 +4,7 @@ import { useMemo, useState, type CSSProperties } from "react";
 import {
   BUILTIN_THEMES,
   CATEGORY_LAYOUTS,
+  IMAGE_STYLES,
   ITEM_LAYOUTS,
   availableThemes,
   buildCategoryTree,
@@ -13,6 +14,7 @@ import {
   resolveThemePalette,
   type Category,
   type CategoryLayout,
+  type ImageStyle,
   type ItemLayout,
   type MenuAppearance,
   type Restaurant,
@@ -22,14 +24,15 @@ import {
 } from "@chehia/shared";
 import { getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
-import { Toggle } from "@/components/ui";
+import { PhotoPlaceholder, Toggle } from "@/components/ui";
+import { MenuArt } from "@/components/menu-art";
 import { CategoryLanding } from "@/app/r/_venue/category-landing";
 
 const SAMPLE_CATEGORIES: Category[] = [
-  { id: "s1", restaurant_id: "", name_i18n: { fr: "Cafés", ar: "قهوة", en: "Coffee" }, sort_order: 0, is_active: true, parent_id: null, image_url: null, icon: "☕" },
-  { id: "s2", restaurant_id: "", name_i18n: { fr: "Petit-déjeuner", ar: "فطور", en: "Breakfast" }, sort_order: 1, is_active: true, parent_id: null, image_url: null, icon: "🍳" },
-  { id: "s3", restaurant_id: "", name_i18n: { fr: "Jus", ar: "عصير", en: "Juices" }, sort_order: 2, is_active: true, parent_id: null, image_url: null, icon: "🧃" },
-  { id: "s4", restaurant_id: "", name_i18n: { fr: "Pâtisseries", ar: "حلويات", en: "Pastries" }, sort_order: 3, is_active: true, parent_id: null, image_url: null, icon: "🥐" },
+  { id: "s1", restaurant_id: "", name_i18n: { fr: "Cafés", ar: "قهوة", en: "Coffee" }, sort_order: 0, is_active: true, parent_id: null, image_url: null, icon: null, art: null },
+  { id: "s2", restaurant_id: "", name_i18n: { fr: "Petit-déjeuner", ar: "فطور", en: "Breakfast" }, sort_order: 1, is_active: true, parent_id: null, image_url: null, icon: null, art: null },
+  { id: "s3", restaurant_id: "", name_i18n: { fr: "Jus & citronnades", ar: "عصير", en: "Juices" }, sort_order: 2, is_active: true, parent_id: null, image_url: null, icon: null, art: null },
+  { id: "s4", restaurant_id: "", name_i18n: { fr: "Pâtisseries", ar: "حلويات", en: "Pastries" }, sort_order: 3, is_active: true, parent_id: null, image_url: null, icon: null, art: null },
 ];
 
 /** Reusable theme + layout editor. Used by the owner portal and the admin per-venue page. */
@@ -168,6 +171,21 @@ export function AppearanceStudio({
             ))}
           </div>
 
+          <span className="text-[11px] font-extrabold text-muted-soft tracking-wide uppercase mt-1">{tx.imageStyle}</span>
+          <span className="-mt-2 text-[12px] text-muted-soft">{tx.imageStyleHint}</span>
+          <div className="grid grid-cols-3 gap-2.5">
+            {IMAGE_STYLES.map((style) => (
+              <LayoutThumb
+                key={style}
+                selected={draft.imageStyle === style}
+                label={tx.imageStyles[style]}
+                onClick={() => setDraft((d) => ({ ...d, imageStyle: style }))}
+              >
+                <ImageStyleThumb style={style} />
+              </LayoutThumb>
+            ))}
+          </div>
+
           <label className="flex items-center justify-between gap-3 bg-card border border-line rounded-xl px-3.5 py-3 mt-1">
             <span className="flex flex-col">
               <span className="font-extrabold text-[13.5px] text-ink">{tx.showLanding}</span>
@@ -200,7 +218,7 @@ export function AppearanceStudio({
               <span className="font-extrabold text-[13px] text-ink truncate">{restaurant.name}</span>
             </div>
             {draft.showCategoryLanding && draft.categoryLayout !== "classic" ? (
-              <CategoryLanding tree={previewTree} layout={draft.categoryLayout} itemCountByCategory={previewCounts} onSelect={() => {}} />
+              <CategoryLanding tree={previewTree} layout={draft.categoryLayout} imageStyle={draft.imageStyle} itemCountByCategory={previewCounts} onSelect={() => {}} />
             ) : (
               <ClassicPreview palette={palette} tree={previewTree} />
             )}
@@ -263,6 +281,12 @@ function LayoutThumb({ selected, label, onClick, children }: { selected: boolean
 
 const bar = "bg-line-strong rounded-[2px]";
 const block = "bg-line-strong rounded-[3px]";
+
+function ImageStyleThumb({ style }: { style: ImageStyle }) {
+  if (style === "illustration") return <MenuArt id="coffee" className="w-11 h-11 rounded-md" />;
+  if (style === "plain") return <div className="w-11 h-11 rounded-md bg-harissa-tint" />;
+  return <PhotoPlaceholder className="w-11 h-11 rounded-md" />;
+}
 
 function CategoryThumb({ layout }: { layout: CategoryLayout }) {
   if (layout === "list")
