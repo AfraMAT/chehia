@@ -56,6 +56,11 @@ function buildMenuDraftSchema(languages: string[]) {
     ...(required ? { required: languages } : {}),
     properties: Object.fromEntries(languages.map((l) => [l, { type: "string" }])),
   });
+  const hexColor = (desc: string) => ({
+    type: "string",
+    pattern: "^#[0-9a-fA-F]{6}$",
+    description: desc,
+  });
   return {
     type: "object",
     additionalProperties: false,
@@ -65,6 +70,21 @@ function buildMenuDraftSchema(languages: string[]) {
         type: "string",
         enum: ["fr", "ar", "en", "mixed"],
         description: "Primary language of the text printed on the menu photos.",
+      },
+      palette: {
+        type: "object",
+        additionalProperties: false,
+        description:
+          "A color theme DERIVED from the menu's visual design (its brand color, paper/background tone, ink, accents). " +
+          "Only include this if the menu has a clear, deliberate color identity. OMIT the whole object for a plain black-on-white menu.",
+        properties: {
+          theme_name: { type: "string", description: "A short human name for this palette in the menu's primary language, e.g. 'Terre cuite'." },
+          primary: hexColor("Dominant brand / accent color as #rrggbb (headings, logo, decorative elements)."),
+          background: hexColor("Page/paper background tone as #rrggbb (usually a light cream/white, or dark for a dark menu)."),
+          surface: hexColor("Card/panel surface, usually near-white or a shade lighter/darker than the background."),
+          text: hexColor("Main body text color as #rrggbb (usually near-black, or near-white on a dark menu)."),
+          accent: hexColor("A secondary accent color as #rrggbb (borders, prices, a second brand color); reuse primary if there is only one."),
+        },
       },
       categories: {
         type: "array",
@@ -98,10 +118,12 @@ function buildMenuDraftSchema(languages: string[]) {
                       "Item description ONLY if the menu prints one. OMIT this field entirely when there is none — never invent one. Max ~300 chars.",
                   },
                   price_millimes: {
+                    // NOTE: no `minimum` — structured outputs reject numeric
+                    // constraints (minimum/maximum) with a 400. The value is
+                    // clamped to >= 0 client-side in validateDraft().
                     type: "integer",
-                    minimum: 0,
                     description:
-                      "Price in integer millimes (TND x 1000). '3,500'->3500, '3.5'->3500, '3500'->3500, '3.500 DT'->3500. Use 0 ONLY when the menu prints no price.",
+                      "Price in integer millimes (TND x 1000), always >= 0. '3,500'->3500, '3.5'->3500, '3500'->3500, '3.500 DT'->3500. Use 0 ONLY when the menu prints no price.",
                   },
                   dietary_tags: {
                     type: "array",
@@ -160,7 +182,9 @@ RULES
 
 8. NEVER invent items, sections, prices, descriptions, or tags not visible in the photos. If part of a photo is blurry, skip that item rather than guessing. Returning fewer items than the menu contains is correct.
 
-9. VARIANTS/SIZES. If one item lists several sizes with different prices (e.g. "Café 1,200 / Café double 1,800"), output them as SEPARATE items with distinct names ("Café", "Café double") and their own prices. Do not model option groups.`;
+9. VARIANTS/SIZES. If one item lists several sizes with different prices (e.g. "Café 1,200 / Café double 1,800"), output them as SEPARATE items with distinct names ("Café", "Café double") and their own prices. Do not model option groups.
+
+10. COLOR PALETTE (optional). If the menu has a deliberate visual identity — a brand color, a colored header, a distinctive paper tone — capture it in "palette" as real #rrggbb colors sampled from the photo (primary/brand, background/paper, surface, text, accent). This becomes a suggested theme the owner can apply to their digital menu. If the menu is plain black text on white paper with no real color identity, OMIT the palette entirely — never invent colors.`;
 
 const VALID_LANGS = new Set(["fr", "ar", "en"]);
 
@@ -255,7 +279,11 @@ Deno.serve(async (req) => {
   try {
     const response = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 8000,
+      // Large enough to transcribe a full multi-page menu in every venue
+      // language without truncating; stays under the SDK's non-streaming HTTP
+      // timeout ceiling. A truncated response would fail JSON.parse below and
+      // surface as ai_failed rather than silently dropping items.
+      max_tokens: 16000,
       system: EXTRACT_SYSTEM_PROMPT,
       messages: [
         {

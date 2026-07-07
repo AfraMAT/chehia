@@ -13,6 +13,8 @@ type OrderLineInput = {
   qty: number;
   modifier_ids?: string[];
   note?: string;
+  /** Who added this line (group ordering); snapshotted onto order_items. */
+  participant_nickname?: string;
 };
 
 type PlaceOrderInput = {
@@ -25,6 +27,10 @@ type PlaceOrderInput = {
   /** Client-generated idempotency key: retries never duplicate an order. */
   client_ref?: string;
   lines: OrderLineInput[];
+  /** Group ordering: place from a shared session instead of client-sent lines. */
+  session_id?: string;
+  /** "group" = the whole session (host only), "solo" = just my lines. */
+  place_mode?: "group" | "solo";
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -58,6 +64,93 @@ Deno.serve(async (req) => {
     input = await req.json();
   } catch {
     return errorResponse("bad_json", "Invalid JSON body");
+  }
+
+  // Idempotency (all flows): a repeated client_ref returns the already-created
+  // order. Checked up front so a group/solo retry never trips the session-state
+  // guards below (the session is already closed after the first success).
+  if (input.client_ref && UUID_RE.test(input.client_ref)) {
+    const { data: existing } = await admin
+      .from("orders")
+      .select("id, order_number, status, total_millimes, created_at, table_id")
+      .eq("client_ref", input.client_ref)
+      .eq("created_by", userId)
+      .maybeSingle();
+    if (existing) {
+      const { data: tb } = await admin.from("tables").select("label, zone").eq("id", existing.table_id).maybeSingle();
+      return jsonResponse({
+        order: {
+          id: existing.id,
+          order_number: existing.order_number,
+          status: existing.status,
+          total_millimes: existing.total_millimes,
+          created_at: existing.created_at,
+          duplicate: true,
+          table_label: tb?.label ?? "",
+          table_zone: tb?.zone ?? "",
+        },
+      });
+    }
+  }
+
+  // Group ordering: build the order from a shared session's cart, server-side.
+  let fromSession = false;
+  let sessionId: string | null = null;
+  let placeMode: "group" | "solo" | null = null;
+  let participantId: string | null = null;
+  if (input.session_id) {
+    if (!UUID_RE.test(input.session_id)) return errorResponse("bad_request", "session_id must be a UUID");
+    placeMode = input.place_mode === "group" ? "group" : "solo";
+
+    const { data: session } = await admin
+      .from("order_sessions")
+      .select("id, table_id, restaurant_id, status")
+      .eq("id", input.session_id)
+      .maybeSingle();
+    if (!session) return errorResponse("session_not_found", "Group order not found", 404);
+    if (session.status !== "open") return errorResponse("session_closed", "This group order is no longer open", 409);
+
+    const { data: me } = await admin
+      .from("session_participants")
+      .select("id, is_host")
+      .eq("session_id", session.id)
+      .eq("auth_uid", userId)
+      .is("left_at", null)
+      .maybeSingle();
+    if (!me) return errorResponse("not_a_member", "You are not in this group order", 403);
+    participantId = me.id;
+
+    if (placeMode === "group") {
+      if (!me.is_host) return errorResponse("host_only", "Only the host can place the group order", 403);
+      const { data: parts } = await admin
+        .from("session_participants")
+        .select("is_ready")
+        .eq("session_id", session.id)
+        .is("left_at", null);
+      if (!parts || parts.length === 0 || parts.some((p) => !p.is_ready)) {
+        return errorResponse("not_ready", "Not everyone is ready yet", 409);
+      }
+    }
+
+    let linesQuery = admin
+      .from("session_cart_lines")
+      .select("item_id, qty, modifier_ids, note, participant:session_participants(nickname)")
+      .eq("session_id", session.id);
+    if (placeMode === "solo") linesQuery = linesQuery.eq("participant_id", participantId);
+    const { data: sessionLines } = await linesQuery;
+    if (!sessionLines || sessionLines.length === 0) return errorResponse("empty_cart", "No items to order", 400);
+
+    input.qr_token = undefined;
+    input.table_id = session.table_id;
+    input.lines = sessionLines.map((l) => ({
+      item_id: l.item_id as string,
+      qty: l.qty as number,
+      modifier_ids: (l.modifier_ids as string[] | null) ?? [],
+      note: (l.note as string | null) ?? "",
+      participant_nickname: (l.participant as { nickname?: string } | null)?.nickname ?? "",
+    }));
+    fromSession = true;
+    sessionId = session.id;
   }
 
   if ((!input?.qr_token && !input?.table_id) || !Array.isArray(input.lines) || input.lines.length === 0) {
@@ -98,7 +191,8 @@ Deno.serve(async (req) => {
   }
 
   // Scanned (qr_token) vs remote browse (table_id chosen from discovery).
-  const origin = input.qr_token ? "scan" : "browse";
+  // Group/solo session orders are always at a physical table → treat as scan.
+  const origin = fromSession ? "scan" : input.qr_token ? "scan" : "browse";
   // A venue may switch off remote ordering entirely (only scanned QR accepted).
   if (origin === "browse" && restaurant.require_qr) {
     return errorResponse("qr_required", "This venue requires scanning the table's QR code to order", 403);
@@ -117,7 +211,9 @@ Deno.serve(async (req) => {
       return errorResponse("rate_limited", "Too many recent orders — please wait a moment", 429);
     }
   }
-  {
+  // Per-table burst limit — skipped for session orders, where a group and its
+  // solo splits legitimately produce several near-simultaneous orders per table.
+  if (!fromSession) {
     const since = new Date(Date.now() - 90_000).toISOString();
     const { count } = await admin
       .from("orders")
@@ -176,6 +272,7 @@ Deno.serve(async (req) => {
     unit_price_millimes: number;
     modifiers_snapshot: unknown[];
     note: string;
+    participant_nickname: string;
   };
   const pricedLines: PricedLine[] = [];
 
@@ -232,6 +329,7 @@ Deno.serve(async (req) => {
       unit_price_millimes: unitPrice,
       modifiers_snapshot: snapshot,
       note: (line.note ?? "").slice(0, 500),
+      participant_nickname: (line.participant_nickname ?? "").slice(0, 40),
     });
   }
 
@@ -249,10 +347,16 @@ Deno.serve(async (req) => {
     p_created_by: userId,
     p_client_ref: clientRef,
     p_lines: pricedLines,
+    p_session_id: sessionId,
+    p_place_mode: placeMode,
+    p_participant_id: participantId,
   });
   if (txError || !order) {
     if (txError?.message?.includes("too_many_open_orders")) {
       return errorResponse("too_many_open_orders", "Too many open orders for this session", 429);
+    }
+    if (txError?.message?.includes("session_not_placeable")) {
+      return errorResponse("session_closed", "This group order was already placed", 409);
     }
     console.error("place-order tx failed:", txError);
     return errorResponse("db_error", "Could not create the order", 500);

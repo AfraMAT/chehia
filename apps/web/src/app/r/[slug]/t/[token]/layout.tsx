@@ -1,4 +1,6 @@
+import type { CSSProperties } from "react";
 import type { Metadata } from "next";
+import { appearanceCssVars } from "@chehia/shared";
 import { getServerSupabase } from "@/lib/supabase";
 import { VenueProvider } from "@/app/r/_venue/venue-provider";
 import { loadScannedVenue } from "@/app/r/_venue/loader";
@@ -29,11 +31,14 @@ export default async function VenueTokenLayout({
     return <InvalidQr />;
   }
 
+  const themeVars = appearanceCssVars(bundle.restaurant.appearance) as CSSProperties;
   return (
-    <div className="mx-auto w-full max-w-[520px] min-h-dvh bg-cream flex flex-col">
-      <VenueProvider bundle={bundle} basePath={`/r/${slug}/t/${token}`}>
-        {children}
-      </VenueProvider>
+    <div style={themeVars} className="min-h-dvh bg-cream">
+      <div className="mx-auto w-full max-w-[520px] min-h-dvh bg-cream flex flex-col">
+        <VenueProvider bundle={bundle} basePath={`/r/${slug}/t/${token}`}>
+          {children}
+        </VenueProvider>
+      </div>
     </div>
   );
 }

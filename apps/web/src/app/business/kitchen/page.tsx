@@ -128,7 +128,12 @@ function KitchenTicket({
       }`}
     >
       <div className="flex items-center justify-between">
-        <span className="font-display font-extrabold text-[30px] text-ktext">T{label}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-display font-extrabold text-[30px] text-ktext">T{label}</span>
+          {order.session_id && (
+            <span className="text-[11px] font-extrabold text-kwarning-soft bg-kwarning/15 rounded-full px-2 py-0.5">👥 {t.portal.kitchen.groupOrder}</span>
+          )}
+        </div>
         <span
           className={`text-[13px] font-extrabold rounded-full px-3.5 py-1.5 tabular-nums ${
             isNew
@@ -150,6 +155,9 @@ function KitchenTicket({
           <div key={item.id} className="flex flex-col gap-0.5">
             <span className="text-[17px] font-extrabold text-ktext">
               {item.qty} × {tr(item.name_snapshot)}
+              {item.participant_nickname && (
+                <span className="ms-2 text-[12px] font-bold text-ktext-muted">· {item.participant_nickname}</span>
+              )}
             </span>
             {(item.modifiers_snapshot.length > 0 || item.note) && (
               <span className="text-[13.5px] font-semibold text-ktext-soft ps-4">

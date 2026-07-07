@@ -17,10 +17,12 @@ import { getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
 import { PhotoPlaceholder, Stars, Stepper, Tag } from "@/components/ui";
 import { useVenue } from "./venue-provider";
+import { useSession } from "./group/session-provider";
 
 /** P3 · Item detail — required vs optional modifier groups, live price in CTA, allergens declared. */
 export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => void }) {
   const { groupsByItem, addToCart } = useVenue();
+  const { session, addLine } = useSession();
   const { t, tr, lang } = useI18n();
   const groups = useMemo(
     () => [...(groupsByItem[item.id] ?? [])].sort((a, b) => a.sort_order - b.sort_order),
@@ -87,7 +89,10 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
   const submit = () => {
     setTouched(true);
     if (!validation.ok) return;
-    addToCart(buildLine(item, groups, selected, qty));
+    // In a group session, adds go to the shared cart (attributed to me);
+    // otherwise to the personal cart.
+    if (session) void addLine({ itemId: item.id, modifierIds: selected, qty, note: "" });
+    else addToCart(buildLine(item, groups, selected, qty));
     onClose();
   };
 

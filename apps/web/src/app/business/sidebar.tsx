@@ -16,6 +16,7 @@ export function Sidebar() {
     { href: "/business/orders", label: t.portal.nav.orders },
     { href: "/business/kitchen", label: t.portal.nav.kitchen },
     ...(canManage ? [{ href: "/business/menu", label: t.portal.nav.menu }] : []),
+    ...(canManage ? [{ href: "/business/appearance", label: t.portal.nav.appearance }] : []),
     ...(canManage ? [{ href: "/business/inventory", label: t.portal.nav.inventory }] : []),
     ...(canManage ? [{ href: "/business/tables", label: t.portal.nav.tables }] : []),
     { href: "/business/stats", label: t.portal.nav.stats },

@@ -17,7 +17,8 @@
         "applinks:app.chehia.app"
       ],
       "infoPlist": {
-        "NSCameraUsageDescription": "Scan the QR code on your table to view the menu and order. / Chehia utilise la caméra pour scanner le code QR de votre table. / تستخدم شهية الكاميرا لمسح رمز QR الخاص بطاولتك.",
+        "CFBundleDevelopmentRegion": "fr",
+        "CFBundleLocalizations": ["fr", "ar", "en"],
         "ITSAppUsesNonExemptEncryption": false
       },
       "privacyManifests": {
@@ -110,13 +111,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Scan the QR code on your table to view the menu and order. / Chehia utilise la caméra pour scanner le code QR de votre table. / تستخدم شهية الكاميرا لمسح رمز QR الخاص بطاولتك."
+          "cameraPermission": "Chehia utilise l'appareil photo pour scanner le code QR de votre table et afficher le menu."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Chehia uses your location to show restaurants near you. / Chehia utilise votre position pour afficher les restaurants à proximité. / تستخدم شهية موقعك لعرض المطاعم القريبة منك."
+          "locationWhenInUsePermission": "Chehia utilise votre position pour afficher les cafés et restaurants à proximité."
         }
       ]
     ],

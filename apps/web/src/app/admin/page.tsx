@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { LANGUAGES, LANGUAGE_LABELS, type Language } from "@chehia/shared";
 import { getSupabase } from "@/lib/supabase";
 import { Logo } from "@/components/brand";
@@ -211,6 +212,12 @@ export default function AdminDashboard() {
                       {v.is_active ? t.admin.deactivate : t.admin.activate}
                     </button>
                   )}
+                  <Link
+                    href={`/admin/venues/${v.id}`}
+                    className="h-9 px-3.5 rounded-lg text-[13px] font-extrabold bg-ink text-cream flex items-center cursor-pointer hover:bg-ink/90 transition-colors"
+                  >
+                    {t.admin.manage}
+                  </Link>
                 </div>
               );
             })}
