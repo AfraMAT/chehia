@@ -148,6 +148,7 @@ create or replace function public.gen_session_code()
 returns text
 language sql
 volatile
+set search_path = public
 as $$
   select string_agg(substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', 1 + floor(random() * 30)::int, 1), '')
   from generate_series(1, 6);
@@ -157,6 +158,7 @@ create or replace function public.clean_nickname(p_nickname text)
 returns text
 language sql
 immutable
+set search_path = public
 as $$
   select coalesce(nullif(left(btrim(coalesce(p_nickname, '')), 40), ''), 'Guest');
 $$;
