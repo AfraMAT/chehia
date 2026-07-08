@@ -18,6 +18,7 @@ import {
 import { I18nProvider, useI18n } from "@/components/i18n-provider";
 import { Logo, ZelligeMark } from "@/components/brand";
 import { PhotoPlaceholder, SearchIcon, Stars } from "@/components/ui";
+import { InstallBanner } from "@/components/install-banner";
 
 /** Consumer discovery — find a venue by name or near you, then browse & order. */
 export function Discover({ venues, loadError = false }: { venues: DiscoveryVenue[]; loadError?: boolean }) {
@@ -114,6 +115,9 @@ function DiscoverInner({ venues, loadError }: { venues: DiscoveryVenue[]; loadEr
           ))}
         </div>
       </header>
+
+      {/* Get-the-app prompt (store coming soon + add-to-home now) */}
+      <InstallBanner surface="app" />
 
       {/* Title */}
       <div className="px-5 pt-3 flex flex-col gap-1">

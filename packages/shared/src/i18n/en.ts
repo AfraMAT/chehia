@@ -950,6 +950,33 @@ export const en: Dictionary = {
     allLabel: "All venues",
     scanInstead: "Got a QR on your table? Scan it to order.",
   },
+  install: {
+    later: "Later",
+    app: {
+      title: "Get the Chehia app",
+      subtitle: "Order even faster from your phone.",
+      soonIos: "Coming soon to the App Store",
+      soonAndroid: "Coming soon to Google Play",
+      soon: "Coming soon",
+      addNow: "Add to Home Screen",
+    },
+    business: {
+      titleMobile: "Add Chehia Business to your home screen",
+      titleDesktop: "Install Chehia Business on your computer",
+      subtitle: "Your orders, kitchen and register — all in one place.",
+      install: "Install",
+    },
+    caisse: {
+      title: "Install Chehia Caisse",
+      subtitle: "Offline register for Android and Windows — printer and cash drawer. Works with no internet once installed.",
+      install: "Install the register",
+      installed: "Register installed ✓",
+    },
+    iosHow: "To install: tap Share, then “Add to Home Screen”.",
+    desktopChrome: "Click the install icon ⊕ in the address bar, or browser menu › Install app.",
+    macSafari: "In Safari: File menu › Add to Dock.",
+    useChrome: "Open this site in Chrome or Edge to install the app.",
+  },
   location: {
     business: {
       title: "Venue location",

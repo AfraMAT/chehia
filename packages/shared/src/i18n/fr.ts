@@ -949,6 +949,33 @@ export const fr = {
     allLabel: "Tous les établissements",
     scanInstead: "Vous avez un QR sur votre table ? Scannez-le pour commander.",
   },
+  install: {
+    later: "Plus tard",
+    app: {
+      title: "Installez l'application Chehia",
+      subtitle: "Commandez encore plus vite depuis votre téléphone.",
+      soonIos: "Bientôt sur l'App Store",
+      soonAndroid: "Bientôt sur Google Play",
+      soon: "Bientôt disponible",
+      addNow: "Ajouter à l'écran d'accueil",
+    },
+    business: {
+      titleMobile: "Ajoutez Chehia Business à votre écran d'accueil",
+      titleDesktop: "Installez Chehia Business sur votre ordinateur",
+      subtitle: "Vos commandes, la cuisine et la caisse, en un seul endroit.",
+      install: "Installer",
+    },
+    caisse: {
+      title: "Installez Chehia Caisse",
+      subtitle: "Caisse hors-ligne pour Android et Windows — imprimante et tiroir-caisse. Fonctionne sans internet une fois installée.",
+      install: "Installer la caisse",
+      installed: "Caisse installée ✓",
+    },
+    iosHow: "Pour installer : appuyez sur Partager, puis « Sur l'écran d'accueil ».",
+    desktopChrome: "Cliquez sur l'icône d'installation ⊕ dans la barre d'adresse, ou menu du navigateur › Installer l'application.",
+    macSafari: "Dans Safari : menu Fichier › Ajouter au Dock.",
+    useChrome: "Ouvrez ce site dans Chrome ou Edge pour installer l'application.",
+  },
   location: {
     business: {
       title: "Emplacement de l'établissement",

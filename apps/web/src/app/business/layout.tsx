@@ -1,39 +1,12 @@
-"use client";
+import type { Metadata } from "next";
+import { PortalShell } from "./portal-shell";
 
-import { usePathname } from "next/navigation";
-import { PortalProvider } from "./portal-provider";
-import { PortalFooter } from "./portal-footer";
-import { Sidebar } from "./sidebar";
+// Install as a distinct "Chehia Business" home-screen / desktop app (overrides
+// the site-wide manifest). Mirrors the caisse layout's per-surface manifest.
+export const metadata: Metadata = {
+  manifest: "/business.webmanifest",
+};
 
-/**
- * Portal shell. Login, the kitchen display (full-screen dark), and the print
- * view render without the sidebar chrome.
- */
 export default function BusinessLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-
-  if (pathname === "/business/login") {
-    return <>{children}</>;
-  }
-
-  const bare =
-    pathname.startsWith("/business/kitchen") ||
-    pathname.startsWith("/business/tables/print") ||
-    pathname.startsWith("/business/onboarding");
-
-  return (
-    <PortalProvider>
-      {bare ? (
-        <>{children}</>
-      ) : (
-        <div className="min-h-dvh bg-sand flex">
-          <Sidebar />
-          <div className="flex-1 min-w-0 flex flex-col">
-            <div className="flex-1 min-w-0 flex flex-col">{children}</div>
-            <PortalFooter />
-          </div>
-        </div>
-      )}
-    </PortalProvider>
-  );
+  return <PortalShell>{children}</PortalShell>;
 }

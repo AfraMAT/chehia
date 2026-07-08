@@ -1,0 +1,16 @@
+{
+  "name": "Chehia Business",
+  "short_name": "Chehia Business",
+  "description": "Gérez votre café ou restaurant — commandes, cuisine, stock et caisse.",
+  "start_url": "/business/orders",
+  "scope": "/business",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F1EBDE",
+  "theme_color": "#CD4F27",
+  "lang": "fr",
+  "icons": [
+    { "src": "/icon", "sizes": "32x32", "type": "image/png" },
+    { "src": "/apple-icon", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}

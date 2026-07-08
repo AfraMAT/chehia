@@ -12,6 +12,7 @@ import { TableSheet } from "./table-sheet";
 import { CashDrawer } from "./cash-drawer";
 import { LockScreen } from "./lock-screen";
 import { money } from "./util";
+import { InstallBanner } from "@/components/install-banner";
 
 const ORDER_TYPE_KEYS: OrderType[] = ["comptoir", "emporter", "surplace"];
 
@@ -40,6 +41,9 @@ export function Register() {
 
   return (
     <div className="h-dvh flex flex-col bg-sand overflow-hidden" dir={lang === "ar" ? "rtl" : "ltr"}>
+      {/* Install prompt — the caisse is an offline PWA that drives printer + drawer */}
+      <InstallBanner surface="caisse" />
+
       {/* Connectivity banner */}
       {(!online || pendingCount > 0 || failedCount > 0) && (
         <div className={`shrink-0 h-8 flex items-center justify-center gap-2 text-[12.5px] font-bold ${!online ? "bg-ink text-cream" : failedCount > 0 ? "bg-danger-tint text-danger-text" : "bg-teal-tint text-teal-pressed"}`}>

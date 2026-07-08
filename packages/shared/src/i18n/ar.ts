@@ -949,6 +949,33 @@ export const ar: Dictionary = {
     allLabel: "كل المطاعم",
     scanInstead: "لديك رمز QR على طاولتك؟ امسحه للطلب.",
   },
+  install: {
+    later: "لاحقًا",
+    app: {
+      title: "ثبّت تطبيق شهية",
+      subtitle: "اطلب أسرع من هاتفك.",
+      soonIos: "قريبًا على App Store",
+      soonAndroid: "قريبًا على Google Play",
+      soon: "قريبًا",
+      addNow: "أضِف إلى الشاشة الرئيسية",
+    },
+    business: {
+      titleMobile: "أضِف Chehia Business إلى شاشتك الرئيسية",
+      titleDesktop: "ثبّت Chehia Business على حاسوبك",
+      subtitle: "طلباتك والمطبخ والصندوق في مكان واحد.",
+      install: "تثبيت",
+    },
+    caisse: {
+      title: "ثبّت Chehia Caisse",
+      subtitle: "صندوق يعمل دون اتصال على أندرويد وويندوز — الطابعة ودرج النقود. يعمل بدون إنترنت بعد التثبيت.",
+      install: "تثبيت الصندوق",
+      installed: "تم تثبيت الصندوق ✓",
+    },
+    iosHow: "للتثبيت: اضغط مشاركة، ثم «أضِف إلى الشاشة الرئيسية».",
+    desktopChrome: "انقر أيقونة التثبيت ⊕ في شريط العنوان، أو قائمة المتصفّح › تثبيت التطبيق.",
+    macSafari: "في Safari: قائمة ملف › إضافة إلى Dock.",
+    useChrome: "افتح هذا الموقع في Chrome أو Edge للتثبيت.",
+  },
   location: {
     business: {
       title: "موقع المحل",
