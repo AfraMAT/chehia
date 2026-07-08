@@ -6,6 +6,7 @@ import type { NextRequest } from "next/server";
  *   chehia.app / www        → marketing landing (app/page.tsx) — default
  *   app.chehia.app          → consumer discovery (/app)
  *   business.chehia.app     → business portal (/business/orders)
+ *   caisse.chehia.app       → staff point-of-sale register (/caisse)
  *   admin.chehia.app        → admin portal (/admin)
  *
  * Only the ROOT path ("/") is remapped per host, so every route still resolves
@@ -46,6 +47,9 @@ export function proxy(request: NextRequest) {
   }
   if (sub === "business") {
     return NextResponse.redirect(new URL("/business/orders", request.url));
+  }
+  if (sub === "caisse") {
+    return NextResponse.redirect(new URL("/caisse", request.url));
   }
   if (sub === "admin") {
     return NextResponse.redirect(new URL("/admin", request.url));

@@ -1,0 +1,16 @@
+{
+  "name": "Chehia Caisse",
+  "short_name": "Caisse",
+  "description": "Point de vente pour cafés et restaurants — Chehia.",
+  "start_url": "/caisse",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#F6F2EB",
+  "theme_color": "#CD4F27",
+  "lang": "fr",
+  "icons": [
+    { "src": "/icon", "sizes": "32x32", "type": "image/png" },
+    { "src": "/apple-icon", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}
