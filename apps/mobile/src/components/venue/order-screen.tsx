@@ -18,7 +18,7 @@ import { WaiterSheet } from "./waiter-sheet";
 import { RatingSheet } from "./rating-sheet";
 import { useI18n } from "@/lib/i18n";
 import { go } from "@/lib/nav";
-import { colors, rowDir } from "@/lib/theme";
+import { colors, rowDir, useTheme } from "@/lib/theme";
 import { ensureCustomerSession, supabase } from "@/lib/supabase";
 import { useVenue } from "@/lib/venue";
 
@@ -31,6 +31,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   const { restaurant, table, basePath, activeOrder, forgetOrder, online } = useVenue();
   const { t, tr, lang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [lines, setLines] = useState<OrderItem[]>([]);
@@ -172,7 +173,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
 
   if (loadFailed) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.cream, paddingTop: insets.top }}>
+      <View style={{ flex: 1, backgroundColor: theme.cream, paddingTop: insets.top }}>
         <View style={[rowDir(lang), { alignItems: "center", paddingHorizontal: 20, paddingTop: 12 }]}>
           <BackButton isRtl={isRtl} onPress={() => go(`${basePath}/menu`, "replace")} />
         </View>
@@ -191,7 +192,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
     // retry and a way back to the menu, so the spinner can't trap the customer.
     if (loadStalled) {
       return (
-        <View style={{ flex: 1, backgroundColor: colors.cream, paddingTop: insets.top }}>
+        <View style={{ flex: 1, backgroundColor: theme.cream, paddingTop: insets.top }}>
           <View style={[rowDir(lang), { alignItems: "center", paddingHorizontal: 20, paddingTop: 12 }]}>
             <BackButton isRtl={isRtl} onPress={() => go(`${basePath}/menu`, "replace")} />
           </View>
@@ -200,7 +201,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
               {online ? t.errors.generic : t.errors.network}
             </T>
             {!online && (
-              <T lang={lang} weight="semibold" size={13.5} color={colors.muted} style={{ textAlign: "center" }}>
+              <T lang={lang} weight="semibold" size={13.5} color={theme.muted} style={{ textAlign: "center" }}>
                 {t.errors.networkBody}
               </T>
             )}
@@ -227,8 +228,8 @@ export function OrderScreen({ orderId }: { orderId: string }) {
       );
     }
     return (
-      <View style={{ flex: 1, backgroundColor: colors.cream, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator color={colors.harissa} />
+      <View style={{ flex: 1, backgroundColor: theme.cream, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={theme.harissa} />
       </View>
     );
   }
@@ -267,11 +268,11 @@ export function OrderScreen({ orderId }: { orderId: string }) {
           : `${t.order.soon}${tableSuffix}`;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.cream, paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: theme.cream, paddingTop: insets.top }}>
       {/* Header */}
       <View style={[rowDir(lang), { alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 12 }]}>
         <BackButton isRtl={isRtl} onPress={() => go(`${basePath}/menu`, "replace")} />
-        <T lang={lang} weight="extrabold" size={13} color={colors.mutedSoft} style={{ letterSpacing: lang === "ar" ? 0 : 1.5 }}>
+        <T lang={lang} weight="extrabold" size={13} color={theme.mutedSoft} style={{ letterSpacing: lang === "ar" ? 0 : 1.5 }}>
           {t.order.order.toUpperCase()} #{order.order_number}
         </T>
         <View style={{ width: 40 }} />
@@ -314,7 +315,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
             <T lang={lang} display size={30} style={{ textAlign: "center" }}>
               {statusTitle}
             </T>
-            <T lang={lang} weight="semibold" size={14} color={colors.muted} style={{ textAlign: "center" }}>
+            <T lang={lang} weight="semibold" size={14} color={theme.muted} style={{ textAlign: "center" }}>
               {statusSubtitle}
             </T>
           </View>
@@ -325,16 +326,16 @@ export function OrderScreen({ orderId }: { orderId: string }) {
           <View
             style={{
               marginHorizontal: 20,
-              backgroundColor: "#FFFFFF",
+              backgroundColor: theme.card,
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: theme.border,
               borderRadius: 18,
               padding: 17,
               gap: 10,
             }}
           >
             <View style={[rowDir(lang), { justifyContent: "space-between", alignItems: "center", paddingBottom: 10 }]}>
-              <T lang={lang} weight="extrabold" size={13} color={colors.mutedSoft} style={{ letterSpacing: lang === "ar" ? 0 : 0.8 }}>
+              <T lang={lang} weight="extrabold" size={13} color={theme.mutedSoft} style={{ letterSpacing: lang === "ar" ? 0 : 0.8 }}>
                 {tableLabel ? `${t.common.table.toUpperCase()} ${tableLabel} · ` : ""}
                 {formatClock(new Date(order.served_at ?? order.created_at), lang)}
               </T>
@@ -352,7 +353,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
                 <T lang={lang} weight="bold" size={14} style={{ flexShrink: 1, ...align }}>
                   {line.qty}× {tr(line.name_snapshot)}
                   {line.modifiers_snapshot.length > 0 && (
-                    <T lang={lang} weight="semibold" size={13} color={colors.mutedSoft}>
+                    <T lang={lang} weight="semibold" size={13} color={theme.mutedSoft}>
                       {" "}
                       — {line.modifiers_snapshot.map((m) => tr(m.choice)).join(", ")}
                     </T>
@@ -370,7 +371,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
               </T>
               <T display size={22}>
                 {millimesToDisplay(order.total_millimes, lang)}{" "}
-                <T weight="bold" size={12} color={colors.mutedSoft} lang={lang}>
+                <T weight="bold" size={12} color={theme.mutedSoft} lang={lang}>
                   {currencyLabel(lang)}
                 </T>
               </T>
@@ -383,9 +384,9 @@ export function OrderScreen({ orderId }: { orderId: string }) {
               <View
                 style={{
                   marginHorizontal: 20,
-                  backgroundColor: "#FFFFFF",
+                  backgroundColor: theme.card,
                   borderWidth: 1,
-                  borderColor: colors.border,
+                  borderColor: theme.border,
                   borderRadius: 18,
                   padding: 18,
                 }}
@@ -429,9 +430,9 @@ export function OrderScreen({ orderId }: { orderId: string }) {
                   {
                     marginHorizontal: 20,
                     marginTop: 12,
-                    backgroundColor: "#FFFFFF",
+                    backgroundColor: theme.card,
                     borderWidth: 1,
-                    borderColor: colors.border,
+                    borderColor: theme.border,
                     borderRadius: 16,
                     paddingVertical: 14,
                     paddingHorizontal: 16,
@@ -445,11 +446,11 @@ export function OrderScreen({ orderId }: { orderId: string }) {
                   <T lang={lang} weight="extrabold" size={14} style={align}>
                     {count} {t.common.items} · {millimesToDisplay(order.total_millimes, lang)} {currencyLabel(lang)}
                   </T>
-                  <T lang={lang} weight="semibold" size={12} color={colors.mutedSoft} numberOfLines={1} style={align}>
+                  <T lang={lang} weight="semibold" size={12} color={theme.mutedSoft} numberOfLines={1} style={align}>
                     {lines.map((l) => `${l.qty}× ${tr(l.name_snapshot)}`).join(", ")}
                   </T>
                 </View>
-                <T weight="extrabold" size={16} color={colors.mutedSoft}>
+                <T weight="extrabold" size={16} color={theme.mutedSoft}>
                   {detailsOpen ? "⌃" : "⌄"}
                 </T>
               </Pressable>
@@ -458,9 +459,9 @@ export function OrderScreen({ orderId }: { orderId: string }) {
                   style={{
                     marginHorizontal: 20,
                     marginTop: 8,
-                    backgroundColor: "#FFFFFF",
+                    backgroundColor: theme.card,
                     borderWidth: 1,
-                    borderColor: colors.border,
+                    borderColor: theme.border,
                     borderRadius: 16,
                     padding: 16,
                     gap: 8,
@@ -471,7 +472,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
                       <T lang={lang} weight="bold" size={13} style={{ flexShrink: 1, ...align }}>
                         {line.qty}× {tr(line.name_snapshot)}
                         {line.modifiers_snapshot.length > 0 && (
-                          <T lang={lang} weight="semibold" size={12} color={colors.mutedSoft}>
+                          <T lang={lang} weight="semibold" size={12} color={theme.mutedSoft}>
                             {" "}
                             — {line.modifiers_snapshot.map((m) => tr(m.choice)).join(", ")}
                           </T>
@@ -555,11 +556,12 @@ function TimelineRow({
   isRtl: boolean;
   lang: Language;
 }) {
+  const theme = useTheme();
   return (
     <View style={[rowDir(lang), { gap: 14 }]}>
       <View style={{ alignItems: "center" }}>
         {state === "done" ? (
-          <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: colors.sidiBou, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: theme.sidiBou, alignItems: "center", justifyContent: "center" }}>
             <T weight="extrabold" size={13} color="#FFFFFF">
               ✓
             </T>
@@ -569,16 +571,16 @@ function TimelineRow({
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#FFFFFF" }} />
           </View>
         ) : (
-          <View style={{ width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: colors.borderStrong }} />
+          <View style={{ width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: theme.borderStrong }} />
         )}
-        {hasLine && <View style={{ width: 2, flex: 1, marginVertical: 4, backgroundColor: lineActive ? colors.sidiBou : colors.borderStrong }} />}
+        {hasLine && <View style={{ width: 2, flex: 1, marginVertical: 4, backgroundColor: lineActive ? theme.sidiBou : theme.borderStrong }} />}
       </View>
       <View style={{ flex: 1, paddingBottom: hasLine ? 18 : 0, gap: 1 }}>
         <T
           lang={lang}
           weight="extrabold"
           size={14.5}
-          color={state === "done" ? colors.ink : state === "active" ? colors.warningText : colors.disabled}
+          color={state === "done" ? theme.ink : state === "active" ? colors.warningText : theme.disabled}
           style={{ textAlign: isRtl ? "right" : "left" }}
         >
           {title}
@@ -587,7 +589,7 @@ function TimelineRow({
           lang={lang}
           weight="semibold"
           size={12.5}
-          color={state === "pending" ? colors.disabled : colors.mutedSoft}
+          color={state === "pending" ? theme.disabled : theme.mutedSoft}
           style={{ textAlign: isRtl ? "right" : "left" }}
         >
           {body}

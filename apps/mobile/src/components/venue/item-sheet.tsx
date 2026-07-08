@@ -16,15 +16,18 @@ import {
 } from "@chehia/shared";
 import { CtaButton, PhotoPlaceholder, Stars, Stepper, T, TagPill } from "../ui";
 import { useI18n } from "@/lib/i18n";
-import { colors, rowDir } from "@/lib/theme";
+import { colors, rowDir, useTheme } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
+import { useSession } from "@/lib/session";
 import { useVenue } from "@/lib/venue";
 
 /** P3 · Item detail sheet — required vs optional groups, live price CTA, allergens. */
 export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => void }) {
   const { groupsByItem, addToCart } = useVenue();
+  const { session, addLine } = useSession();
   const { t, tr, lang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
 
   const groups = useMemo(
     () => [...(groupsByItem[item.id] ?? [])].sort((a, b) => a.sort_order - b.sort_order),
@@ -83,7 +86,10 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
       return;
     }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    addToCart(buildLine(item, groups, selected, qty));
+    // In a group session, adds go to the shared cart (attributed to me);
+    // otherwise to the personal cart.
+    if (session) void addLine({ itemId: item.id, modifierIds: selected, qty, note: "" });
+    else addToCart(buildLine(item, groups, selected, qty));
     onClose();
   };
 
@@ -96,7 +102,7 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
         <View
           style={{
             maxHeight: "92%",
-            backgroundColor: colors.cream,
+            backgroundColor: theme.cream,
             borderTopLeftRadius: 26,
             borderTopRightRadius: 26,
             overflow: "hidden",
@@ -121,6 +127,7 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                 justifyContent: "center",
               }}
             >
+              {/* Static light: sits on a fixed dark overlay in every theme. */}
               <T weight="extrabold" size={15} color={colors.cream}>
                 ✕
               </T>
@@ -136,21 +143,21 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                 </T>
                 <T display size={22}>
                   {millimesToDisplay(item.price_millimes, lang)}{" "}
-                  <T weight="bold" size={12} color={colors.mutedSoft} lang={lang}>
+                  <T weight="bold" size={12} color={theme.mutedSoft} lang={lang}>
                     {currencyLabel(lang)}
                   </T>
                 </T>
               </View>
-              <T lang={lang} size={13.5} color={colors.muted} style={{ textAlign: isRtl ? "right" : "left" }}>
+              <T lang={lang} size={13.5} color={theme.muted} style={{ textAlign: isRtl ? "right" : "left" }}>
                 {tr(item.description_i18n)}
               </T>
               {(item.rating_count ?? 0) > 0 && (
                 <View style={[rowDir(lang), { alignItems: "center", gap: 6, marginTop: 2 }]}>
                   <Stars value={item.rating_avg} size={15} />
-                  <T lang={lang} weight="bold" size={13} color={colors.ink}>
+                  <T lang={lang} weight="bold" size={13} color={theme.ink}>
                     {formatRating(item.rating_avg, lang)}
                   </T>
-                  <T lang={lang} weight="semibold" size={12.5} color={colors.mutedSoft}>
+                  <T lang={lang} weight="semibold" size={12.5} color={theme.mutedSoft}>
                     · {(item.rating_count ?? 0) === 1 ? t.rating.ratingCountOne : interpolate(t.rating.ratingsCount, { count: item.rating_count ?? 0 })}
                   </T>
                 </View>
@@ -179,7 +186,7 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                     <T lang={lang} weight="extrabold" size={14}>
                       {tr(group.name_i18n)}
                       {!isRequired && (
-                        <T lang={lang} weight="semibold" size={12} color={colors.mutedSoft}>
+                        <T lang={lang} weight="semibold" size={12} color={theme.mutedSoft}>
                           {" "}
                           · {t.common.optional}
                         </T>
@@ -188,13 +195,13 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                     {isRequired && (
                       <View
                         style={{
-                          backgroundColor: isMissing ? colors.dangerTint : colors.harissaTint,
+                          backgroundColor: isMissing ? colors.dangerTint : theme.harissaTint,
                           borderRadius: 100,
                           paddingHorizontal: 9,
                           paddingVertical: 3,
                         }}
                       >
-                        <T lang={lang} weight="bold" size={11} color={isMissing ? colors.dangerText : colors.harissaPressed}>
+                        <T lang={lang} weight="bold" size={11} color={isMissing ? colors.dangerText : theme.harissaPressed}>
                           {t.common.required}
                         </T>
                       </View>
@@ -217,9 +224,9 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                               {
                                 alignItems: "center",
                                 gap: 11,
-                                backgroundColor: active ? colors.harissaTint : "#FFFFFF",
+                                backgroundColor: active ? theme.harissaTint : theme.card,
                                 borderWidth: active ? 2 : 1.5,
-                                borderColor: active ? colors.harissa : colors.borderStrong,
+                                borderColor: active ? theme.harissa : theme.borderStrong,
                                 borderRadius: 13,
                                 paddingVertical: 11,
                                 paddingHorizontal: 13,
@@ -232,8 +239,8 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                                 height: 21,
                                 borderRadius: 7,
                                 borderWidth: active ? 0 : 2,
-                                borderColor: colors.disabled,
-                                backgroundColor: active ? colors.harissa : "transparent",
+                                borderColor: theme.disabled,
+                                backgroundColor: active ? theme.harissa : "transparent",
                                 alignItems: "center",
                                 justifyContent: "center",
                               }}
@@ -244,10 +251,10 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                                 </T>
                               )}
                             </View>
-                            <T lang={lang} weight="bold" size={13.5} color={active ? colors.harissaPressed : colors.ink} style={{ flex: 1, textAlign: isRtl ? "right" : "left" }}>
+                            <T lang={lang} weight="bold" size={13.5} color={active ? theme.harissaPressed : theme.ink} style={{ flex: 1, textAlign: isRtl ? "right" : "left" }}>
                               {tr(mod.name_i18n)}
                             </T>
-                            <T weight="bold" size={12.5} color={colors.muted}>
+                            <T weight="bold" size={12.5} color={theme.muted}>
                               {formatDelta(mod.price_delta_millimes, lang)}
                             </T>
                           </Pressable>
@@ -275,21 +282,21 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                               borderRadius: blockStyle ? 14 : 100,
                               alignItems: "center",
                               justifyContent: "center",
-                              backgroundColor: active ? (blockStyle ? colors.harissaTint : colors.ink) : "#FFFFFF",
+                              backgroundColor: active ? (blockStyle ? theme.harissaTint : theme.ink) : theme.card,
                               borderWidth: active && blockStyle ? 2 : active ? 0 : 1.5,
-                              borderColor: active ? colors.harissa : colors.borderStrong,
+                              borderColor: active ? theme.harissa : theme.borderStrong,
                             }}
                           >
                             <T
                               lang={lang}
                               weight="extrabold"
                               size={blockStyle ? 14 : 13}
-                              color={active ? (blockStyle ? colors.harissaPressed : colors.cream) : colors.ink}
+                              color={active ? (blockStyle ? theme.harissaPressed : theme.cream) : theme.ink}
                             >
                               {tr(mod.name_i18n)}
                             </T>
                             {hasDelta && (
-                              <T weight="bold" size={11} color={active ? colors.harissaPressed : colors.mutedSoft}>
+                              <T weight="bold" size={11} color={active ? theme.harissaPressed : theme.mutedSoft}>
                                 {formatDelta(mod.price_delta_millimes, lang)}
                               </T>
                             )}
@@ -316,9 +323,9 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                   <View
                     key={i}
                     style={{
-                      backgroundColor: "#FFFFFF",
+                      backgroundColor: theme.card,
                       borderWidth: 1,
-                      borderColor: colors.border,
+                      borderColor: theme.border,
                       borderRadius: 14,
                       paddingHorizontal: 14,
                       paddingVertical: 10,
@@ -327,12 +334,12 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                   >
                     <View style={[rowDir(lang), { justifyContent: "space-between", alignItems: "center", gap: 8 }]}>
                       <Stars value={rv.rating} size={13} />
-                      <T lang={lang} weight="semibold" size={11.5} color={colors.mutedSoft}>
+                      <T lang={lang} weight="semibold" size={11.5} color={theme.mutedSoft}>
                         {(rv.name || t.rating.anon) + " · " + formatRelativeTime(rv.created_at, lang)}
                       </T>
                     </View>
                     {rv.comment ? (
-                      <T lang={lang} size={13} color={colors.muted} style={{ textAlign: isRtl ? "right" : "left" }}>
+                      <T lang={lang} size={13} color={theme.muted} style={{ textAlign: isRtl ? "right" : "left" }}>
                         {rv.comment}
                       </T>
                     ) : null}
@@ -351,9 +358,9 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                 paddingHorizontal: 16,
                 paddingTop: 12,
                 paddingBottom: insets.bottom + 14,
-                backgroundColor: colors.card,
+                backgroundColor: theme.card,
                 borderTopWidth: 1,
-                borderColor: colors.border,
+                borderColor: theme.border,
                 alignItems: "center",
               },
             ]}

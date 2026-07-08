@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { WaiterCallReason } from "@chehia/shared";
 import { CtaButton, Handle, SheetClose, T } from "../ui";
 import { useI18n } from "@/lib/i18n";
-import { colors, rowDir } from "@/lib/theme";
+import { colors, rowDir, useTheme } from "@/lib/theme";
 import { useVenueState } from "@/lib/venue";
 
 /** P6 · Call waiter — bottom sheet with reason presets. */
@@ -13,6 +13,7 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
   const { callWaiter } = useVenueState();
   const { t, lang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
 
   const [reason, setReason] = useState<WaiterCallReason>("bill");
   const [note, setNote] = useState("");
@@ -45,7 +46,7 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityRole="button" accessibilityLabel={t.common.close} />
         <View
           style={{
-            backgroundColor: colors.card,
+            backgroundColor: theme.card,
             borderTopLeftRadius: 26,
             borderTopRightRadius: 26,
             paddingHorizontal: 20,
@@ -68,7 +69,7 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
               <T lang={lang} display size={20}>
                 {t.waiter.sent}
               </T>
-              <T lang={lang} weight="semibold" size={13} color={colors.muted}>
+              <T lang={lang} weight="semibold" size={13} color={theme.muted}>
                 {t.waiter.sentBody}
               </T>
             </View>
@@ -78,7 +79,7 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
                 <T lang={lang} display size={23} style={{ textAlign: isRtl ? "right" : "left" }}>
                   {t.waiter.callTitle}
                 </T>
-                <T lang={lang} weight="semibold" size={13} color={colors.muted} style={{ textAlign: isRtl ? "right" : "left" }}>
+                <T lang={lang} weight="semibold" size={13} color={theme.muted} style={{ textAlign: isRtl ? "right" : "left" }}>
                   {t.waiter.callBody}
                 </T>
               </View>
@@ -99,8 +100,8 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
                           alignItems: "center",
                           gap: 12,
                           borderWidth: active ? 2 : 1.5,
-                          borderColor: active ? colors.harissa : colors.borderStrong,
-                          backgroundColor: active ? colors.harissaTint : "#FFFFFF",
+                          borderColor: active ? theme.harissa : theme.borderStrong,
+                          backgroundColor: active ? theme.harissaTint : theme.card,
                           borderRadius: 14,
                           paddingVertical: 13,
                           paddingHorizontal: 15,
@@ -113,11 +114,11 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
                           height: 20,
                           borderRadius: 10,
                           borderWidth: active ? 6 : 2,
-                          borderColor: active ? colors.harissa : colors.disabled,
-                          backgroundColor: "#FFFFFF",
+                          borderColor: active ? theme.harissa : theme.disabled,
+                          backgroundColor: theme.card,
                         }}
                       />
-                      <T lang={lang} weight={active ? "extrabold" : "bold"} size={14.5} color={active ? colors.harissaPressed : colors.ink}>
+                      <T lang={lang} weight={active ? "extrabold" : "bold"} size={14.5} color={active ? theme.harissaPressed : theme.ink}>
                         {opt.label}
                       </T>
                     </Pressable>
@@ -129,17 +130,17 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
                     onChangeText={setNote}
                     maxLength={300}
                     placeholder="…"
-                    placeholderTextColor={colors.mutedSoft}
+                    placeholderTextColor={theme.mutedSoft}
                     style={{
                       borderRadius: 14,
                       borderWidth: 1.5,
-                      borderColor: colors.borderStrong,
-                      backgroundColor: "#FFFFFF",
+                      borderColor: theme.borderStrong,
+                      backgroundColor: theme.card,
                       paddingHorizontal: 15,
                       paddingVertical: 12,
                       fontFamily: "Manrope_500Medium",
                       fontSize: 14,
-                      color: colors.ink,
+                      color: theme.ink,
                       textAlign: isRtl ? "right" : "left",
                     }}
                   />
@@ -154,7 +155,7 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
 
               {state === "sending" ? (
                 <View style={{ height: 54, alignItems: "center", justifyContent: "center" }}>
-                  <ActivityIndicator color={colors.harissa} />
+                  <ActivityIndicator color={theme.harissa} />
                 </View>
               ) : (
                 <CtaButton lang={lang} variant="dark" height={54} label={t.waiter.send} onPress={() => void send()} />

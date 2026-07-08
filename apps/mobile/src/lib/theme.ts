@@ -1,8 +1,97 @@
-import { colors, radius, spacing } from "@chehia/shared";
+import { createContext, useContext } from "react";
+import {
+  DEFAULT_PALETTE,
+  colors,
+  radius,
+  resolveAppearance,
+  resolveThemePalette,
+  spacing,
+  type ThemePalette,
+} from "@chehia/shared";
 import type { Language } from "@chehia/shared";
 import type { TextStyle, ViewStyle } from "react-native";
 
 export { colors, radius, spacing };
+
+/**
+ * Runtime theme (Epic 1 · customizable menus). Each venue can re-skin the
+ * customer menu via `restaurants.appearance`. We resolve that blob into a
+ * palette with the shared helpers, then map it onto the SAME token names the
+ * app already uses (`colors` keys) so components can swap `colors.X` for
+ * `theme.X` with no other change. Only the themeable subset is here; semantic
+ * order-state colors (success/warning/danger) and the kitchen palette stay
+ * static — they must read consistently across every venue.
+ */
+export interface ThemeColors {
+  harissa: string;
+  harissaPressed: string;
+  harissaTint: string;
+  harissaSoft: string;
+  harissaPeach: string;
+  sidiBou: string;
+  sidiBouPressed: string;
+  sidiBouTint: string;
+  ink: string;
+  muted: string;
+  mutedSoft: string;
+  disabled: string;
+  cream: string;
+  card: string;
+  sand: string;
+  sandDeep: string;
+  border: string;
+  borderStrong: string;
+  borderDashed: string;
+  photoPlaceholder: string;
+  photoPlaceholderAlt: string;
+}
+
+/** Map a resolved palette onto the app's token names. */
+export function paletteToThemeColors(p: ThemePalette): ThemeColors {
+  return {
+    harissa: p.primary,
+    harissaPressed: p.primaryPressed,
+    harissaTint: p.primaryTint,
+    harissaSoft: p.primarySoft,
+    harissaPeach: p.primaryPeach,
+    sidiBou: p.accent,
+    sidiBouPressed: p.accentPressed,
+    sidiBouTint: p.accentTint,
+    ink: p.ink,
+    muted: p.muted,
+    mutedSoft: p.mutedSoft,
+    disabled: p.disabled,
+    cream: p.bg,
+    card: p.card,
+    sand: p.sand,
+    sandDeep: p.sandDeep,
+    border: p.line,
+    borderStrong: p.lineStrong,
+    borderDashed: p.lineDashed,
+    photoPlaceholder: p.photo,
+    photoPlaceholderAlt: p.photoAlt,
+  };
+}
+
+/** Raw `restaurants.appearance` blob → the themed color set. Never throws. */
+export function resolveThemeColors(rawAppearance: unknown): ThemeColors {
+  return paletteToThemeColors(resolveThemePalette(resolveAppearance(rawAppearance)));
+}
+
+/** The default "Harissa & Sidi Bou" theme — value-identical to static `colors`. */
+export const DEFAULT_THEME_COLORS: ThemeColors = paletteToThemeColors(DEFAULT_PALETTE);
+
+const ThemeContext = createContext<ThemeColors>(DEFAULT_THEME_COLORS);
+export const ThemeProvider = ThemeContext.Provider;
+
+/**
+ * The active venue theme. Falls back to the default theme when read outside a
+ * ThemeProvider (e.g. the scan/discovery screens), so shared `ui.tsx`
+ * components keep their exact current look everywhere.
+ */
+export function useTheme(): ThemeColors {
+  return useContext(ThemeContext);
+}
 
 export const fontFamily = {
   display: "BricolageGrotesque_800ExtraBold",

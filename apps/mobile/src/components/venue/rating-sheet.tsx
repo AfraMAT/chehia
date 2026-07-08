@@ -11,7 +11,7 @@ import {
 } from "@chehia/shared";
 import { CtaButton, FaceInput, Handle, SheetClose, StarInput, T } from "../ui";
 import { useI18n } from "@/lib/i18n";
-import { colors, rowDir } from "@/lib/theme";
+import { colors, rowDir, useTheme } from "@/lib/theme";
 import { ensureCustomerSession, functionsUrl, supabase, supabaseAnonKey } from "@/lib/supabase";
 
 function randomUUID(): string {
@@ -35,6 +35,7 @@ export function RatingSheet({
 }) {
   const { t, lang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const [sentiment, setSentiment] = useState<Sentiment | null>(null);
   const [itemRatings, setItemRatings] = useState<Record<string, number>>({});
   const [comment, setComment] = useState("");
@@ -96,7 +97,7 @@ export function RatingSheet({
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityRole="button" accessibilityLabel={t.common.close} />
         <View
           style={{
-            backgroundColor: colors.cream,
+            backgroundColor: theme.cream,
             borderTopLeftRadius: 26,
             borderTopRightRadius: 26,
             paddingTop: 12,
@@ -114,7 +115,7 @@ export function RatingSheet({
                 </View>
               </View>
               <T lang={lang} display size={24} style={{ textAlign: "center" }}>{t.rating.thanksTitle}</T>
-              <T lang={lang} weight="semibold" size={13} color={colors.muted} style={{ textAlign: "center" }}>
+              <T lang={lang} weight="semibold" size={13} color={theme.muted} style={{ textAlign: "center" }}>
                 {t.rating.thanksBody}
               </T>
             </View>
@@ -122,7 +123,7 @@ export function RatingSheet({
             <>
               <View style={{ paddingHorizontal: 20, marginBottom: 4 }}>
                 <T lang={lang} display size={22} style={align}>{t.rating.visitPrompt}</T>
-                <T lang={lang} weight="semibold" size={13} color={colors.muted} style={[align, { marginTop: 2 }]}>
+                <T lang={lang} weight="semibold" size={13} color={theme.muted} style={[align, { marginTop: 2 }]}>
                   {t.rating.visitSub}
                 </T>
               </View>
@@ -133,7 +134,7 @@ export function RatingSheet({
                 {dishes.length > 0 && (
                   <View style={{ gap: 8 }}>
                     <T lang={lang} weight="extrabold" size={15} style={align}>{t.rating.itemsPrompt}</T>
-                    <T lang={lang} weight="semibold" size={12.5} color={colors.mutedSoft} style={[align, { marginTop: -4 }]}>
+                    <T lang={lang} weight="semibold" size={12.5} color={theme.mutedSoft} style={[align, { marginTop: -4 }]}>
                       {t.rating.itemsSub}
                     </T>
                     {dishes.map((d) => (
@@ -144,9 +145,9 @@ export function RatingSheet({
                           {
                             alignItems: "center",
                             justifyContent: "space-between",
-                            backgroundColor: colors.card,
+                            backgroundColor: theme.card,
                             borderWidth: 1,
-                            borderColor: colors.border,
+                            borderColor: theme.border,
                             borderRadius: 14,
                             paddingHorizontal: 14,
                             paddingVertical: 6,
@@ -170,20 +171,20 @@ export function RatingSheet({
                   value={comment}
                   onChangeText={setComment}
                   placeholder={t.rating.commentPlaceholder}
-                  placeholderTextColor={colors.mutedSoft}
+                  placeholderTextColor={theme.mutedSoft}
                   maxLength={600}
                   multiline
                   style={{
                     borderRadius: 14,
                     borderWidth: 1.5,
-                    borderColor: colors.borderStrong,
-                    backgroundColor: "#FFFFFF",
+                    borderColor: theme.borderStrong,
+                    backgroundColor: theme.card,
                     paddingHorizontal: 15,
                     paddingVertical: 12,
                     minHeight: 64,
                     fontFamily: "Manrope_500Medium",
                     fontSize: 15,
-                    color: colors.ink,
+                    color: theme.ink,
                     textAlign: isRtl ? "right" : "left",
                     textAlignVertical: "top",
                   }}
@@ -192,18 +193,18 @@ export function RatingSheet({
                   value={name}
                   onChangeText={setName}
                   placeholder={t.rating.namePlaceholder}
-                  placeholderTextColor={colors.mutedSoft}
+                  placeholderTextColor={theme.mutedSoft}
                   maxLength={40}
                   style={{
                     borderRadius: 14,
                     borderWidth: 1.5,
-                    borderColor: colors.borderStrong,
-                    backgroundColor: "#FFFFFF",
+                    borderColor: theme.borderStrong,
+                    backgroundColor: theme.card,
                     paddingHorizontal: 15,
                     paddingVertical: 12,
                     fontFamily: "Manrope_500Medium",
                     fontSize: 15,
-                    color: colors.ink,
+                    color: theme.ink,
                     textAlign: isRtl ? "right" : "left",
                   }}
                 />
@@ -215,7 +216,7 @@ export function RatingSheet({
               <View style={{ paddingHorizontal: 16, gap: 6 }}>
                 {phase === "sending" ? (
                   <View style={{ height: 52, alignItems: "center", justifyContent: "center" }}>
-                    <ActivityIndicator color={colors.harissa} />
+                    <ActivityIndicator color={theme.harissa} />
                   </View>
                 ) : (
                   <CtaButton
@@ -227,7 +228,7 @@ export function RatingSheet({
                   />
                 )}
                 <Pressable onPress={onClose} accessibilityRole="button" style={{ height: 40, alignItems: "center", justifyContent: "center" }}>
-                  <T lang={lang} weight="bold" size={14} color={colors.muted}>{t.rating.later}</T>
+                  <T lang={lang} weight="bold" size={14} color={theme.muted}>{t.rating.later}</T>
                 </Pressable>
               </View>
             </>

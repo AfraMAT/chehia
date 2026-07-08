@@ -7,7 +7,7 @@ import { cartCount, cartHasTable, cartTotal, currencyLabel, millimesToDisplay } 
 import { BackButton, CtaButton, Line, Stepper, T } from "../ui";
 import { useI18n } from "@/lib/i18n";
 import { go } from "@/lib/nav";
-import { colors, rowDir } from "@/lib/theme";
+import { colors, rowDir, useTheme } from "@/lib/theme";
 import { useVenue } from "@/lib/venue";
 import { OfflineBanner } from "./offline-banner";
 import { TablePicker } from "./table-picker";
@@ -36,6 +36,7 @@ export function CartScreen() {
   } = useVenue();
   const { t, tr, lang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,7 +120,7 @@ export function CartScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={{ flex: 1, backgroundColor: colors.cream }}
+      style={{ flex: 1, backgroundColor: theme.cream }}
     >
       <View style={{ flex: 1, paddingTop: insets.top }}>
         <OfflineBanner />
@@ -137,7 +138,7 @@ export function CartScreen() {
             <T lang={lang} display size={22}>
               {t.cart.empty}
             </T>
-            <T lang={lang} weight="semibold" size={13} color={colors.muted} style={{ textAlign: "center" }}>
+            <T lang={lang} weight="semibold" size={13} color={theme.muted} style={{ textAlign: "center" }}>
               {t.cart.emptyBody}
             </T>
             <CtaButton
@@ -158,7 +159,7 @@ export function CartScreen() {
                   {
                     marginHorizontal: 20,
                     marginTop: 14,
-                    backgroundColor: colors.sidiBouTint,
+                    backgroundColor: theme.sidiBouTint,
                     borderRadius: 14,
                     paddingVertical: 12,
                     paddingHorizontal: 15,
@@ -167,8 +168,8 @@ export function CartScreen() {
                   },
                 ]}
               >
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.sidiBou }} />
-                <T lang={lang} weight="bold" size={13} color={colors.sidiBouPressed} style={{ flex: 1, ...align }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.sidiBou }} />
+                <T lang={lang} weight="bold" size={13} color={theme.sidiBouPressed} style={{ flex: 1, ...align }}>
                   {t.common.table} {table.label}
                   {table.zone ? ` · ${table.zone}` : ""} — {restaurant.name}
                 </T>
@@ -203,7 +204,7 @@ export function CartScreen() {
                 style={{
                   marginHorizontal: 16,
                   marginTop: 12,
-                  backgroundColor: colors.ink,
+                  backgroundColor: theme.ink,
                   borderRadius: 18,
                   padding: 16,
                   gap: 12,
@@ -220,12 +221,12 @@ export function CartScreen() {
                       justifyContent: "center",
                     }}
                   >
-                    <T size={13} color={colors.harissaSoft}>
+                    <T size={13} color={theme.harissaSoft}>
                       •••
                     </T>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <T lang={lang} weight="extrabold" size={15} color={colors.cream} style={align}>
+                    <T lang={lang} weight="extrabold" size={15} color={theme.cream} style={align}>
                       {t.offline.queued}
                     </T>
                     <T lang={lang} weight="semibold" size={12.5} color="rgba(250,246,239,0.65)" style={align}>
@@ -243,9 +244,9 @@ export function CartScreen() {
                 <View
                   key={line.key}
                   style={{
-                    backgroundColor: "#FFFFFF",
+                    backgroundColor: theme.card,
                     borderWidth: 1,
-                    borderColor: colors.border,
+                    borderColor: theme.border,
                     borderRadius: 16,
                     paddingVertical: 12,
                     paddingHorizontal: 14,
@@ -261,7 +262,7 @@ export function CartScreen() {
                     </T>
                   </View>
                   {(line.modifierLabels.length > 0 || line.note) && (
-                    <T lang={lang} size={12} color={colors.muted} style={align}>
+                    <T lang={lang} size={12} color={theme.muted} style={align}>
                       {line.modifierLabels.map((m) => tr(m.choice)).join(" · ")}
                       {line.note ? `${line.modifierLabels.length ? " · " : ""}${line.note}` : ""}
                     </T>
@@ -275,27 +276,27 @@ export function CartScreen() {
               {/* Kitchen note */}
               {count > 0 && (
                 <View style={{ gap: 6, marginTop: 4 }}>
-                  <T lang={lang} weight="bold" size={12} color={colors.muted} style={align}>
+                  <T lang={lang} weight="bold" size={12} color={theme.muted} style={align}>
                     {t.cart.kitchenNote}
                   </T>
                   <TextInput
                     value={cart.note}
                     onChangeText={setCartNote}
                     placeholder={t.cart.kitchenNotePlaceholder}
-                    placeholderTextColor={colors.mutedSoft}
+                    placeholderTextColor={theme.mutedSoft}
                     maxLength={500}
                     multiline
                     style={{
                       minHeight: 46,
                       borderRadius: 12,
                       borderWidth: 1.5,
-                      borderColor: colors.borderStrong,
-                      backgroundColor: "#FFFFFF",
+                      borderColor: theme.borderStrong,
+                      backgroundColor: theme.card,
                       paddingHorizontal: 14,
                       paddingVertical: 10,
                       fontFamily: "Manrope_500Medium",
                       fontSize: 13.5,
-                      color: colors.ink,
+                      color: theme.ink,
                       textAlign: isRtl ? "right" : "left",
                     }}
                   />
@@ -307,7 +308,7 @@ export function CartScreen() {
                 <View style={{ gap: 6, marginTop: 6 }}>
                   <Line dashed />
                   <View style={[rowDir(lang), { justifyContent: "space-between", marginTop: 6 }]}>
-                    <T lang={lang} weight="semibold" size={13} color={colors.muted}>
+                    <T lang={lang} weight="semibold" size={13} color={theme.muted}>
                       {t.common.subtotal} · {count} {count > 1 ? t.common.items : t.common.item}
                     </T>
                     <T weight="bold" size={13}>
@@ -320,7 +321,7 @@ export function CartScreen() {
                     </T>
                     <T display size={24}>
                       {millimesToDisplay(total, lang)}{" "}
-                      <T weight="bold" size={12} color={colors.mutedSoft} lang={lang}>
+                      <T weight="bold" size={12} color={theme.mutedSoft} lang={lang}>
                         {currencyLabel(lang)}
                       </T>
                     </T>
@@ -336,9 +337,9 @@ export function CartScreen() {
                   paddingHorizontal: 16,
                   paddingTop: 10,
                   paddingBottom: insets.bottom + 14,
-                  backgroundColor: colors.card,
+                  backgroundColor: theme.card,
                   borderTopWidth: 1,
-                  borderColor: colors.border,
+                  borderColor: theme.border,
                   gap: 9,
                 }}
               >
@@ -348,8 +349,8 @@ export function CartScreen() {
                   </T>
                 )}
                 <View style={[rowDir(lang), { alignItems: "center", justifyContent: "center", gap: 8 }]}>
-                  <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: colors.sidiBou }} />
-                  <T lang={lang} weight="semibold" size={12.5} color={colors.sidiBouPressed}>
+                  <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: theme.sidiBou }} />
+                  <T lang={lang} weight="semibold" size={12.5} color={theme.sidiBouPressed}>
                     {t.cart.payAtCounter}
                   </T>
                 </View>

@@ -5,7 +5,7 @@ import { LANGUAGE_LABELS, formatRating, interpolate, type Language } from "@cheh
 import { CtaButton, PhotoPlaceholder, Stars, T, Wordmark, ZelligeMark } from "../ui";
 import { useI18n } from "@/lib/i18n";
 import { go } from "@/lib/nav";
-import { colors, rowDir, shadowCard } from "@/lib/theme";
+import { colors, rowDir, shadowCard, useTheme } from "@/lib/theme";
 import { useVenueState } from "@/lib/venue";
 import { TablePicker } from "./table-picker";
 
@@ -16,25 +16,26 @@ export function VenueHome() {
   const { state, basePath, browse, cachedAt } = useVenueState();
   const { t, tr, lang, setLang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const [pickerOpen, setPickerOpen] = useState(false);
 
   if (state.status === "loading") {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.cream }}>
-        <ActivityIndicator color={colors.harissa} size="large" />
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.cream }}>
+        <ActivityIndicator color={theme.harissa} size="large" />
       </View>
     );
   }
 
   if (state.status === "invalid") {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 18, padding: 32, backgroundColor: colors.cream }}>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 18, padding: 32, backgroundColor: theme.cream }}>
         <ZelligeMark size={64} />
         <View style={{ alignItems: "center", gap: 6 }}>
           <T lang={lang} display size={22} style={{ textAlign: "center" }}>
             {browse ? t.discover.noResults : t.landing.invalidQr}
           </T>
-          <T lang={lang} weight="semibold" size={13} color={colors.muted} style={{ textAlign: "center", maxWidth: 280 }}>
+          <T lang={lang} weight="semibold" size={13} color={theme.muted} style={{ textAlign: "center", maxWidth: 280 }}>
             {browse ? t.discover.noResultsBody : t.landing.invalidQrBody}
           </T>
           {browse ? (
@@ -75,7 +76,7 @@ export function VenueHome() {
   const align = { textAlign: (isRtl ? "right" : "left") as "left" | "right" };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.cream }}>
+    <View style={{ flex: 1, backgroundColor: theme.cream }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} bounces={false}>
         {/* Venue photo */}
         <View style={{ height: 280 }}>
@@ -97,6 +98,7 @@ export function VenueHome() {
                 justifyContent: "center",
               }}
             >
+              {/* Static light: sits on a fixed dark overlay in every theme. */}
               <T weight="extrabold" size={17} color={colors.cream} style={{ marginTop: -2 }}>
                 {isRtl ? "›" : "‹"}
               </T>
@@ -119,6 +121,7 @@ export function VenueHome() {
             ]}
           >
             <ZelligeMark size={20} radius={6} />
+            {/* Static light: sits on a fixed dark overlay in every theme. */}
             <Wordmark size={13} color={colors.cream} dotColor={colors.harissaSoft} />
           </View>
         </View>
@@ -127,7 +130,7 @@ export function VenueHome() {
         <View
           style={{
             flex: 1,
-            backgroundColor: colors.cream,
+            backgroundColor: theme.cream,
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             marginTop: -28,
@@ -139,17 +142,17 @@ export function VenueHome() {
           <T lang={lang} display size={28} style={align}>
             {restaurant.name}
           </T>
-          <T lang={lang} weight="semibold" size={13.5} color={colors.muted} style={{ marginTop: 2, ...align }}>
+          <T lang={lang} weight="semibold" size={13.5} color={theme.muted} style={{ marginTop: 2, ...align }}>
             {tr(restaurant.tagline_i18n)}
             {closingTime ? ` · ${t.landing.openUntil} ${closingTime}` : ""}
           </T>
           {(restaurant.rating_count ?? 0) > 0 && (
             <View style={[rowDir(lang), { alignItems: "center", gap: 6, marginTop: 5 }]}>
               <Stars value={restaurant.rating_avg} size={15} />
-              <T lang={lang} weight="bold" size={13} color={colors.ink}>
+              <T lang={lang} weight="bold" size={13} color={theme.ink}>
                 {formatRating(restaurant.rating_avg, lang)}
               </T>
-              <T lang={lang} weight="semibold" size={12.5} color={colors.mutedSoft}>
+              <T lang={lang} weight="semibold" size={12.5} color={theme.mutedSoft}>
                 · {(restaurant.rating_count ?? 0) === 1 ? t.rating.ratingCountOne : interpolate(t.rating.ratingsCount, { count: restaurant.rating_count ?? 0 })}
               </T>
             </View>
@@ -163,9 +166,9 @@ export function VenueHome() {
                 shadowCard,
                 {
                   marginTop: 16,
-                  backgroundColor: colors.card,
+                  backgroundColor: theme.card,
                   borderWidth: 1,
-                  borderColor: colors.border,
+                  borderColor: theme.border,
                   borderRadius: 16,
                   padding: 14,
                   alignItems: "center",
@@ -178,12 +181,12 @@ export function VenueHome() {
                   width: 44,
                   height: 44,
                   borderRadius: 12,
-                  backgroundColor: colors.harissaTint,
+                  backgroundColor: theme.harissaTint,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <T display size={17} color={colors.harissaPressed}>
+                <T display size={17} color={theme.harissaPressed}>
                   {table.label || "?"}
                 </T>
               </View>
@@ -192,7 +195,7 @@ export function VenueHome() {
                   {t.common.table} {table.label}
                   {table.zone ? ` · ${table.zone}` : ""}
                 </T>
-                <T lang={lang} weight="semibold" size={12.5} color={colors.muted} style={align}>
+                <T lang={lang} weight="semibold" size={12.5} color={theme.muted} style={align}>
                   {t.landing.tableContext}
                 </T>
               </View>
@@ -202,9 +205,9 @@ export function VenueHome() {
                   accessibilityRole="button"
                   accessibilityLabel={t.landing.changeTable}
                   hitSlop={{ top: 8, bottom: 8 }}
-                  style={{ backgroundColor: colors.harissaTint, borderRadius: 100, paddingHorizontal: 12, paddingVertical: 7 }}
+                  style={{ backgroundColor: theme.harissaTint, borderRadius: 100, paddingHorizontal: 12, paddingVertical: 7 }}
                 >
-                  <T lang={lang} weight="bold" size={13} color={colors.harissaPressed}>
+                  <T lang={lang} weight="bold" size={13} color={theme.harissaPressed}>
                     {t.landing.changeTable}
                   </T>
                 </Pressable>
@@ -221,10 +224,10 @@ export function VenueHome() {
                 rowDir(lang),
                 {
                   marginTop: 16,
-                  backgroundColor: colors.card,
+                  backgroundColor: theme.card,
                   borderWidth: 1.5,
                   borderStyle: "dashed",
-                  borderColor: colors.borderStrong,
+                  borderColor: theme.borderStrong,
                   borderRadius: 16,
                   padding: 14,
                   alignItems: "center",
@@ -238,12 +241,12 @@ export function VenueHome() {
                   width: 44,
                   height: 44,
                   borderRadius: 12,
-                  backgroundColor: colors.sidiBouTint,
+                  backgroundColor: theme.sidiBouTint,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <T weight="extrabold" size={20} color={colors.sidiBouPressed}>
+                <T weight="extrabold" size={20} color={theme.sidiBouPressed}>
                   ⌖
                 </T>
               </View>
@@ -252,13 +255,13 @@ export function VenueHome() {
                   {noTables ? t.landing.noTables : t.landing.chooseTable}
                 </T>
                 {!noTables && (
-                  <T lang={lang} weight="semibold" size={12.5} color={colors.muted} style={align}>
+                  <T lang={lang} weight="semibold" size={12.5} color={theme.muted} style={align}>
                     {t.landing.chooseTableBody}
                   </T>
                 )}
               </View>
               {!noTables && (
-                <T weight="extrabold" size={16} color={colors.mutedSoft}>
+                <T weight="extrabold" size={16} color={theme.mutedSoft}>
                   {isRtl ? "‹" : "›"}
                 </T>
               )}
@@ -267,14 +270,14 @@ export function VenueHome() {
 
           {/* Cached-menu note (offline) */}
           {cachedAt && (
-            <T lang={lang} weight="semibold" size={12} color={colors.mutedSoft} style={{ marginTop: 10, ...align }}>
+            <T lang={lang} weight="semibold" size={12} color={theme.mutedSoft} style={{ marginTop: 10, ...align }}>
               {t.offline.menuAvailable}
             </T>
           )}
 
           {/* Language switch */}
           <View style={{ marginTop: 20, gap: 8 }}>
-            <T weight="bold" size={12} color={colors.mutedSoft} style={{ letterSpacing: 0.5, textAlign: isRtl ? "right" : "left" }}>
+            <T weight="bold" size={12} color={theme.mutedSoft} style={{ letterSpacing: 0.5, textAlign: isRtl ? "right" : "left" }}>
               LANGUE · اللغة
             </T>
             <View style={{ flexDirection: "row", gap: 8 }}>
@@ -291,14 +294,14 @@ export function VenueHome() {
                       flex: 1,
                       height: 44,
                       borderRadius: 12,
-                      backgroundColor: active ? colors.ink : "transparent",
+                      backgroundColor: active ? theme.ink : "transparent",
                       borderWidth: active ? 0 : 1.5,
-                      borderColor: colors.borderStrong,
+                      borderColor: theme.borderStrong,
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
-                    <T lang={code} weight={active ? "extrabold" : "bold"} size={14} color={active ? colors.cream : colors.ink}>
+                    <T lang={code} weight={active ? "extrabold" : "bold"} size={14} color={active ? theme.cream : theme.ink}>
                       {LANGUAGE_LABELS[code]}
                     </T>
                   </Pressable>
@@ -311,8 +314,8 @@ export function VenueHome() {
 
           {/* Pay at counter + CTA */}
           <View style={[rowDir(lang), { alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 12 }]}>
-            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: colors.sidiBou }} />
-            <T lang={lang} weight="semibold" size={13} color={colors.sidiBouPressed}>
+            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: theme.sidiBou }} />
+            <T lang={lang} weight="semibold" size={13} color={theme.sidiBouPressed}>
               {t.landing.payAtCounter}
             </T>
           </View>

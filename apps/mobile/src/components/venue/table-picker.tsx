@@ -2,7 +2,7 @@ import { Modal, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Handle, SheetClose, T } from "../ui";
 import { useI18n } from "@/lib/i18n";
-import { colors, rowDir } from "@/lib/theme";
+import { colors, rowDir, useTheme } from "@/lib/theme";
 import { useVenue, type TableChoice } from "@/lib/venue";
 
 /**
@@ -14,6 +14,7 @@ export function TablePicker({ onClose }: { onClose: () => void }) {
   const { tables, setTable, table } = useVenue();
   const { t, lang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
 
   const byZone = new Map<string, TableChoice[]>();
   for (const tb of tables ?? []) {
@@ -28,7 +29,7 @@ export function TablePicker({ onClose }: { onClose: () => void }) {
         <View
           style={{
             maxHeight: "86%",
-            backgroundColor: colors.cream,
+            backgroundColor: theme.cream,
             borderTopLeftRadius: 26,
             borderTopRightRadius: 26,
             paddingTop: 12,
@@ -41,21 +42,21 @@ export function TablePicker({ onClose }: { onClose: () => void }) {
             <T lang={lang} display size={22} style={{ textAlign: isRtl ? "right" : "left" }}>
               {t.landing.tablePickerTitle}
             </T>
-            <T lang={lang} weight="semibold" size={13} color={colors.muted} style={{ textAlign: isRtl ? "right" : "left" }}>
+            <T lang={lang} weight="semibold" size={13} color={theme.muted} style={{ textAlign: isRtl ? "right" : "left" }}>
               {t.landing.tablePickerBody}
             </T>
           </View>
 
           <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: insets.bottom + 24, gap: 16 }}>
             {(tables ?? []).length === 0 && (
-              <T lang={lang} weight="semibold" size={14} color={colors.muted} style={{ paddingVertical: 40, textAlign: "center" }}>
+              <T lang={lang} weight="semibold" size={14} color={theme.muted} style={{ paddingVertical: 40, textAlign: "center" }}>
                 {t.landing.noTables}
               </T>
             )}
             {[...byZone.entries()].map(([zone, list]) => (
               <View key={zone || "_"} style={{ gap: 8 }}>
                 {zone ? (
-                  <T weight="bold" size={12} color={colors.mutedSoft} style={{ letterSpacing: 0.5, textAlign: isRtl ? "right" : "left" }}>
+                  <T weight="bold" size={12} color={theme.mutedSoft} style={{ letterSpacing: 0.5, textAlign: isRtl ? "right" : "left" }}>
                     {zone.toUpperCase()}
                   </T>
                 ) : null}
@@ -77,13 +78,13 @@ export function TablePicker({ onClose }: { onClose: () => void }) {
                           height: 56,
                           borderRadius: 14,
                           borderWidth: 1.5,
-                          borderColor: active ? colors.ink : colors.borderStrong,
-                          backgroundColor: active ? colors.ink : "#FFFFFF",
+                          borderColor: active ? theme.ink : theme.borderStrong,
+                          backgroundColor: active ? theme.ink : theme.card,
                           alignItems: "center",
                           justifyContent: "center",
                         }}
                       >
-                        <T display size={18} color={active ? colors.cream : colors.ink}>
+                        <T display size={18} color={active ? theme.cream : theme.ink}>
                           {tb.label}
                         </T>
                       </Pressable>

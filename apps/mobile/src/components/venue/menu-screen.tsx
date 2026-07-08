@@ -1,74 +1,150 @@
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
-import { FlatList, Pressable, ScrollView, TextInput, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { BackHandler, FlatList, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
+  buildCategoryTree,
   cartCount,
   cartTotal,
   currencyLabel,
-  formatRating,
+  descendantCategoryIds,
   millimesToDisplay,
+  resolveAppearance,
+  type CategoryNode,
   type MenuItem,
 } from "@chehia/shared";
-import { PhotoPlaceholder, Stars, T, TagPill, ZelligeMark } from "../ui";
+import { T, ZelligeMark } from "../ui";
 import { useI18n } from "@/lib/i18n";
 import { go } from "@/lib/nav";
-import { colors, rowDir, shadowDark } from "@/lib/theme";
+import { rowDir, shadowDark, useTheme } from "@/lib/theme";
 import { useVenue } from "@/lib/venue";
 import { ItemSheet } from "./item-sheet";
+import { ItemCard } from "./item-card";
+import { CategoryLanding } from "./category-landing";
+import { CategoryItems } from "./category-items";
 import { WaiterSheet } from "./waiter-sheet";
 import { OfflineBanner } from "./offline-banner";
+import { GroupEntry } from "./group/group-entry";
 
 /**
- * P2/P7 · Menu — category pills, dietary tags, 86'd items visible, persistent
- * cart bar. Shared by the scanned and browse flows; the cart route is derived
- * from the provider's basePath. Render only under a "ready" venue guard.
+ * P2 · Menu — category-first landing (venue-selectable layout) that drills into
+ * items, or the classic pills+list view. Search always flattens across the whole
+ * menu. Theme comes from the venue's runtime appearance. Group ordering entry
+ * self-hides off a scanned table. Render only under a "ready" venue guard.
  */
 export function MenuScreen() {
   const venue = useVenue();
   const { restaurant, table, categories, items, groupsByItem, cart, basePath, activeOrder } = venue;
   const { t, tr, lang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
 
-  const [activeCategory, setActiveCategory] = useState(categories[0]?.id ?? "");
+  const appearance = useMemo(() => resolveAppearance(restaurant.appearance), [restaurant.appearance]);
+  const tree = useMemo(() => buildCategoryTree(categories), [categories]);
+  const itemCountByCategory = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const it of items) map[it.category_id] = (map[it.category_id] ?? 0) + 1;
+    return map;
+  }, [items]);
+
+  // Category-first landing unless the venue opted for classic, turned it off, or
+  // there is only one top-level category (a landing would be pointless).
+  const useLanding = appearance.showCategoryLanding && appearance.categoryLayout !== "classic" && tree.length > 1;
+
+  const [selectedRootId, setSelectedRootId] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState(tree[0]?.id ?? "");
   const [search, setSearch] = useState("");
   const [openItem, setOpenItem] = useState<MenuItem | null>(null);
   const [waiterOpen, setWaiterOpen] = useState(false);
 
-  const visibleItems = useMemo(() => {
-    // Only items in active categories are on the menu — search included.
-    const activeCategoryIds = new Set(categories.map((c) => c.id));
-    const onMenu = items.filter((i) => activeCategoryIds.has(i.category_id));
+  const selectedRoot: CategoryNode | null = useMemo(
+    () => (selectedRootId ? tree.find((n) => n.id === selectedRootId) ?? null : null),
+    [selectedRootId, tree],
+  );
+
+  // Android hardware back returns from a category to the landing, not off-screen.
+  useEffect(() => {
+    if (!selectedRootId) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      setSelectedRootId(null);
+      return true;
+    });
+    return () => sub.remove();
+  }, [selectedRootId]);
+
+  const onMenuItems = useMemo(() => {
+    const ids = new Set(categories.map((c) => c.id));
+    return items.filter((i) => ids.has(i.category_id));
+  }, [items, categories]);
+
+  const searching = search.trim().length > 0;
+
+  const searchResults = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (q) {
-      return onMenu.filter((i) =>
-        Object.values(i.name_i18n)
-          .concat(Object.values(i.description_i18n))
-          .some((s) => s?.toLowerCase().includes(q)),
-      );
-    }
-    return onMenu.filter((i) => i.category_id === activeCategory);
-  }, [items, categories, activeCategory, search]);
+    if (!q) return [];
+    return onMenuItems.filter((i) =>
+      Object.values(i.name_i18n)
+        .concat(Object.values(i.description_i18n))
+        .some((s) => s?.toLowerCase().includes(q)),
+    );
+  }, [onMenuItems, search]);
+
+  // Classic mode: items of the active top-level category + its subcategories.
+  const classicItems = useMemo(() => {
+    const node = tree.find((n) => n.id === activeCategory);
+    if (!node) return onMenuItems.filter((i) => i.category_id === activeCategory);
+    const ids = new Set(descendantCategoryIds(node));
+    return onMenuItems.filter((i) => ids.has(i.category_id));
+  }, [tree, activeCategory, onMenuItems]);
 
   const count = cartCount(cart);
+  const cards = appearance.itemLayout === "cards";
+  const padBottom = count > 0 ? 96 : 24;
 
-  const dietaryTag = (tag: string): { label: string; tone: "green" | "amber" | "neutral" } | null => {
-    switch (tag) {
-      case "vegetarian":
-        return { label: t.dietary.vegetarian, tone: "green" };
-      case "vegan":
-        return { label: t.dietary.vegan, tone: "green" };
-      case "spicy":
-        return { label: t.dietary.spicy, tone: "amber" };
-      case "gluten-free":
-        return { label: t.dietary.glutenFree, tone: "neutral" };
-      default:
-        return null;
-    }
-  };
+  const emptyState = (
+    <View style={{ alignItems: "center", paddingVertical: 60, gap: 6 }}>
+      <T lang={lang} display size={20}>
+        {t.menu.noResults}
+      </T>
+      <T lang={lang} weight="semibold" size={13} color={theme.muted}>
+        {t.menu.noResultsBody}
+      </T>
+    </View>
+  );
+
+  // A flat item list in the venue's item layout (shared by search + classic).
+  const itemList = (data: MenuItem[]) => (
+    <FlatList
+      key={appearance.itemLayout}
+      data={data}
+      keyExtractor={(item) => item.id}
+      removeClippedSubviews
+      initialNumToRender={8}
+      maxToRenderPerBatch={8}
+      windowSize={7}
+      keyboardShouldPersistTaps="handled"
+      numColumns={cards ? 2 : 1}
+      columnWrapperStyle={cards ? { gap: 10, paddingHorizontal: 20 } : undefined}
+      contentContainerStyle={
+        cards
+          ? { paddingTop: 10, paddingBottom: padBottom, gap: 10 }
+          : { paddingHorizontal: 20, paddingTop: 10, paddingBottom: padBottom, gap: 10 }
+      }
+      ListEmptyComponent={emptyState}
+      renderItem={({ item }) => (
+        <ItemCard
+          item={item}
+          groups={groupsByItem[item.id] ?? []}
+          layout={appearance.itemLayout}
+          onOpen={setOpenItem}
+          style={cards ? { flex: 1, maxWidth: "50%" } : undefined}
+        />
+      )}
+    />
+  );
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.cream, paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: theme.cream, paddingTop: insets.top }}>
       <OfflineBanner />
 
       {/* Header */}
@@ -80,20 +156,17 @@ export function MenuScreen() {
           <T lang={lang} weight="extrabold" size={16} numberOfLines={1} style={{ textAlign: isRtl ? "right" : "left" }}>
             {restaurant.name}
           </T>
-          <T lang={lang} weight="semibold" size={11.5} color={colors.mutedSoft} numberOfLines={1} style={{ textAlign: isRtl ? "right" : "left" }}>
+          <T lang={lang} weight="semibold" size={11.5} color={theme.mutedSoft} numberOfLines={1} style={{ textAlign: isRtl ? "right" : "left" }}>
             {t.menu.title} · {lang === "fr" ? "Français" : lang === "ar" ? "العربية" : "English"}
           </T>
         </View>
-        {/* Table pill: known in the scanned flow; only after picking in browse. */}
         {table && (
-          <View style={{ backgroundColor: colors.harissaTint, borderRadius: 100, paddingVertical: 7, paddingHorizontal: 12 }}>
-            <T lang={lang} weight="extrabold" size={13} color={colors.harissaPressed}>
+          <View style={{ backgroundColor: theme.harissaTint, borderRadius: 100, paddingVertical: 7, paddingHorizontal: 12 }}>
+            <T lang={lang} weight="extrabold" size={13} color={theme.harissaPressed}>
               {t.common.table} {table.label}
             </T>
           </View>
         )}
-        {/* Waiter reachable from the menu — a dine-in guest may want water or the
-            bill before they order, not only from the order-tracking screen. */}
         {table && (
           <Pressable
             accessibilityRole="button"
@@ -104,9 +177,9 @@ export function MenuScreen() {
               width: 40,
               height: 40,
               borderRadius: 20,
-              backgroundColor: "#FFFFFF",
+              backgroundColor: theme.card,
               borderWidth: 1.5,
-              borderColor: colors.border,
+              borderColor: theme.border,
               alignItems: "center",
               justifyContent: "center",
             }}
@@ -116,6 +189,42 @@ export function MenuScreen() {
         )}
       </View>
 
+      {/* Return to an order placed from this device */}
+      {activeOrder && (
+        <Pressable
+          onPress={() => go(`${basePath}/order/${activeOrder.id}`)}
+          accessibilityRole="button"
+          accessibilityLabel={t.order.inProgress}
+          style={[
+            rowDir(lang),
+            shadowDark,
+            {
+              marginHorizontal: 20,
+              marginTop: 12,
+              backgroundColor: theme.ink,
+              borderRadius: 14,
+              paddingVertical: 11,
+              paddingHorizontal: 16,
+              alignItems: "center",
+              gap: 10,
+            },
+          ]}
+        >
+          <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: theme.harissa }} />
+          <T lang={lang} weight="extrabold" size={13.5} color={theme.cream} style={{ flex: 1, textAlign: isRtl ? "right" : "left" }}>
+            {t.order.inProgress}
+          </T>
+          <View style={{ backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 10, paddingVertical: 6, paddingHorizontal: 12 }}>
+            <T lang={lang} weight="extrabold" size={13} color={theme.cream}>
+              {t.order.trackOrder} {isRtl ? "‹" : "›"}
+            </T>
+          </View>
+        </Pressable>
+      )}
+
+      {/* Group ordering entry (scanned tables only; self-hides otherwise) */}
+      <GroupEntry style={{ marginHorizontal: 20, marginTop: 12 }} />
+
       {/* Search */}
       <View style={{ paddingHorizontal: 20, paddingTop: 14 }}>
         <View
@@ -124,46 +233,45 @@ export function MenuScreen() {
             {
               height: 46,
               borderRadius: 14,
-              backgroundColor: "#FFFFFF",
+              backgroundColor: theme.card,
               borderWidth: 1.5,
-              borderColor: colors.border,
+              borderColor: theme.border,
               alignItems: "center",
               gap: 10,
               paddingHorizontal: 14,
             },
           ]}
         >
-          <T size={14} color={colors.mutedSoft}>
+          <T size={14} color={theme.mutedSoft}>
             ⌕
           </T>
           <TextInput
             value={search}
             onChangeText={setSearch}
             placeholder={t.menu.searchPlaceholder}
-            placeholderTextColor={colors.mutedSoft}
+            placeholderTextColor={theme.mutedSoft}
             style={{
               flex: 1,
               fontFamily: "Manrope_500Medium",
               fontSize: 14,
-              color: colors.ink,
+              color: theme.ink,
               textAlign: isRtl ? "right" : "left",
             }}
           />
         </View>
       </View>
 
-      {/* Category pills */}
-      {!search && (
+      {/* Classic category pills (hidden while searching or in the landing) */}
+      {!searching && !useLanding && (
         <View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            // RTL: mirror the scroll container and un-mirror each pill —
-            // keeps natural item order while scrolling starts from the right.
+            // RTL: mirror the scroll container and un-mirror each pill.
             contentContainerStyle={{ gap: 8, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4, flexDirection: "row" }}
             style={isRtl ? { transform: [{ scaleX: -1 }] } : undefined}
           >
-            {categories.map((cat) => {
+            {tree.map((cat) => {
               const active = cat.id === activeCategory;
               return (
                 <Pressable
@@ -179,15 +287,15 @@ export function MenuScreen() {
                       height: 38,
                       paddingHorizontal: 16,
                       borderRadius: 100,
-                      backgroundColor: active ? colors.ink : "#FFFFFF",
+                      backgroundColor: active ? theme.ink : theme.card,
                       borderWidth: active ? 0 : 1.5,
-                      borderColor: colors.border,
+                      borderColor: theme.border,
                       alignItems: "center",
                       justifyContent: "center",
                     },
                   ]}
                 >
-                  <T lang={lang} weight={active ? "extrabold" : "bold"} size={13.5} color={active ? colors.cream : colors.muted}>
+                  <T lang={lang} weight={active ? "extrabold" : "bold"} size={13.5} color={active ? theme.cream : theme.muted}>
                     {tr(cat.name_i18n)}
                   </T>
                 </Pressable>
@@ -197,176 +305,30 @@ export function MenuScreen() {
         </View>
       )}
 
-      {/* Return to an order placed from this device */}
-      {activeOrder && (
-        <Pressable
-          onPress={() => go(`${basePath}/order/${activeOrder.id}`)}
-          accessibilityRole="button"
-          accessibilityLabel={t.order.inProgress}
-          style={[
-            rowDir(lang),
-            shadowDark,
-            {
-              marginHorizontal: 20,
-              marginTop: 12,
-              backgroundColor: colors.ink,
-              borderRadius: 14,
-              paddingVertical: 11,
-              paddingHorizontal: 16,
-              alignItems: "center",
-              gap: 10,
-            },
-          ]}
-        >
-          <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: colors.harissa }} />
-          <T lang={lang} weight="extrabold" size={13.5} color={colors.cream} style={{ flex: 1, textAlign: isRtl ? "right" : "left" }}>
-            {t.order.inProgress}
-          </T>
-          <View style={{ backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 10, paddingVertical: 6, paddingHorizontal: 12 }}>
-            <T lang={lang} weight="extrabold" size={13} color={colors.cream}>
-              {t.order.trackOrder} {isRtl ? "‹" : "›"}
-            </T>
-          </View>
-        </Pressable>
+      {/* Content region */}
+      {searching ? (
+        <View style={{ flex: 1, marginTop: 10 }}>{itemList(searchResults)}</View>
+      ) : useLanding && selectedRoot ? (
+        <CategoryItems
+          node={selectedRoot}
+          items={onMenuItems}
+          groupsByItem={groupsByItem}
+          itemLayout={appearance.itemLayout}
+          onBack={() => setSelectedRootId(null)}
+          onOpen={setOpenItem}
+        />
+      ) : useLanding ? (
+        <CategoryLanding
+          tree={tree}
+          layout={appearance.categoryLayout}
+          itemCountByCategory={itemCountByCategory}
+          onSelect={(node) => setSelectedRootId(node.id)}
+        />
+      ) : (
+        <View style={{ flex: 1 }}>{itemList(classicItems)}</View>
       )}
 
-      {/* Items */}
-      <FlatList
-        data={visibleItems}
-        keyExtractor={(item) => item.id}
-        removeClippedSubviews
-        initialNumToRender={8}
-        maxToRenderPerBatch={8}
-        windowSize={7}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: count > 0 ? 96 : 24, gap: 10 }}
-        ListEmptyComponent={
-          <View style={{ alignItems: "center", paddingVertical: 60, gap: 6 }}>
-            <T lang={lang} display size={20}>
-              {t.menu.noResults}
-            </T>
-            <T lang={lang} weight="semibold" size={13} color={colors.muted}>
-              {t.menu.noResultsBody}
-            </T>
-          </View>
-        }
-        renderItem={({ item }) => {
-          const available = item.is_available;
-          const sizeGroup = (groupsByItem[item.id] ?? []).find((g) => g.min_select >= 1);
-          return (
-            <Pressable
-              disabled={!available}
-              onPress={() => setOpenItem(item)}
-              accessible
-              accessibilityRole="button"
-              accessibilityState={{ disabled: !available }}
-              accessibilityLabel={
-                `${tr(item.name_i18n)}, ${millimesToDisplay(item.price_millimes, lang)} ${currencyLabel(lang)}` +
-                (item.is_popular && available ? `, ${t.menu.popular}` : "") +
-                (available ? "" : `, ${t.menu.soldOut}`)
-              }
-              accessibilityHint={available ? t.item.addToCart : undefined}
-              style={[
-                rowDir(lang),
-                {
-                  backgroundColor: available ? "#FFFFFF" : colors.sand,
-                  borderWidth: item.is_popular && available ? 1.5 : 1,
-                  borderColor: item.is_popular && available ? colors.harissa : colors.border,
-                  borderRadius: 16,
-                  padding: 12,
-                  gap: 12,
-                  alignItems: "center",
-                  opacity: available ? 1 : 0.66,
-                },
-              ]}
-            >
-              <View>
-                <PhotoPlaceholder width={68} height={68} mirrored={isRtl} src={item.photo_url} />
-                {item.is_popular && available && (
-                  <View
-                    style={{
-                      position: "absolute",
-                      top: -7,
-                      [isRtl ? "right" : "left"]: -7,
-                      backgroundColor: colors.harissa,
-                      borderRadius: 100,
-                      paddingHorizontal: 8,
-                      paddingVertical: 3,
-                    }}
-                  >
-                    <T lang={lang} weight="extrabold" size={10} color="#FFFFFF">
-                      {t.menu.popular}
-                    </T>
-                  </View>
-                )}
-              </View>
-              <View style={{ flex: 1, gap: 3 }}>
-                <View style={[rowDir(lang), { justifyContent: "space-between", gap: 8 }]}>
-                  <T
-                    lang={lang}
-                    weight="extrabold"
-                    size={15.5}
-                    color={available ? colors.ink : colors.muted}
-                    style={{ textDecorationLine: available ? "none" : "line-through", flexShrink: 1 }}
-                  >
-                    {tr(item.name_i18n)}
-                  </T>
-                  <T weight={available ? "extrabold" : "bold"} size={available ? 15.5 : 13} color={available ? colors.ink : colors.mutedSoft}>
-                    {millimesToDisplay(item.price_millimes, lang)}{" "}
-                    <T size={11} color={colors.mutedSoft} lang={lang}>
-                      {currencyLabel(lang)}
-                    </T>
-                  </T>
-                </View>
-                {available ? (
-                  <>
-                    <T lang={lang} size={12.5} color={colors.muted} numberOfLines={2} style={{ textAlign: isRtl ? "right" : "left" }}>
-                      {tr(item.description_i18n)}
-                    </T>
-                    <View style={[rowDir(lang), { gap: 5, marginTop: 2, flexWrap: "wrap", alignItems: "center" }]}>
-                      {(item.rating_count ?? 0) > 0 && (
-                        <View style={[rowDir(lang), { alignItems: "center", gap: 4 }]}>
-                          <Stars value={item.rating_avg} size={12} />
-                          <T lang={lang} weight="bold" size={12} color={colors.ink}>
-                            {formatRating(item.rating_avg, lang)}
-                          </T>
-                        </View>
-                      )}
-                      {item.dietary_tags.slice(0, 2).map((tag) => {
-                        const d = dietaryTag(tag);
-                        return d ? <TagPill key={tag} lang={lang} label={d.label} tone={d.tone} /> : null;
-                      })}
-                      {sizeGroup && <TagPill lang={lang} label={`${sizeGroup.modifiers.length} ${t.menu.sizes}`} tone="neutral" />}
-                    </View>
-                  </>
-                ) : (
-                  <View style={[rowDir(lang)]}>
-                    <TagPill lang={lang} label={t.menu.soldOut} tone="soldout" />
-                  </View>
-                )}
-              </View>
-              {available && (
-                <View
-                  style={{
-                    width: 42,
-                    height: 42,
-                    borderRadius: 12,
-                    backgroundColor: item.is_popular ? colors.harissa : colors.harissaTint,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <T weight="extrabold" size={21} color={item.is_popular ? "#FFFFFF" : colors.harissaPressed}>
-                    +
-                  </T>
-                </View>
-              )}
-            </Pressable>
-          );
-        }}
-      />
-
-      {/* Persistent cart bar */}
+      {/* Persistent cart bar (personal cart; group items live in the group cart) */}
       {count > 0 && (
         <Pressable
           onPress={() => go(`${basePath}/cart`)}
@@ -382,7 +344,7 @@ export function MenuScreen() {
               right: 16,
               height: 58,
               borderRadius: 18,
-              backgroundColor: colors.ink,
+              backgroundColor: theme.ink,
               alignItems: "center",
               paddingStart: 16,
               paddingEnd: 8,
@@ -390,16 +352,16 @@ export function MenuScreen() {
             },
           ]}
         >
-          <View style={{ width: 24, height: 24, borderRadius: 8, backgroundColor: colors.harissa, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: 24, height: 24, borderRadius: 8, backgroundColor: theme.harissa, alignItems: "center", justifyContent: "center" }}>
             <T weight="extrabold" size={13} color="#FFFFFF">
               {count}
             </T>
           </View>
-          <T lang={lang} weight="extrabold" size={15} color={colors.cream} style={{ flex: 1, textAlign: isRtl ? "right" : "left" }}>
+          <T lang={lang} weight="extrabold" size={15} color={theme.cream} style={{ flex: 1, textAlign: isRtl ? "right" : "left" }}>
             {t.menu.viewCart}
           </T>
           <View style={{ backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 12, paddingVertical: 9, paddingHorizontal: 14 }}>
-            <T weight="extrabold" size={15} color={colors.cream}>
+            <T weight="extrabold" size={15} color={theme.cream}>
               {millimesToDisplay(cartTotal(cart), lang)} {currencyLabel(lang)}
             </T>
           </View>

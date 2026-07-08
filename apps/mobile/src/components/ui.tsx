@@ -3,7 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View, type StyleProp, type TextStyl
 import Svg, { Defs, G, Pattern, Rect } from "react-native-svg";
 import type { Language, Sentiment } from "@chehia/shared";
 import { useI18n } from "../lib/i18n";
-import { colors, displayFace, faceFor, fontFamily, shadowCta, sizeFor } from "../lib/theme";
+import { colors, displayFace, faceFor, fontFamily, shadowCta, sizeFor, useTheme } from "../lib/theme";
 
 const STAR_GOLD = "#E0A63C";
 const STAR_EMPTY = "#E3D9CB";
@@ -60,6 +60,7 @@ export function FaceInput({
   onChange: (s: Sentiment) => void;
   options: { key: Sentiment; emoji: string; label: string }[];
 }) {
+  const theme = useTheme();
   return (
     <View style={{ flexDirection: "row", gap: 10 }}>
       {options.map((o) => {
@@ -78,12 +79,12 @@ export function FaceInput({
               paddingVertical: 16,
               borderRadius: 18,
               borderWidth: 1.5,
-              borderColor: selected ? colors.harissa : colors.border,
-              backgroundColor: selected ? colors.harissaTint : colors.card,
+              borderColor: selected ? theme.harissa : theme.border,
+              backgroundColor: selected ? theme.harissaTint : theme.card,
             }}
           >
             <Text style={{ fontSize: 38, opacity: selected ? 1 : 0.7 }}>{o.emoji}</Text>
-            <Text style={{ fontFamily: fontFamily.bold, fontSize: 13, color: selected ? colors.harissaPressed : colors.muted }}>
+            <Text style={{ fontFamily: fontFamily.bold, fontSize: 13, color: selected ? theme.harissaPressed : theme.muted }}>
               {o.label}
             </Text>
           </Pressable>
@@ -102,7 +103,7 @@ export function FaceInput({
  */
 export function ZelligeMark({
   size = 30,
-  color = colors.harissa,
+  color,
   inner = "#FFFFFF",
   radius,
 }: {
@@ -111,11 +112,13 @@ export function ZelligeMark({
   inner?: string;
   radius?: number;
 }) {
+  const theme = useTheme();
+  const fill = color ?? theme.harissa;
   // rx is in the 0–100 viewBox space; default 30 == size * 0.3 rounded square.
   const rx = radius != null ? (radius / size) * 100 : 30;
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100">
-      <Rect width={100} height={100} rx={rx} fill={color} />
+      <Rect width={100} height={100} rx={rx} fill={fill} />
       {/* "scan" QR finder, top-left */}
       <Rect x={19} y={19} width={25} height={25} rx={7} fill="none" stroke={inner} strokeWidth={5.5} />
       <Rect x={28} y={28} width={7} height={7} rx={2} fill={inner} />
@@ -131,10 +134,11 @@ export function ZelligeMark({
   );
 }
 
-export function Wordmark({ size = 19, color = colors.ink, dotColor = colors.harissa }: { size?: number; color?: string; dotColor?: string }) {
+export function Wordmark({ size = 19, color, dotColor }: { size?: number; color?: string; dotColor?: string }) {
+  const theme = useTheme();
   return (
-    <Text style={{ fontFamily: fontFamily.display, fontSize: size, color, letterSpacing: -0.4 }}>
-      chehia<Text style={{ color: dotColor }}>.</Text>
+    <Text style={{ fontFamily: fontFamily.display, fontSize: size, color: color ?? theme.ink, letterSpacing: -0.4 }}>
+      chehia<Text style={{ color: dotColor ?? theme.harissa }}>.</Text>
     </Text>
   );
 }
@@ -157,11 +161,12 @@ export function CtaButton({
   height?: number;
   style?: StyleProp<ViewStyle>;
 }) {
+  const theme = useTheme();
   const base: Record<string, { bg: string; fg: string; border?: string; shadow?: ViewStyle }> = {
-    primary: { bg: disabled ? colors.disabled : colors.harissa, fg: "#FFFFFF", shadow: disabled ? undefined : shadowCta },
-    secondary: { bg: colors.harissaTint, fg: colors.harissaPressed },
-    outline: { bg: colors.card, fg: colors.ink, border: colors.ink },
-    dark: { bg: colors.ink, fg: colors.cream },
+    primary: { bg: disabled ? theme.disabled : theme.harissa, fg: "#FFFFFF", shadow: disabled ? undefined : shadowCta },
+    secondary: { bg: theme.harissaTint, fg: theme.harissaPressed },
+    outline: { bg: theme.card, fg: theme.ink, border: theme.ink },
+    dark: { bg: theme.ink, fg: theme.cream },
   };
   const s = base[variant] ?? base.primary!;
   return (
@@ -175,7 +180,7 @@ export function CtaButton({
         {
           height: Math.max(height, 44),
           borderRadius: 16,
-          backgroundColor: pressed && variant === "primary" && !disabled ? colors.harissaPressed : s.bg,
+          backgroundColor: pressed && variant === "primary" && !disabled ? theme.harissaPressed : s.bg,
           borderWidth: s.border ? 2 : 0,
           borderColor: s.border,
           alignItems: "center",
@@ -206,12 +211,13 @@ export function TagPill({
   tone?: "green" | "amber" | "neutral" | "popular" | "soldout";
   lang?: Language;
 }) {
+  const theme = useTheme();
   const tones = {
     green: { border: colors.successBorder, fg: colors.successText, bg: "transparent" },
     amber: { border: colors.warningBorder, fg: colors.warningText, bg: "transparent" },
-    neutral: { border: colors.borderStrong, fg: colors.muted, bg: "transparent" },
-    popular: { border: "transparent", fg: colors.harissaPressed, bg: colors.harissaTint },
-    soldout: { border: "transparent", fg: colors.mutedSoft, bg: colors.sandDeep },
+    neutral: { border: theme.borderStrong, fg: theme.muted, bg: "transparent" },
+    popular: { border: "transparent", fg: theme.harissaPressed, bg: theme.harissaTint },
+    soldout: { border: "transparent", fg: theme.mutedSoft, bg: theme.sandDeep },
   } as const;
   const s = tones[tone];
   return (
@@ -254,6 +260,7 @@ export function Stepper({
   compact?: boolean;
 }) {
   const { t } = useI18n();
+  const theme = useTheme();
   const h = compact ? 36 : 52;
   const w = compact ? 38 : 46;
   return (
@@ -262,9 +269,9 @@ export function Stepper({
         flexDirection: "row",
         alignItems: "center",
         borderWidth: 1.5,
-        borderColor: colors.borderStrong,
+        borderColor: theme.borderStrong,
         borderRadius: 100,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: theme.card,
         height: h,
       }}
     >
@@ -276,11 +283,11 @@ export function Stepper({
         onPress={() => onChange(Math.max(min, value - 1))}
         style={{ width: w, height: h, alignItems: "center", justifyContent: "center", opacity: value <= min ? 0.3 : 1 }}
       >
-        <Text style={{ color: colors.harissa, fontFamily: fontFamily.extrabold, fontSize: compact ? 17 : 22 }}>−</Text>
+        <Text style={{ color: theme.harissa, fontFamily: fontFamily.extrabold, fontSize: compact ? 17 : 22 }}>−</Text>
       </Pressable>
       <Text
         maxFontSizeMultiplier={1.3}
-        style={{ minWidth: 24, textAlign: "center", fontFamily: fontFamily.extrabold, fontSize: compact ? 14 : 17, color: colors.ink }}
+        style={{ minWidth: 24, textAlign: "center", fontFamily: fontFamily.extrabold, fontSize: compact ? 14 : 17, color: theme.ink }}
       >
         {value}
       </Text>
@@ -292,7 +299,7 @@ export function Stepper({
         onPress={() => onChange(Math.min(max, value + 1))}
         style={{ width: w, height: h, alignItems: "center", justifyContent: "center", opacity: value >= max ? 0.3 : 1 }}
       >
-        <Text style={{ color: colors.harissa, fontFamily: fontFamily.extrabold, fontSize: compact ? 17 : 22 }}>+</Text>
+        <Text style={{ color: theme.harissa, fontFamily: fontFamily.extrabold, fontSize: compact ? 17 : 22 }}>+</Text>
       </Pressable>
     </View>
   );
@@ -317,6 +324,7 @@ export function PhotoPlaceholder({
   mirrored?: boolean;
   src?: string | null;
 }) {
+  const theme = useTheme();
   const pid = mirrored ? "weave-m" : "weave-n";
   const [failed, setFailed] = useState(false);
   const showImage = !!src && !failed;
@@ -324,7 +332,7 @@ export function PhotoPlaceholder({
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width, height, borderRadius: radius, backgroundColor: colors.photoPlaceholder, overflow: "hidden" }}
+      style={{ width, height, borderRadius: radius, backgroundColor: theme.photoPlaceholder, overflow: "hidden" }}
     >
       <Svg width="100%" height={height}>
         <Defs>
@@ -335,8 +343,8 @@ export function PhotoPlaceholder({
             height={14}
             patternTransform={`rotate(${mirrored ? -45 : 45})`}
           >
-            <Rect width={14} height={14} fill={colors.photoPlaceholder} />
-            <Rect width={7} height={14} fill={colors.photoPlaceholderAlt} />
+            <Rect width={14} height={14} fill={theme.photoPlaceholder} />
+            <Rect width={7} height={14} fill={theme.photoPlaceholderAlt} />
           </Pattern>
         </Defs>
         <Rect width="100%" height={height} fill={`url(#${pid})`} />
@@ -355,6 +363,7 @@ export function PhotoPlaceholder({
 
 export function BackButton({ onPress, isRtl = false }: { onPress: () => void; isRtl?: boolean }) {
   const { t } = useI18n();
+  const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -365,14 +374,14 @@ export function BackButton({ onPress, isRtl = false }: { onPress: () => void; is
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: theme.card,
         borderWidth: 1.5,
-        borderColor: colors.border,
+        borderColor: theme.border,
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <Text style={{ color: colors.ink, fontSize: 17, fontFamily: fontFamily.extrabold, marginTop: -2 }}>
+      <Text style={{ color: theme.ink, fontSize: 17, fontFamily: fontFamily.extrabold, marginTop: -2 }}>
         {isRtl ? "›" : "‹"}
       </Text>
     </Pressable>
@@ -380,8 +389,9 @@ export function BackButton({ onPress, isRtl = false }: { onPress: () => void; is
 }
 
 export function Handle() {
+  const theme = useTheme();
   return (
-    <View style={{ width: 44, height: 5, borderRadius: 3, backgroundColor: colors.borderStrong, alignSelf: "center", marginBottom: 16 }} />
+    <View style={{ width: 44, height: 5, borderRadius: 3, backgroundColor: theme.borderStrong, alignSelf: "center", marginBottom: 16 }} />
   );
 }
 
@@ -392,6 +402,7 @@ export function Handle() {
  */
 export function SheetClose({ onClose, isRtl = false }: { onClose: () => void; isRtl?: boolean }) {
   const { t } = useI18n();
+  const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -407,21 +418,22 @@ export function SheetClose({ onClose, isRtl = false }: { onClose: () => void; is
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: colors.sandDeep,
+        backgroundColor: theme.sandDeep,
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <Text style={{ color: colors.muted, fontFamily: fontFamily.bold, fontSize: 15 }}>✕</Text>
+      <Text style={{ color: theme.muted, fontFamily: fontFamily.bold, fontSize: 15 }}>✕</Text>
     </Pressable>
   );
 }
 
 export function Line({ dashed = false, style }: { dashed?: boolean; style?: StyleProp<ViewStyle> }) {
+  const theme = useTheme();
   return (
     <View
       style={[
-        { borderTopWidth: 1, borderColor: dashed ? colors.borderStrong : colors.border, borderStyle: dashed ? "dashed" : "solid" },
+        { borderTopWidth: 1, borderColor: dashed ? theme.borderStrong : theme.border, borderStyle: dashed ? "dashed" : "solid" },
         style,
       ]}
     />
@@ -433,7 +445,7 @@ export function T({
   lang = "fr",
   weight = "regular",
   size = 14,
-  color = colors.ink,
+  color,
   display = false,
   style,
   numberOfLines,
@@ -447,6 +459,7 @@ export function T({
   style?: StyleProp<TextStyle>;
   numberOfLines?: number;
 }) {
+  const theme = useTheme();
   return (
     <Text
       numberOfLines={numberOfLines}
@@ -454,7 +467,7 @@ export function T({
         {
           fontFamily: display ? displayFace(lang) : faceFor(lang, weight),
           fontSize: sizeFor(lang, size),
-          color,
+          color: color ?? theme.ink,
           lineHeight: lang === "ar" ? sizeFor(lang, size) * 1.5 : undefined,
           // Arabic needs an explicit RTL base direction, otherwise a string
           // that mixes Arabic with Latin/digits (prices, table numbers) renders

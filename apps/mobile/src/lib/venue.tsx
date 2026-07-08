@@ -18,6 +18,7 @@ import {
   type Table,
 } from "@chehia/shared";
 import { ensureCustomerSession, functionsUrl, supabase, supabaseAnonKey } from "./supabase";
+import { ThemeProvider, resolveThemeColors } from "./theme";
 
 /** A table the customer is ordering to — carries qr_token only in the scanned flow. */
 export type TableChoice = Pick<Table, "id" | "label" | "zone"> & { qr_token?: string };
@@ -632,7 +633,18 @@ export function VenueProvider(props: ProviderProps) {
     [state, basePath, browse, setTable, cart, online, cachedAt, queuedOrder, queuedPlacedOrderId, clearQueuedPlaced, addToCart, updateQty, setCartNote, clearCart, placeOrder, retryQueued, callWaiter, activeOrder, rememberOrder, forgetOrder],
   );
 
-  return <VenueContext.Provider value={value}>{props.children}</VenueContext.Provider>;
+  // Runtime theme (Epic 1): re-skin every downstream screen from the venue's
+  // appearance. Falls back to the default "Harissa" theme until the venue loads.
+  // The restaurant reference is stable across realtime item updates, so this only
+  // recomputes when the appearance blob actually changes.
+  const appearanceRaw = state.status === "ready" ? state.bundle.restaurant.appearance : null;
+  const themeColors = useMemo(() => resolveThemeColors(appearanceRaw), [appearanceRaw]);
+
+  return (
+    <VenueContext.Provider value={value}>
+      <ThemeProvider value={themeColors}>{props.children}</ThemeProvider>
+    </VenueContext.Provider>
+  );
 }
 
 export function useVenueState(): VenueContextValue {
