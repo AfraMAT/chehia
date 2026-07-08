@@ -3,12 +3,14 @@
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  DEFAULT_GEOFENCE_M,
   formatDistanceKm,
   formatRating,
   haversineKm,
   interpolate,
   LANGUAGE_LABELS,
   LANGUAGES,
+  withinGeofence,
   type Coords,
   type DiscoveryVenue,
   type Language,
@@ -32,6 +34,7 @@ function DiscoverInner({ venues, loadError }: { venues: DiscoveryVenue[]; loadEr
   const { t, tr, lang, setLang } = useI18n();
   const [search, setSearch] = useState("");
   const [coords, setCoords] = useState<Coords | null>(null);
+  const [accuracy, setAccuracy] = useState<number>(0);
   const [geo, setGeo] = useState<GeoState>("idle");
 
   const locate = useCallback(() => {
@@ -43,6 +46,7 @@ function DiscoverInner({ venues, loadError }: { venues: DiscoveryVenue[]; loadEr
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        setAccuracy(Number.isFinite(pos.coords.accuracy) ? pos.coords.accuracy : 0);
         setGeo("on");
       },
       () => setGeo("denied"),
@@ -53,11 +57,23 @@ function DiscoverInner({ venues, loadError }: { venues: DiscoveryVenue[]; loadEr
   const results = useMemo(() => {
     const q = search.trim().toLowerCase();
     const withDist = venues.map((v) => {
+      const hasPin = v.latitude != null && v.longitude != null;
       const dist =
-        coords && v.latitude != null && v.longitude != null
-          ? haversineKm(coords, { latitude: v.latitude, longitude: v.longitude })
-          : null;
-      return { venue: v, dist };
+        coords && hasPin ? haversineKm(coords, { latitude: v.latitude!, longitude: v.longitude! }) : null;
+      // "You're here" — inside this venue's geofence right now. Reuses the same
+      // accuracy-slack rule the order gate + server enforce, so discovery and
+      // checkout agree on who's on-site.
+      const here = Boolean(
+        coords &&
+          hasPin &&
+          withinGeofence(
+            coords,
+            { latitude: v.latitude!, longitude: v.longitude! },
+            v.geofence_radius_m ?? DEFAULT_GEOFENCE_M,
+            accuracy,
+          ),
+      );
+      return { venue: v, dist, here };
     });
     const filtered = q
       ? withDist.filter(({ venue }) =>
@@ -65,13 +81,15 @@ function DiscoverInner({ venues, loadError }: { venues: DiscoveryVenue[]; loadEr
         )
       : withDist;
     filtered.sort((a, b) => {
+      // On-site venues always float to the very top, ahead of the distance sort.
+      if (a.here !== b.here) return a.here ? -1 : 1;
       if (a.dist != null && b.dist != null) return a.dist - b.dist;
       if (a.dist != null) return -1;
       if (b.dist != null) return 1;
       return a.venue.name.localeCompare(b.venue.name);
     });
     return filtered;
-  }, [venues, search, coords, tr]);
+  }, [venues, search, coords, accuracy, tr]);
 
   const sortedByDistance = coords && geo === "on";
 
@@ -135,6 +153,9 @@ function DiscoverInner({ venues, loadError }: { venues: DiscoveryVenue[]; loadEr
       {geo === "denied" && (
         <p className="px-5 pt-2 text-[12.5px] font-semibold text-muted-soft">{t.discover.locationOff}</p>
       )}
+      {geo === "idle" && venues.length > 0 && (
+        <p className="px-5 pt-2 text-[12.5px] font-semibold text-muted-soft">{t.location.discover.shareToSee}</p>
+      )}
 
       {/* Section label */}
       {results.length > 0 && (
@@ -163,14 +184,24 @@ function DiscoverInner({ venues, loadError }: { venues: DiscoveryVenue[]; loadEr
         ) : results.length === 0 ? (
           <EmptyState title={t.discover.noResults} body={t.discover.noResultsBody} />
         ) : (
-          results.map(({ venue, dist }) => (
+          results.map(({ venue, dist, here }) => (
             <Link
               key={venue.id}
               href={`/r/${venue.slug}`}
-              className="bg-white border border-line rounded-2xl overflow-hidden flex items-stretch gap-0 hover:shadow-md transition-shadow"
+              className={`bg-white border rounded-2xl overflow-hidden flex items-stretch gap-0 hover:shadow-md transition-shadow ${
+                here ? "border-teal shadow-[0_0_0_1.5px_var(--color-teal)]" : "border-line"
+              }`}
             >
               <PhotoPlaceholder src={venue.cover_url} alt={venue.name} className="w-[104px] shrink-0 object-cover self-stretch" />
               <div className="flex-1 min-w-0 p-3.5 flex flex-col gap-1 justify-center">
+                {/* On-site: the strongest signal a guest can get — you can order
+                    here right now. Shown ahead of everything else. */}
+                {here && (
+                  <span className="self-start inline-flex items-center gap-1 rounded-full bg-teal text-white px-2.5 py-0.5 text-[11px] font-extrabold">
+                    <span aria-hidden>⌖</span>
+                    {t.location.discover.orderHere}
+                  </span>
+                )}
                 {/* No plan/tier badge here — "PRO" is an internal billing
                     concept and means nothing to a guest choosing where to eat. */}
                 <span className="font-display font-extrabold text-[17px] text-ink leading-tight truncate">
@@ -188,7 +219,7 @@ function DiscoverInner({ venues, loadError }: { venues: DiscoveryVenue[]; loadEr
                     </>
                   )}
                   <span className="truncate">{venue.city}</span>
-                  {dist != null && (
+                  {!here && dist != null && (
                     <>
                       <span aria-hidden>·</span>
                       <span className="text-teal-pressed whitespace-nowrap">

@@ -9,10 +9,11 @@ import { PhotoPlaceholder, Stars } from "@/components/ui";
 import { useVenue } from "./venue-provider";
 import { TablePicker } from "./table-picker";
 import { ActiveOrderBanner } from "./active-order-banner";
+import { LocationBanner } from "./location-gate-ui";
 
 /** P1 · Venue landing — venue + table context, language up front, pay-at-counter stated immediately. */
 export function VenueHome() {
-  const { restaurant, table, basePath, tables } = useVenue();
+  const { restaurant, table, basePath, tables, locationGate } = useVenue();
   const { t, tr, lang, setLang } = useI18n();
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -110,6 +111,9 @@ export function VenueHome() {
             {!noTables && <span className="text-muted-soft font-extrabold rtl:rotate-180">›</span>}
           </button>
         )}
+
+        {/* On-site gate status (browse flow, when the venue requires being here) */}
+        {browse && locationGate.applies && <LocationBanner gate={locationGate} className="mt-3" />}
 
         {/* Language switch */}
         <div className="mt-5 flex flex-col gap-2">

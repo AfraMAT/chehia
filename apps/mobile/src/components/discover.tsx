@@ -3,12 +3,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
+  clampGeofence,
+  DEFAULT_GEOFENCE_M,
   formatDistanceKm,
   formatRating,
   haversineKm,
   interpolate,
   LANGUAGE_LABELS,
   LANGUAGES,
+  withinGeofence,
   type Coords,
   type DiscoveryVenue,
   type Language,
@@ -37,6 +40,7 @@ export function Discover() {
   const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [coords, setCoords] = useState<Coords | null>(null);
+  const [accuracy, setAccuracy] = useState<number | null>(null);
   const [geo, setGeo] = useState<GeoState>("idle");
 
   const load = useCallback(async () => {
@@ -76,11 +80,13 @@ export function Discover() {
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+      setAccuracy(pos.coords.accuracy ?? null);
       setGeo("on");
     } catch {
       // Position read failed or the native module is unavailable — degrade
       // gracefully; search-by-name discovery still works.
       setCoords(null);
+      setAccuracy(null);
       setGeo("unavailable");
     }
   }, []);
@@ -89,11 +95,15 @@ export function Discover() {
     const list = venues ?? [];
     const q = search.trim().toLowerCase();
     const withDist = list.map((v) => {
-      const dist =
-        coords && v.latitude != null && v.longitude != null
-          ? haversineKm(coords, { latitude: v.latitude, longitude: v.longitude })
-          : null;
-      return { venue: v, dist };
+      const pin = v.latitude != null && v.longitude != null ? { latitude: v.latitude, longitude: v.longitude } : null;
+      const dist = coords && pin ? haversineKm(coords, pin) : null;
+      // "You're here" when the customer is within the venue's geofence (same
+      // radius + accuracy slack the order gate uses). Lifts the venue to the top.
+      const here =
+        coords != null &&
+        pin != null &&
+        withinGeofence(coords, pin, clampGeofence(v.geofence_radius_m ?? DEFAULT_GEOFENCE_M), accuracy ?? 0);
+      return { venue: v, dist, here };
     });
     const filtered = q
       ? withDist.filter(({ venue }) =>
@@ -101,13 +111,15 @@ export function Discover() {
         )
       : withDist;
     filtered.sort((a, b) => {
+      // On-site venues first, then nearest, then the rest alphabetically.
+      if (a.here !== b.here) return a.here ? -1 : 1;
       if (a.dist != null && b.dist != null) return a.dist - b.dist;
       if (a.dist != null) return -1;
       if (b.dist != null) return 1;
       return a.venue.name.localeCompare(b.venue.name);
     });
     return filtered;
-  }, [venues, search, coords, tr]);
+  }, [venues, search, coords, accuracy, tr]);
 
   const sortedByDistance = coords != null && geo === "on";
   const align = { textAlign: (isRtl ? "right" : "left") as "left" | "right" };
@@ -281,7 +293,7 @@ export function Discover() {
               </Pressable>
             </View>
           }
-          renderItem={({ item: { venue, dist } }) => (
+          renderItem={({ item: { venue, dist, here } }) => (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={venue.name}
@@ -324,15 +336,30 @@ export function Discover() {
                   <T lang={lang} weight="semibold" size={12} color={colors.mutedSoft} numberOfLines={1} style={{ flexShrink: 1 }}>
                     {venue.city}
                   </T>
-                  {dist != null && (
-                    <>
-                      <T size={12} color={colors.mutedSoft}>
-                        ·
+                  {here ? (
+                    <View
+                      style={{
+                        backgroundColor: colors.success,
+                        borderRadius: 100,
+                        paddingHorizontal: 9,
+                        paddingVertical: 3,
+                      }}
+                    >
+                      <T lang={lang} weight="bold" size={11.5} color="#FFFFFF">
+                        {t.location.discover.orderHere}
                       </T>
-                      <T lang={lang} weight="semibold" size={12} color={colors.sidiBouPressed}>
-                        {interpolate(t.discover.away, { d: formatDistanceKm(dist, lang) })}
-                      </T>
-                    </>
+                    </View>
+                  ) : (
+                    dist != null && (
+                      <>
+                        <T size={12} color={colors.mutedSoft}>
+                          ·
+                        </T>
+                        <T lang={lang} weight="semibold" size={12} color={colors.sidiBouPressed}>
+                          {interpolate(t.discover.away, { d: formatDistanceKm(dist, lang) })}
+                        </T>
+                      </>
+                    )
                   )}
                 </View>
               </View>

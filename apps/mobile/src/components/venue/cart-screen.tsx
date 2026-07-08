@@ -6,9 +6,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cartCount, cartHasTable, cartTotal, currencyLabel, millimesToDisplay } from "@chehia/shared";
 import { BackButton, CtaButton, Line, Stepper, T } from "../ui";
 import { useI18n } from "@/lib/i18n";
+import { useLocationGate } from "@/lib/location-gate";
 import { go } from "@/lib/nav";
 import { colors, rowDir, useTheme } from "@/lib/theme";
 import { useVenue } from "@/lib/venue";
+import { LocationGateCard } from "./location-gate";
 import { OfflineBanner } from "./offline-banner";
 import { TablePicker } from "./table-picker";
 
@@ -37,6 +39,7 @@ export function CartScreen() {
   const { t, tr, lang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const gate = useLocationGate();
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +81,10 @@ export function CartScreen() {
       modifier_mismatch: t.errors.orderInvalid,
       dup_modifier: t.errors.orderInvalid,
       auth_failed: t.errors.sessionFailed,
+      // Location gate (browse): the server re-checks presence; surface the same
+      // friendly copy the in-cart gate uses if it slips past the client check.
+      location_required: t.location.gate.shareToOrder,
+      too_far: t.location.gate.tooFar,
     };
     return (code && messages[code]) || t.errors.orderFailed;
   };
@@ -89,9 +96,21 @@ export function CartScreen() {
       setPickerOpen(true);
       return;
     }
+    // Location gate (browse + venue requires it): must be within the geofence.
+    // While not yet confirmed on-site, the gate CARD (not this button) is shown,
+    // so this is a belt-and-braces guard — kick off a location read and stop.
+    if (gate.applies && gate.status !== "ok") {
+      void gate.request();
+      return;
+    }
     setSubmitting(true);
     setError(null);
-    const result = await placeOrder(lang);
+    // Send the coords captured by the gate so the server can verify presence.
+    const geo =
+      gate.applies && gate.coords
+        ? { lat: gate.coords.latitude, lng: gate.coords.longitude, accuracyM: gate.accuracy }
+        : null;
+    const result = await placeOrder(lang, geo);
     setSubmitting(false);
     if (result.ok && result.orderId) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -354,13 +373,20 @@ export function CartScreen() {
                     {t.cart.payAtCounter}
                   </T>
                 </View>
-                <CtaButton
-                  lang={lang}
-                  height={54}
-                  disabled={submitting || !online}
-                  label={!hasTable ? t.landing.chooseTable : submitting ? t.cart.submitting : t.cart.submit}
-                  onPress={() => void submit()}
-                />
+                {/* Location gate: once a table is chosen but the customer isn't
+                    confirmed on-site, the gate card (with its own CTA) replaces
+                    the place-order button until they're within the geofence. */}
+                {hasTable && gate.applies && gate.status !== "ok" ? (
+                  <LocationGateCard venueName={restaurant.name} />
+                ) : (
+                  <CtaButton
+                    lang={lang}
+                    height={54}
+                    disabled={submitting || !online}
+                    label={!hasTable ? t.landing.chooseTable : submitting ? t.cart.submitting : t.cart.submit}
+                    onPress={() => void submit()}
+                  />
+                )}
               </View>
             )}
           </>

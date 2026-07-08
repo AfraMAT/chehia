@@ -10,6 +10,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { usePortal } from "../portal-provider";
 import { MenuImport } from "../menu/menu-import";
 import { AppearanceStudio } from "../appearance/appearance-studio";
+import { LocationPicker } from "../settings/location-picker";
 import { StockStep } from "./stock-step";
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
@@ -193,15 +194,19 @@ function ProfileStep() {
   const [phone, setPhone] = useState(restaurant.phone);
   const [languages, setLanguages] = useState<Language[]>(restaurant.languages as Language[]);
   const [defaultLanguage, setDefaultLanguage] = useState<Language>(restaurant.default_language as Language);
+  const [latitude, setLatitude] = useState<number | null>(restaurant.latitude);
+  const [longitude, setLongitude] = useState<number | null>(restaurant.longitude);
+  const [radiusM, setRadiusM] = useState<number>(restaurant.geofence_radius_m);
+  const [requireLocation, setRequireLocation] = useState<boolean>(restaurant.require_location);
 
   // Persist on unmount/change via a debounce-free save when the field blurs.
   const save = useCallback(async () => {
     await supabase
       .from("restaurants")
-      .update({ name, address, city, phone, languages, default_language: defaultLanguage })
+      .update({ name, address, city, phone, languages, default_language: defaultLanguage, latitude, longitude, geofence_radius_m: radiusM, require_location: requireLocation })
       .eq("id", restaurant.id);
     await refreshRestaurant();
-  }, [supabase, name, address, city, phone, languages, defaultLanguage, restaurant.id, refreshRestaurant]);
+  }, [supabase, name, address, city, phone, languages, defaultLanguage, latitude, longitude, radiusM, requireLocation, restaurant.id, refreshRestaurant]);
 
   // Persist the latest profile when the step unmounts (Next / Back).
   useEffect(() => {
@@ -271,6 +276,21 @@ function ProfileStep() {
           ))}
         </div>
       </FieldLabel>
+      <div className="flex flex-col gap-2 pt-2 border-t border-line">
+        <span className="text-[11px] font-extrabold text-muted-soft tracking-wide uppercase">{t.location.business.title}</span>
+        <LocationPicker
+          latitude={latitude}
+          longitude={longitude}
+          radiusM={radiusM}
+          requireLocation={requireLocation}
+          onChange={(v) => {
+            setLatitude(v.latitude);
+            setLongitude(v.longitude);
+            setRadiusM(v.geofence_radius_m);
+            setRequireLocation(v.require_location);
+          }}
+        />
+      </div>
     </div>
   );
 }

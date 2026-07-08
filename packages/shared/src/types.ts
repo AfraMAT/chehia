@@ -35,6 +35,15 @@ export interface Restaurant {
   /** Map pin for discovery / "near me" sorting; null until geocoded. */
   latitude: number | null;
   longitude: number | null;
+  /** How close (metres) a customer must be to the pin to order in the browse flow. */
+  geofence_radius_m: number;
+  /**
+   * When true, remote (browse) orders require the customer to be within
+   * `geofence_radius_m` of the pin — so people can only order while physically
+   * at the venue. Enforced server-side; ignored for scanned-QR orders (the QR
+   * already proves presence) and when the venue has no pin set.
+   */
+  require_location: boolean;
   /** Average visit rating (approved reviews only); null until first review. */
   rating_avg?: number | null;
   rating_count?: number;
@@ -62,6 +71,9 @@ export interface DiscoveryVenue {
   plan: "starter" | "pro";
   latitude: number | null;
   longitude: number | null;
+  /** Geofence config, so discovery can show "you're here · order now" vs a distance. */
+  geofence_radius_m: number;
+  require_location: boolean;
   rating_avg?: number | null;
   rating_count?: number;
 }

@@ -7,6 +7,7 @@ import { PhotoPlaceholder, Spinner, Toggle } from "@/components/ui";
 import { useI18n } from "@/components/i18n-provider";
 import { usePortal } from "../portal-provider";
 import { SetPasswordForm } from "../set-password-gate";
+import { LocationPicker } from "./location-picker";
 
 interface StaffRow {
   id: string;
@@ -37,6 +38,10 @@ export default function SettingsPage() {
   const [inventoryAlerts, setInventoryAlerts] = useState(restaurant.inventory_alerts_enabled !== false);
   const [coverUrl, setCoverUrl] = useState<string | null>(restaurant.cover_url);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [latitude, setLatitude] = useState<number | null>(restaurant.latitude);
+  const [longitude, setLongitude] = useState<number | null>(restaurant.longitude);
+  const [radiusM, setRadiusM] = useState<number>(restaurant.geofence_radius_m);
+  const [requireLocation, setRequireLocation] = useState<boolean>(restaurant.require_location);
   const [staffRows, setStaffRows] = useState<StaffRow[]>([]);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -90,7 +95,7 @@ export default function SettingsPage() {
     for (const d of DAYS) if (!hours[d].closed) opening[d] = `${hours[d].open}-${hours[d].close}`;
     await supabase
       .from("restaurants")
-      .update({ name, address, city, phone, languages, default_language: defaultLanguage, opening_hours: opening, require_qr: requireQr, reviews_enabled: reviewsEnabled, inventory_alerts_enabled: inventoryAlerts, cover_url: coverUrl })
+      .update({ name, address, city, phone, languages, default_language: defaultLanguage, opening_hours: opening, require_qr: requireQr, reviews_enabled: reviewsEnabled, inventory_alerts_enabled: inventoryAlerts, cover_url: coverUrl, latitude, longitude, geofence_radius_m: radiusM, require_location: requireLocation })
       .eq("id", restaurant.id);
     await refreshRestaurant();
     // Don't force the operator's portal UI language to the venue default on save —
@@ -248,6 +253,24 @@ export default function SettingsPage() {
               </div>
               <Toggle checked={inventoryAlerts} onChange={setInventoryAlerts} label={t.portal.settings.inventoryAlerts} disabled={!canManage} />
             </div>
+          </div>
+
+          {/* Location */}
+          <div className="bg-card border border-line rounded-2xl p-5 flex flex-col gap-4">
+            <span className="font-extrabold text-[15px] text-ink">{t.location.business.title}</span>
+            <LocationPicker
+              latitude={latitude}
+              longitude={longitude}
+              radiusM={radiusM}
+              requireLocation={requireLocation}
+              disabled={!canManage}
+              onChange={(v) => {
+                setLatitude(v.latitude);
+                setLongitude(v.longitude);
+                setRadiusM(v.geofence_radius_m);
+                setRequireLocation(v.require_location);
+              }}
+            />
           </div>
 
           {/* Opening hours */}

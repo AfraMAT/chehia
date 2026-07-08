@@ -7,6 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { go } from "@/lib/nav";
 import { colors, rowDir, shadowCard, useTheme } from "@/lib/theme";
 import { useVenueState } from "@/lib/venue";
+import { LocationBanner } from "./location-gate";
 import { TablePicker } from "./table-picker";
 
 /** P1 · Venue landing — venue + table context, language switch up front,
@@ -267,6 +268,10 @@ export function VenueHome() {
               )}
             </Pressable>
           )}
+
+          {/* Location gate status (browse + venue requires location) — self-hides
+              otherwise. Share prompt → "✓ You're here" → "You're {d} away". */}
+          <LocationBanner venueName={restaurant.name} />
 
           {/* Cached-menu note (offline) */}
           {cachedAt && (

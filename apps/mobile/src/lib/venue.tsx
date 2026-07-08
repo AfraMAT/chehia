@@ -16,9 +16,18 @@ import {
   type ModifierGroup,
   type Restaurant,
   type Table,
+  DEFAULT_GEOFENCE_M,
 } from "@chehia/shared";
 import { ensureCustomerSession, functionsUrl, supabase, supabaseAnonKey } from "./supabase";
+import { LocationGateProvider } from "./location-gate";
 import { ThemeProvider, resolveThemeColors } from "./theme";
+
+/** Customer position sent with a browse order so the server can verify presence. */
+export interface CustomerGeo {
+  lat: number;
+  lng: number;
+  accuracyM: number | null;
+}
 
 /** A table the customer is ordering to — carries qr_token only in the scanned flow. */
 export type TableChoice = Pick<Table, "id" | "label" | "zone"> & { qr_token?: string };
@@ -51,6 +60,8 @@ interface QueuedPayload {
   cart: Cart;
   language: string;
   clientRef: string;
+  /** Customer position captured at queue time (location-gated venues); retried as-is. */
+  geo?: CustomerGeo | null;
 }
 
 /** RFC4122 v4 (Math.random based — used only as an idempotency key). */
@@ -81,7 +92,7 @@ interface VenueContextValue {
   updateQty: (key: string, qty: number) => void;
   setCartNote: (note: string) => void;
   clearCart: () => void;
-  placeOrder: (language: string) => Promise<PlaceOrderResult>;
+  placeOrder: (language: string, geo?: CustomerGeo | null) => Promise<PlaceOrderResult>;
   retryQueued: (overrideLanguage?: string) => Promise<PlaceOrderResult>;
   callWaiter: (reason: string, note: string) => Promise<boolean>;
   /** Most-recent order placed from this device for this venue/table (kept ~4h). */
@@ -439,7 +450,12 @@ export function VenueProvider(props: ProviderProps) {
   );
 
   const submitCart = useCallback(
-    async (payloadCart: Cart, language: string, clientRef: string): Promise<PlaceOrderResult> => {
+    async (
+      payloadCart: Cart,
+      language: string,
+      clientRef: string,
+      geo?: CustomerGeo | null,
+    ): Promise<PlaceOrderResult> => {
       // An auth failure (anonymous sign-in disabled or rate-limited) is NOT a
       // network outage — surface it as an error instead of silently queuing the
       // order offline forever, which the outer catch would otherwise do.
@@ -456,7 +472,19 @@ export function VenueProvider(props: ProviderProps) {
           Authorization: `Bearer ${sessionData.session?.access_token}`,
           apikey: supabaseAnonKey,
         },
-        body: JSON.stringify({ ...toOrderPayload(payloadCart, language), client_ref: clientRef }),
+        // Customer coords ride along for location-gated browse venues (ignored by
+        // the server for scanned/non-gated orders). Only sent when present.
+        body: JSON.stringify({
+          ...toOrderPayload(payloadCart, language),
+          client_ref: clientRef,
+          ...(geo
+            ? {
+                customer_lat: geo.lat,
+                customer_lng: geo.lng,
+                ...(geo.accuracyM != null ? { customer_accuracy_m: geo.accuracyM } : {}),
+              }
+            : {}),
+        }),
       });
       // Non-JSON error bodies (gateway 502s) must surface as an HTTP error,
       // never masquerade as a network failure → queue.
@@ -470,7 +498,7 @@ export function VenueProvider(props: ProviderProps) {
   );
 
   const placeOrder = useCallback(
-    async (language: string): Promise<PlaceOrderResult> => {
+    async (language: string, geo?: CustomerGeo | null): Promise<PlaceOrderResult> => {
       if (submittingRef.current) return { ok: false };
       submittingRef.current = true;
       try {
@@ -478,7 +506,7 @@ export function VenueProvider(props: ProviderProps) {
         // committed but the response was lost, the retry cannot duplicate it.
         const clientRef = randomUUID();
         try {
-          const result = await submitCart(cart, language, clientRef);
+          const result = await submitCart(cart, language, clientRef, geo);
           if (result.ok && result.orderId) {
             rememberOrder(result.orderId);
             // Clear the cart after a placed order so a follow-up order starts
@@ -493,8 +521,9 @@ export function VenueProvider(props: ProviderProps) {
           return result;
         } catch {
           // fetch threw → offline. Move the cart into the queue (P8): the
-          // live cart empties; new items form a separate future order.
-          const payload: QueuedPayload = { cart, language, clientRef };
+          // live cart empties; new items form a separate future order. The
+          // captured coords ride along so the retry still satisfies the gate.
+          const payload: QueuedPayload = { cart, language, clientRef, geo };
           await AsyncStorage.setItem(queueKey(target), JSON.stringify(payload));
           setQueuedOrder({
             count: cart.lines.reduce((s, l) => s + l.qty, 0),
@@ -523,7 +552,7 @@ export function VenueProvider(props: ProviderProps) {
         if (!raw) return { ok: false };
         const queued = JSON.parse(raw) as QueuedPayload;
         try {
-          const result = await submitCart(queued.cart, overrideLanguage ?? queued.language, queued.clientRef);
+          const result = await submitCart(queued.cart, overrideLanguage ?? queued.language, queued.clientRef, queued.geo);
           if (result.ok) {
             await AsyncStorage.removeItem(queueKey(target));
             setQueuedOrder(null);
@@ -640,9 +669,26 @@ export function VenueProvider(props: ProviderProps) {
   const appearanceRaw = state.status === "ready" ? state.bundle.restaurant.appearance : null;
   const themeColors = useMemo(() => resolveThemeColors(appearanceRaw), [appearanceRaw]);
 
+  // Location gate (customer side): only the browse flow of a venue that opted in
+  // AND has a map pin. The scanned flow (qr_token proves presence) is exempt, so
+  // `applies` stays false there and the gate is inert. Fed with primitives so
+  // the provider only recomputes when the pin/radius actually change.
+  const gateRestaurant = state.status === "ready" ? state.bundle.restaurant : null;
+  const gateApplies =
+    browse && !!gateRestaurant?.require_location && gateRestaurant.latitude != null && gateRestaurant.longitude != null;
+
   return (
     <VenueContext.Provider value={value}>
-      <ThemeProvider value={themeColors}>{props.children}</ThemeProvider>
+      <ThemeProvider value={themeColors}>
+        <LocationGateProvider
+          applies={gateApplies}
+          lat={gateRestaurant?.latitude ?? null}
+          lng={gateRestaurant?.longitude ?? null}
+          radiusM={gateRestaurant?.geofence_radius_m ?? DEFAULT_GEOFENCE_M}
+        >
+          {props.children}
+        </LocationGateProvider>
+      </ThemeProvider>
     </VenueContext.Provider>
   );
 }

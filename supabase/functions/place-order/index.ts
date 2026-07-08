@@ -31,9 +31,27 @@ type PlaceOrderInput = {
   session_id?: string;
   /** "group" = the whole session (host only), "solo" = just my lines. */
   place_mode?: "group" | "solo";
+  /** Browse flow only: the customer's device location, to prove presence. */
+  customer_lat?: number;
+  customer_lng?: number;
+  /** The GPS reading's own accuracy in metres (widens the allowed radius). */
+  customer_accuracy_m?: number;
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Kept in sync with @chehia/shared's geo.ts (edge functions can't import it).
+const GEOFENCE_ACCURACY_SLACK_M = 100;
+function distanceMeters(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const R = 6371000; // metres
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLon = toRad(bLng - aLng);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -183,7 +201,7 @@ Deno.serve(async (req) => {
 
   const { data: restaurant } = await admin
     .from("restaurants")
-    .select("id, is_active, require_qr")
+    .select("id, is_active, require_qr, require_location, geofence_radius_m, latitude, longitude")
     .eq("id", table.restaurant_id)
     .maybeSingle();
   if (!restaurant?.is_active) {
@@ -196,6 +214,32 @@ Deno.serve(async (req) => {
   // A venue may switch off remote ordering entirely (only scanned QR accepted).
   if (origin === "browse" && restaurant.require_qr) {
     return errorResponse("qr_required", "This venue requires scanning the table's QR code to order", 403);
+  }
+
+  // Location gate (browse flow only): the customer must be within the venue's
+  // geofence to order remotely, so people can't order when they aren't there.
+  // Scanned-QR orders skip this (the QR already proves presence). Only enforced
+  // when the venue opted in AND has a pin — otherwise there's nothing to check
+  // against. The device coords are self-reported and therefore spoofable, so
+  // this raises the bar for casual abuse rather than being a hard guarantee;
+  // require_qr remains the strict option.
+  if (
+    origin === "browse" &&
+    restaurant.require_location &&
+    restaurant.latitude != null &&
+    restaurant.longitude != null
+  ) {
+    const lat = Number(input.customer_lat);
+    const lng = Number(input.customer_lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      return errorResponse("location_required", "Share your location to order from this venue", 403);
+    }
+    const radiusM = Math.min(5000, Math.max(20, Math.trunc(restaurant.geofence_radius_m ?? 200)));
+    const slack = Math.min(GEOFENCE_ACCURACY_SLACK_M, Math.max(0, Number(input.customer_accuracy_m) || 0));
+    const dist = distanceMeters(lat, lng, restaurant.latitude, restaurant.longitude);
+    if (dist > radiusM + slack) {
+      return errorResponse("too_far", "You must be at the venue to place this order", 403);
+    }
   }
 
   // Abuse controls — bound how fast a single session or a single table can

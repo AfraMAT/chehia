@@ -20,6 +20,7 @@ import { getSupabase } from "@/lib/supabase";
 import { storageGet, storageRemove, storageSet } from "@/lib/storage";
 import { I18nProvider } from "@/components/i18n-provider";
 import { SessionProvider } from "./group/session-provider";
+import { useLocationGate, type LocationGate } from "./use-location-gate";
 
 /** A table the customer is ordering to — carries qr_token only in the scanned flow. */
 export type TableChoice = Pick<Table, "id" | "label" | "zone"> & { qr_token?: string };
@@ -62,6 +63,13 @@ interface VenueContextValue extends Omit<VenueBundle, "table"> {
   rememberOrder: (id: string) => void;
   /** Forget the tracked order (called when it reaches a terminal state). */
   forgetOrder: () => void;
+  /**
+   * Client-side "are you at the venue?" gate for the browse flow. Shared across
+   * screens so locating once on the venue home carries into the cart. When
+   * `locationGate.applies` is false there is no gate (scanned flow, no pin, or
+   * require_location off).
+   */
+  locationGate: LocationGate;
 }
 
 const VenueContext = createContext<VenueContextValue | null>(null);
@@ -233,6 +241,8 @@ export function VenueProvider({
     return dropped;
   }, [bundle.groupsByItem]);
 
+  const locationGate = useLocationGate(bundle.restaurant, table);
+
   const value = useMemo<VenueContextValue>(
     () => ({
       restaurant: bundle.restaurant,
@@ -253,8 +263,9 @@ export function VenueProvider({
       activeOrder,
       rememberOrder,
       forgetOrder,
+      locationGate,
     }),
-    [bundle, basePath, table, setTable, items, cart, addToCart, updateQty, setCartNote, clearCart, reconcileNow, online, activeOrder, rememberOrder, forgetOrder],
+    [bundle, basePath, table, setTable, items, cart, addToCart, updateQty, setCartNote, clearCart, reconcileNow, online, activeOrder, rememberOrder, forgetOrder, locationGate],
   );
 
   return (

@@ -17,10 +17,11 @@ import { Spinner, Stepper } from "@/components/ui";
 import { useVenue } from "./venue-provider";
 import { OfflineBanner } from "./offline-banner";
 import { TablePicker } from "./table-picker";
+import { LocationGatePanel } from "./location-gate-ui";
 
 /** P4 · Cart — table context re-confirmed, kitchen note, pay-at-counter stated twice. */
 export function CartScreen() {
-  const { restaurant, table, cart, updateQty, setCartNote, clearCart, reconcileNow, online, basePath, rememberOrder } =
+  const { restaurant, table, cart, updateQty, setCartNote, clearCart, reconcileNow, online, basePath, rememberOrder, locationGate } =
     useVenue();
   const { t, tr, lang } = useI18n();
   const router = useRouter();
@@ -37,6 +38,8 @@ export function CartScreen() {
   const total = cartTotal(cart);
   const base = basePath;
   const hasTable = cartHasTable(cart);
+  // Browse flow only: block ordering until the customer is confirmed on-site.
+  const gated = locationGate.applies && locationGate.state !== "ok";
 
   const submit = async () => {
     if (submitting || cart.lines.length === 0) return;
@@ -45,18 +48,33 @@ export function CartScreen() {
       setPickerOpen(true);
       return;
     }
+    // Location gate: don't even attempt the order until we're inside the fence.
+    // Kick off the geolocation prompt if we haven't asked yet.
+    if (gated) {
+      if (locationGate.state === "idle") locationGate.request();
+      return;
+    }
     setSubmitting(true);
     setError(null);
     clientRefRef.current ??= crypto.randomUUID();
     try {
       await ensureCustomerSession();
+      // Attach the customer's position so the server can re-check the geofence.
+      // Only meaningful in the gated browse flow; harmless (ignored) otherwise.
+      const geo = locationGate.coords
+        ? {
+            customer_lat: locationGate.coords.latitude,
+            customer_lng: locationGate.coords.longitude,
+            ...(locationGate.accuracy != null ? { customer_accuracy_m: locationGate.accuracy } : {}),
+          }
+        : {};
       // callFunction resolves the apikey/URL for the active environment (prod on
       // production, dev on previews) and surfaces gateway errors as ok=false
       // rather than letting a non-JSON body masquerade as a network failure.
       const { ok, data: json } = await callFunction<{
         order?: { id: string };
         error?: { code?: string };
-      }>("place-order", { ...toOrderPayload(cart, lang), client_ref: clientRefRef.current });
+      }>("place-order", { ...toOrderPayload(cart, lang), ...geo, client_ref: clientRefRef.current });
       if (!ok || !json?.order) {
         const code = json?.error?.code;
         if (code === "item_unavailable" || code === "unknown_item") {
@@ -65,6 +83,11 @@ export function CartScreen() {
           setError(t.cart.itemUnavailable);
         } else if (code === "unknown_table") {
           setError(t.errors.unknownTable);
+        } else if (code === "location_required") {
+          // Defense-in-depth: server rejected for a missing/stale fix. Re-prompt.
+          setError(t.location.gate.shareToOrder);
+        } else if (code === "too_far") {
+          setError(t.location.gate.tooFar);
         } else {
           setError(t.errors.orderFailed);
         }
@@ -248,6 +271,12 @@ export function CartScreen() {
         {!hasTable && (
           <p className="text-center text-[12.5px] font-semibold text-muted-soft">{t.landing.chooseTableBody}</p>
         )}
+        {/* Location gate — surfaced only in the browse flow when on-site is required.
+            Once state is "ok" this collapses to a small confirmation and the
+            normal place button takes over. */}
+        {locationGate.applies && hasTable && (
+          <LocationGatePanel gate={locationGate} venueName={restaurant.name} />
+        )}
         <div className="flex items-center justify-center gap-2">
           <span className="w-[7px] h-[7px] rounded-full bg-teal shrink-0" />
           <span className="text-[12.5px] font-semibold text-teal-pressed">{t.cart.payAtCounter}</span>
@@ -255,7 +284,10 @@ export function CartScreen() {
         <button
           type="button"
           onClick={submit}
-          disabled={submitting || !online}
+          // Only the gate (not the table picker) is blocked by location: with no
+          // table the button still opens the picker; once a table is chosen it
+          // stays disabled until the customer is confirmed on-site.
+          disabled={submitting || !online || (hasTable && gated)}
           className="h-[54px] rounded-xl bg-harissa text-white font-extrabold text-[16.5px] flex items-center justify-center shadow-[0_6px_16px_rgba(188,75,38,0.3)] hover:bg-harissa-pressed transition-colors cursor-pointer disabled:bg-disabled disabled:shadow-none"
         >
           {submitting ? t.cart.submitting : hasTable ? t.cart.submit : t.landing.chooseTable}
