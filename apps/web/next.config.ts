@@ -24,6 +24,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Don't advertise the framework/version (reconnaissance hardening).
+  poweredByHeader: false,
   transpilePackages: ["@chehia/shared"],
   env: {
     NEXT_PUBLIC_DEPLOY_ENV: process.env.VERCEL_ENV ?? "",

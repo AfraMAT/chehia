@@ -407,13 +407,17 @@ verify_jwt = false
 [functions.submit-lead]
 verify_jwt = false
 
-# admin-provision-business and create-staff authenticate in-code against the
-# service-role key / caller role (self-contained), so gateway JWT is disabled.
+# admin-provision-business and create-staff mint privileged accounts with the
+# service-role key. They already authenticate in-code (callerId + platform_admins
+# / owner-manager role gate), but because they are provisioning endpoints we ALSO
+# require a valid JWT at the gateway (defense in depth; consistent with the tool
+# default and with diag-provision). Legitimate callers are always authenticated
+# admins/owners, so gateway JWT verification never blocks a real request.
 [functions.admin-provision-business]
-verify_jwt = false
+verify_jwt = true
 
 [functions.create-staff]
-verify_jwt = false
+verify_jwt = true
 
 # extract-menu gates in-code (callerId + owner/manager staff read scoped to the
 # restaurant_id), so gateway JWT verification is disabled.
