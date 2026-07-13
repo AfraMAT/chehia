@@ -6,9 +6,9 @@ import {
   resolveAppearance,
   resolveThemePalette,
   spacing,
+  type Language,
   type ThemePalette,
 } from "@chehia/shared";
-import type { Language } from "@chehia/shared";
 import type { TextStyle, ViewStyle } from "react-native";
 
 export { colors, radius, spacing };

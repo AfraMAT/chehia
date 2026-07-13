@@ -729,6 +729,9 @@ export function CaisseProvider({ children }: { children: React.ReactNode }) {
         }}
       />
     );
+    // `value` is a useMemo result, not a ref — react-hooks v7's `refs` rule
+    // mis-flags this readiness read (known false positive on memoized context values).
+    // eslint-disable-next-line react-hooks/refs
   } else if (state !== "ready" || !value) {
     body = (
       <Centered>

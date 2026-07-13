@@ -2,7 +2,7 @@ import { Modal, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Handle, SheetClose, T } from "../ui";
 import { useI18n } from "@/lib/i18n";
-import { colors, rowDir, useTheme } from "@/lib/theme";
+import { rowDir, useTheme } from "@/lib/theme";
 import { useVenue, type TableChoice } from "@/lib/venue";
 
 /**

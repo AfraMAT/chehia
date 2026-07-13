@@ -110,7 +110,9 @@ export function CartScreen() {
   // returns"): when connectivity comes back, resubmit. The stable client_ref
   // makes this idempotent, so an auto-retry can never place a duplicate order.
   const submitRef = useRef(submit);
-  submitRef.current = submit;
+  useEffect(() => {
+    submitRef.current = submit;
+  });
   useEffect(() => {
     if (online && queued && !submitting) void submitRef.current();
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -44,7 +44,6 @@ export function Discover() {
   const [geo, setGeo] = useState<GeoState>("idle");
 
   const load = useCallback(async () => {
-    setLoadError(false);
     const { data, error } = await supabase
       .from("restaurants")
       // select("*") not an explicit list: if this build runs against a backend
@@ -62,10 +61,15 @@ export function Discover() {
       setLoadError(true);
       return;
     }
+    setLoadError(false);
     setVenues(data ?? []);
   }, []);
 
   useEffect(() => {
+    // `load` awaits the network before any setState, so nothing is set
+    // synchronously here — this is a standard on-mount fetch, not a cascading
+    // render. react-hooks v7 flags it because it doesn't analyse the await boundary.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 

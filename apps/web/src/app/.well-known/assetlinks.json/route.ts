@@ -6,17 +6,20 @@ export function GET() {
   const sha = process.env.ANDROID_CERT_SHA256;
   const pkg = process.env.ANDROID_PACKAGE ?? "tn.chehia.app";
   if (!sha) {
-    return new Response("Not configured", { status: 404 });
+    return new Response("Not configured", { status: 404, headers: { "Cache-Control": "no-store" } });
   }
   const fingerprints = sha.split(",").map((s) => s.trim()).filter(Boolean);
-  return Response.json([
-    {
-      relation: ["delegate_permission/common.handle_all_urls"],
-      target: {
-        namespace: "android_app",
-        package_name: pkg,
-        sha256_cert_fingerprints: fingerprints,
+  return Response.json(
+    [
+      {
+        relation: ["delegate_permission/common.handle_all_urls"],
+        target: {
+          namespace: "android_app",
+          package_name: pkg,
+          sha256_cert_fingerprints: fingerprints,
+        },
       },
-    },
-  ]);
+    ],
+    { headers: { "Cache-Control": "public, max-age=3600" } },
+  );
 }

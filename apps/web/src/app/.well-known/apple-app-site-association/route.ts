@@ -7,17 +7,22 @@ export function GET() {
   const teamId = process.env.APPLE_TEAM_ID;
   const bundleId = process.env.APPLE_BUNDLE_ID ?? "tn.chehia.app";
   if (!teamId) {
-    return new Response("Not configured", { status: 404 });
+    // Never let Apple's CDN cache the "not configured" 404 — otherwise it can
+    // keep serving it for hours after APPLE_TEAM_ID is finally set.
+    return new Response("Not configured", { status: 404, headers: { "Cache-Control": "no-store" } });
   }
-  return Response.json({
-    applinks: {
-      apps: [],
-      details: [
-        {
-          appIDs: [`${teamId}.${bundleId}`],
-          components: [{ "/": "/r/*", comment: "table QR deep links" }],
-        },
-      ],
+  return Response.json(
+    {
+      applinks: {
+        apps: [],
+        details: [
+          {
+            appIDs: [`${teamId}.${bundleId}`],
+            components: [{ "/": "/r/*", comment: "table QR deep links" }],
+          },
+        ],
+      },
     },
-  });
+    { headers: { "Cache-Control": "public, max-age=3600" } },
+  );
 }

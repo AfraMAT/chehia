@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LANGUAGE_LABELS, formatRating, interpolate, type Language } from "@chehia/shared";
@@ -19,6 +19,17 @@ export function VenueHome() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  // Clamp the active language to one this venue actually offers, so menu screens
+  // never mix app chrome in one language with menu content that falls back to the
+  // venue's default in another. The switcher only lists supported languages, so
+  // this fires at most once, when entering a venue that doesn't speak `lang`.
+  const venueLanguages = state.status === "ready" ? (state.bundle.restaurant.languages as Language[]) : null;
+  useEffect(() => {
+    if (venueLanguages && venueLanguages.length > 0 && !venueLanguages.includes(lang)) {
+      setLang(venueLanguages[0]);
+    }
+  }, [venueLanguages, lang, setLang]);
 
   if (state.status === "loading") {
     return (
@@ -282,8 +293,8 @@ export function VenueHome() {
 
           {/* Language switch */}
           <View style={{ marginTop: 20, gap: 8 }}>
-            <T weight="bold" size={12} color={theme.mutedSoft} style={{ letterSpacing: 0.5, textAlign: isRtl ? "right" : "left" }}>
-              LANGUE · اللغة
+            <T lang={lang} weight="bold" size={12} color={theme.mutedSoft} style={{ letterSpacing: 0.5, textAlign: isRtl ? "right" : "left" }}>
+              {t.common.language}
             </T>
             <View style={{ flexDirection: "row", gap: 8 }}>
               {(restaurant.languages as Language[]).map((code) => {

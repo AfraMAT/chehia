@@ -111,16 +111,28 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Chehia utilise l'appareil photo pour scanner le code QR de votre table et afficher le menu."
+          "cameraPermission": "Chehia utilise l'appareil photo pour scanner le code QR de votre table et afficher le menu.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Chehia utilise votre position pour afficher les cafés et restaurants à proximité."
+          "locationWhenInUsePermission": "Chehia utilise votre position pour afficher les cafés à proximité et confirmer votre présence lorsque vous commandez sur place.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false,
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
         }
       ]
     ],
+    "locales": {
+      "fr": "./locales/fr.json",
+      "ar": "./locales/ar.json",
+      "en": "./locales/en.json"
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true

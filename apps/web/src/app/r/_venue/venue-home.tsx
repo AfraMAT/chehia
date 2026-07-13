@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LANGUAGE_LABELS, formatRating, interpolate, type Language } from "@chehia/shared";
 import { useI18n } from "@/components/i18n-provider";
@@ -16,6 +16,16 @@ export function VenueHome() {
   const { restaurant, table, basePath, tables, locationGate } = useVenue();
   const { t, tr, lang, setLang } = useI18n();
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  // Clamp the active language to one this venue actually offers, so menu screens
+  // never mix app chrome in one language with menu content that falls back to the
+  // venue's default in another. The switcher only lists supported languages.
+  const venueLanguages = restaurant.languages as Language[];
+  useEffect(() => {
+    if (venueLanguages.length > 0 && !venueLanguages.includes(lang)) {
+      setLang(venueLanguages[0]);
+    }
+  }, [venueLanguages, lang, setLang]);
 
   const closingTime = (() => {
     const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
@@ -117,7 +127,7 @@ export function VenueHome() {
 
         {/* Language switch */}
         <div className="mt-5 flex flex-col gap-2">
-          <span className="text-xs font-bold text-muted-soft tracking-wide">LANGUE · اللغة</span>
+          <span className="text-xs font-bold text-muted-soft tracking-wide">{t.common.language}</span>
           <div className="flex gap-2" dir="ltr">
             {(restaurant.languages as Language[]).map((code) => (
               <button

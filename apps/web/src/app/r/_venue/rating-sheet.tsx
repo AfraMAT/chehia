@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   SENTIMENT_EMOJI,
   sentimentToRating,
@@ -32,8 +32,8 @@ export function RatingSheet({
   const [comment, setComment] = useState("");
   const [name, setName] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
-  const clientRef = useRef<string>("");
-  if (!clientRef.current) clientRef.current = crypto.randomUUID();
+  // Stable per-mount idempotency key for the rating submission (created once).
+  const [clientRef] = useState(() => crypto.randomUUID());
 
   // One row per distinct dish on the order (skip deleted items).
   const dishes = useMemo(() => {
@@ -71,7 +71,7 @@ export function RatingSheet({
           : undefined,
         items,
         name,
-        client_ref: clientRef.current,
+        client_ref: clientRef,
       });
       if (!ok) throw new Error("submit failed");
       setPhase("done");

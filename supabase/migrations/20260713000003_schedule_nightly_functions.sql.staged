@@ -1,0 +1,51 @@
+-- STAGED — do NOT apply blindly. Renames to `.sql` and apply only after the
+-- owner decides (this turns on recurring behaviour on a live business):
+--   • generate-insights makes PAID AI API calls each run (recurring cost).
+--   • inventory-alerts writes in-portal low-stock notifications and, if
+--     RESEND_API_KEY is set and a venue opted in, emails the owner.
+-- Both are currently ACTIVE edge functions that nothing schedules, so they are
+-- dead in practice. This wires pg_cron → pg_net (both installed on prod) to call
+-- them nightly. It is project-specific (URL + key differ dev vs prod), so fill
+-- the two placeholders and store the service-role key in Vault first.
+--
+-- One-time setup (run once per project, in the SQL editor, NOT in this file):
+--   select vault.create_secret('<SERVICE_ROLE_KEY>', 'edge_fn_key');
+--
+-- Then set <PROJECT_REF> below to the project ref (prod: wpnouppukofzmvsieyeq)
+-- and apply. Adjust the cron times (UTC) to the venue's timezone as desired.
+
+-- Low-stock alerts — nightly at 02:00 UTC (~03:00 Tunisia).
+select cron.schedule(
+  'inventory-alerts-nightly',
+  '0 2 * * *',
+  $$
+  select net.http_post(
+    url     := 'https://<PROJECT_REF>.supabase.co/functions/v1/inventory-alerts',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'edge_fn_key')
+    ),
+    body    := '{}'::jsonb
+  );
+  $$
+);
+
+-- AI insights — nightly at 02:30 UTC. Comment this block out to skip the AI cost.
+select cron.schedule(
+  'generate-insights-nightly',
+  '30 2 * * *',
+  $$
+  select net.http_post(
+    url     := 'https://<PROJECT_REF>.supabase.co/functions/v1/generate-insights',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'edge_fn_key')
+    ),
+    body    := '{}'::jsonb
+  );
+  $$
+);
+
+-- To inspect / remove later:
+--   select * from cron.job;
+--   select cron.unschedule('inventory-alerts-nightly');

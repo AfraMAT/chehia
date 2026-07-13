@@ -171,7 +171,19 @@ function ShiftSection() {
   const { t } = useI18n();
   const { myShift, clockIn, clockOut } = useCaisse();
   const [busy, setBusy] = useState(false);
-  const dur = myShift ? formatDur(Date.now() - new Date(myShift.clock_in).getTime()) : null;
+  // Live shift duration — recomputed off the render path and ticked each minute.
+  const [dur, setDur] = useState<string | null>(null);
+  useEffect(() => {
+    if (!myShift) {
+      setDur(null);
+      return;
+    }
+    const startedAt = new Date(myShift.clock_in).getTime();
+    const update = () => setDur(formatDur(Date.now() - startedAt));
+    update();
+    const id = setInterval(update, 60000);
+    return () => clearInterval(id);
+  }, [myShift]);
   return (
     <div className="bg-sand rounded-xl p-4 flex items-center justify-between gap-3">
       <div className="flex flex-col">

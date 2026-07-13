@@ -62,6 +62,8 @@ interface QueuedPayload {
   clientRef: string;
   /** Customer position captured at queue time (location-gated venues); retried as-is. */
   geo?: CustomerGeo | null;
+  /** Epoch ms when queued; entries older than QUEUE_TTL_MS are dropped, never sent. */
+  queuedAt?: number;
 }
 
 /** RFC4122 v4 (Math.random based — used only as an idempotency key). */
@@ -129,11 +131,22 @@ const TRANSIENT_ORDER_ERRORS = new Set(["auth_failed", "rate_limited", "too_many
 // mismatched object that could crash the offline menu.
 const MENU_CACHE_VERSION = 1;
 
+/** Offline orders auto-submit when connectivity returns — but only within this
+ * window. A queue older than this is stale (the customer has long since left),
+ * so it is dropped rather than placing a phantom order hours or days later. */
+const QUEUE_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours
+
+/** A queued offline order is still fresh enough to auto-submit. Missing timestamp
+ * (written by an older build) counts as stale — safer to drop than to send late. */
+function isQueueFresh(payload: QueuedPayload): boolean {
+  return typeof payload.queuedAt === "number" && Date.now() - payload.queuedAt < QUEUE_TTL_MS;
+}
+
 /** Shared menu load: categories, items, modifier structure for a restaurant. */
 async function fetchMenu(
   restaurantId: string,
 ): Promise<Pick<VenueBundle, "categories" | "items" | "groupsByItem">> {
-  const [{ data: categories }, { data: items }, { data: groups }, { data: modifiers }] = await Promise.all([
+  const [cats, its, grps, mods] = await Promise.all([
     supabase
       .from("categories")
       .select("*")
@@ -161,6 +174,16 @@ async function fetchMenu(
       .order("sort_order")
       .overrideTypes<Modifier[], { merge: false }>(),
   ]);
+
+  // Any sub-query failing means we'd build a PARTIAL menu (e.g. items load but
+  // fail → an empty "ready" menu that also overwrites the good cache). Throw so
+  // the caller falls back to the cached menu instead. A genuinely empty menu
+  // (no error, empty rows) is still allowed through.
+  if (cats.error || its.error || grps.error || mods.error) throw new Error("network");
+  const { data: categories } = cats;
+  const { data: items } = its;
+  const { data: groups } = grps;
+  const { data: modifiers } = mods;
 
   const groupsByItem: Record<string, ModifierGroup[]> = {};
   for (const group of groups ?? []) {
@@ -322,10 +345,16 @@ export function VenueProvider(props: ProviderProps) {
       if (rawQueue) {
         try {
           const parsed = JSON.parse(rawQueue) as QueuedPayload;
-          setQueuedOrder({
-            count: parsed.cart.lines.reduce((s, l) => s + l.qty, 0),
-            totalMillimes: parsed.cart.lines.reduce((s, l) => s + l.unitPriceMillimes * l.qty, 0),
-          });
+          // Drop a stale queue (customer left long ago) instead of auto-submitting
+          // a phantom order the next time the app opens online — see QUEUE_TTL_MS.
+          if (!isQueueFresh(parsed)) {
+            await AsyncStorage.removeItem(queueKey(target));
+          } else {
+            setQueuedOrder({
+              count: parsed.cart.lines.reduce((s, l) => s + l.qty, 0),
+              totalMillimes: parsed.cart.lines.reduce((s, l) => s + l.unitPriceMillimes * l.qty, 0),
+            });
+          }
         } catch {
           // ignore
         }
@@ -523,7 +552,7 @@ export function VenueProvider(props: ProviderProps) {
           // fetch threw → offline. Move the cart into the queue (P8): the
           // live cart empties; new items form a separate future order. The
           // captured coords ride along so the retry still satisfies the gate.
-          const payload: QueuedPayload = { cart, language, clientRef, geo };
+          const payload: QueuedPayload = { cart, language, clientRef, geo, queuedAt: Date.now() };
           await AsyncStorage.setItem(queueKey(target), JSON.stringify(payload));
           setQueuedOrder({
             count: cart.lines.reduce((s, l) => s + l.qty, 0),
@@ -551,6 +580,12 @@ export function VenueProvider(props: ProviderProps) {
         const raw = await AsyncStorage.getItem(queueKey(target));
         if (!raw) return { ok: false };
         const queued = JSON.parse(raw) as QueuedPayload;
+        // Never replay a stale queue — drop it and clear the banner instead.
+        if (!isQueueFresh(queued)) {
+          await AsyncStorage.removeItem(queueKey(target));
+          setQueuedOrder(null);
+          return { ok: false };
+        }
         try {
           const result = await submitCart(queued.cart, overrideLanguage ?? queued.language, queued.clientRef, queued.geo);
           if (result.ok) {

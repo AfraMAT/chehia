@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { interpolate } from "@chehia/shared";
@@ -15,18 +15,13 @@ export function GroupEntry({ style }: { style?: object }) {
   const theme = useTheme();
   const { session, available, activeParticipants } = useSession();
   const params = useLocalSearchParams<{ s?: string }>();
-  const [sheet, setSheet] = useState(false);
+  // Deep link: /r/.../menu?s=CODE offers to join that session — but only when the
+  // guest isn't already in one. Derived once at mount from the URL (no prop→state
+  // effect: the code is present on arrival and the sheet is user-controlled after).
+  const deepLinkCode = typeof params.s === "string" ? params.s : undefined;
+  const [sheet, setSheet] = useState(Boolean(deepLinkCode) && !session);
   const [cart, setCart] = useState(false);
-  const [joinCode, setJoinCode] = useState<string | undefined>(undefined);
-
-  // Deep link: /r/.../menu?s=CODE offers to join that session.
-  useEffect(() => {
-    const code = typeof params.s === "string" ? params.s : undefined;
-    if (code && !session) {
-      setJoinCode(code);
-      setSheet(true);
-    }
-  }, [params.s, session]);
+  const [joinCode] = useState<string | undefined>(!session ? deepLinkCode : undefined);
 
   if (!available) return null;
 

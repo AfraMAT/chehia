@@ -195,7 +195,12 @@ web3 = 30
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
-enable_signup = true
+# OFF by design: café owners are provisioned by an admin (they still LOG IN with
+# email/password), customers use anonymous sign-in, and staff/admin use Google —
+# so nobody needs public email self-signup, and leaving it on is an open door.
+# NOTE: this only governs the LOCAL stack — mirror it on the cloud projects in
+# Dashboard → Authentication → Providers → Email → "Allow new users to sign up".
+enable_signup = false
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
