@@ -8,7 +8,38 @@ _Generated 2026-07-12 from a 58-agent audit of the full monorepo (14 core areas 
 
 # Execution log — 2026-07-13
 
-Everything below was executed and verified this session. **All submission-BLOCKING work is done in-repo/backend; what remains for the App Store are the cloud/device steps only you can do (Vercel env, EAS build, ASC forms, dashboard toggles).**
+## PROD DEPLOY + LIVE AUDIT (session 2)
+
+**Deployed to production.** Commit `e519232` (submission fixes + hardening) and `dce8435`
+(post-audit hardening) were pushed to `develop` and fast-forwarded onto `main`; Vercel
+built and promoted both to production on all 6 domains (chehia.app, www, app, business,
+caisse, admin). The 3 DB migrations were already applied to prod via MCP; their files are
+now committed (renamed to the versions recorded in prod's `schema_migrations` ledger:
+`20260713044846`, `20260713050040`).
+
+**Live prod audit — 13 agents (5 probes → adversarial verify → completeness critic) + direct checks. Result: ZERO high/critical survived verification.** Verified GOOD on live prod:
+- Security headers (nosniff, X-Frame SAMEORIGIN, CSP `frame-ancestors 'self'`, HSTS, Referrer-Policy) on all 6 domains; `x-powered-by` now stripped.
+- Supabase advisors: **0 security-ERROR, 0 perf-ERROR**. Every hardening verified live: unindexed_foreign_keys=0, auth_rls_initplan=0, search_path pinned, multiple_permissive_policies 140→32. The 76 security WARNs are all expected-by-design (36 anon-sign-in = guest ordering; 38 SECURITY DEFINER RPCs are the intentional public/staff API) or known user-side (leaked-password protection).
+- RLS live: anon reads of orders/staff/payments/cash_sessions/leads/… all return `[]`; menu tables readable; admin RPCs return 401. RLS on all 34 tables.
+- Demo venue: reachable, ungated, **populated trilingual menu** (4 cats / 14 items) — Apple 2.1(a) satisfied.
+- No client-bundle secret leak (only `sb_publishable_` ships); no open redirect; TLS valid on all hosts; portal roots 307 to login with no data leak.
+
+**Confirmed findings (all LOW after adversarial downgrade) — fixed in `dce8435`:**
+- Universal Links declared for the `chehia.app` apex could never verify (apex `/.well-known/*` 308→www; Apple/Google don't follow redirects). → Dropped apex from mobile iOS associatedDomains + Android intentFilter; kept `app.chehia.app` (what the QRs use). Applies on next EAS build.
+- `admin-provision-business` / `create-staff` deployed `verify_jwt=false` (non-exploitable — internal callerId + platform_admins/owner gate). → Set `verify_jwt=true` in config.toml. **Apply on prod via `supabase functions deploy admin-provision-business create-staff`** (running copies still false).
+- `x-powered-by: Next.js` leak → `poweredByHeader:false` (live).
+- `diag-provision` orphan (inert 410 stub, jwt-protected) → delete via dashboard (no MCP delete tool).
+
+**New gaps from the completeness critic (user-side; none block iOS resubmission):**
+- **Email deliverability**: app emails send From `@aframat.com`, which has **no SPF/DKIM/DMARC/MX**. If `RESEND_API_KEY` is set, sends fail at Resend (unverified domain); likely the key is unset so email features are inactive. (chehia.app's own `-all` SPF + `p=reject` DMARC are correct — it sends no mail.) Verify aframat.com in Resend + add records if email features are wanted.
+- **Realtime**: all 11 realtime-published tables have RLS enabled → same USING clauses block cross-tenant delivery (low risk). A live websocket probe with an anon JWT would be belt-and-suspenders.
+- **No infra rate-limiting** on `extract-menu` (paid AI calls, public) — anon signup lets attackers bypass per-session caps → billing/DoS risk. Add IP-based limiting before wide launch.
+- **No error tracking** (Sentry/etc.); **PITR/backup** status unverified (check dashboard); **CAA record** missing; **account-deletion** flow absent (GDPR; the iOS *customer* app is anonymous so Guideline 5.1.1(v) likely doesn't apply, but the web business portal has account creation).
+- pg_cron nightly jobs still unscheduled (inventory-alerts + generate-insights dead) — coupled to the email + cost decisions.
+
+---
+
+Everything below was executed and verified in session 1. **All submission-BLOCKING work is done in-repo/backend; what remains for the App Store are the cloud/device steps only you can do (Vercel env, EAS build, ASC forms, dashboard toggles).**
 
 **Runbook (Part 1) — done & verified:**
 - **R1 ✅** Demo venue un-gated in **prod + dev** (`require_location=false` on `cafe-el-marsa`) — the reviewer can now complete the documented order path. Verified the geofence only fires when `require_location && lat && lng`.
