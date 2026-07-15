@@ -30,6 +30,8 @@ export default function SettingsPage() {
   const [address, setAddress] = useState(restaurant.address);
   const [city, setCity] = useState(restaurant.city);
   const [phone, setPhone] = useState(restaurant.phone);
+  const [whatsapp, setWhatsapp] = useState(restaurant.whatsapp ?? "");
+  const [instagram, setInstagram] = useState(restaurant.instagram ?? "");
   const [languages, setLanguages] = useState<Language[]>(restaurant.languages as Language[]);
   const [defaultLanguage, setDefaultLanguage] = useState<Language>(restaurant.default_language as Language);
   const [hours, setHours] = useState<Record<Day, DayHours>>(() => parseHours(restaurant.opening_hours));
@@ -97,7 +99,7 @@ export default function SettingsPage() {
     for (const d of DAYS) if (!hours[d].closed) opening[d] = `${hours[d].open}-${hours[d].close}`;
     await supabase
       .from("restaurants")
-      .update({ name, address, city, phone, languages, default_language: defaultLanguage, opening_hours: opening, require_qr: requireQr, require_table_confirmation: requireConfirm, enforce_opening_hours: enforceHours, reviews_enabled: reviewsEnabled, inventory_alerts_enabled: inventoryAlerts, cover_url: coverUrl, latitude, longitude, geofence_radius_m: radiusM, require_location: requireLocation })
+      .update({ name, address, city, phone, whatsapp: whatsapp.trim() || null, instagram: instagram.trim() || null, languages, default_language: defaultLanguage, opening_hours: opening, require_qr: requireQr, require_table_confirmation: requireConfirm, enforce_opening_hours: enforceHours, reviews_enabled: reviewsEnabled, inventory_alerts_enabled: inventoryAlerts, cover_url: coverUrl, latitude, longitude, geofence_radius_m: radiusM, require_location: requireLocation })
       .eq("id", restaurant.id);
     await refreshRestaurant();
     // Don't force the operator's portal UI language to the venue default on save —
@@ -193,6 +195,14 @@ export default function SettingsPage() {
             <Field label={t.portal.settings.phone}>
               <input className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!canManage} dir="ltr" />
             </Field>
+            <div className="flex gap-3">
+              <Field label={t.portal.settings.whatsapp} className="flex-1">
+                <input className={inputClass} value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} disabled={!canManage} dir="ltr" placeholder="+216…" />
+              </Field>
+              <Field label={t.portal.settings.instagram} className="flex-1">
+                <input className={inputClass} value={instagram} onChange={(e) => setInstagram(e.target.value)} disabled={!canManage} dir="ltr" placeholder="@…" />
+              </Field>
+            </div>
 
             <Field label={t.portal.settings.languages}>
               <div className="flex gap-2" dir="ltr">

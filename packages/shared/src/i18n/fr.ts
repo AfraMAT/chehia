@@ -32,6 +32,9 @@ export const fr = {
   landing: {
     openUntil: "ouvert jusqu'à",
     tableContext: "Votre commande sera servie ici",
+    call: "Appeler",
+    directions: "Itinéraire",
+    contactTitle: "Contact",
     payAtCounter: "Vous payez au comptoir, comme d'habitude",
     viewMenu: "Voir le menu",
     invalidQr: "Ce code QR n'est pas valide",
@@ -618,6 +621,8 @@ export const fr = {
       address: "Adresse",
       city: "Ville",
       phone: "Téléphone",
+      whatsapp: "WhatsApp",
+      instagram: "Instagram",
       languages: "Langues du menu",
       defaultLanguage: "Langue par défaut",
       hours: "Horaires",

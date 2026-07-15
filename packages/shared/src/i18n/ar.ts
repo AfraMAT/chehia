@@ -34,6 +34,9 @@ export const ar: Dictionary = {
   landing: {
     openUntil: "مفتوح حتى",
     tableContext: "سيتم تقديم طلبك هنا",
+    call: "اتصال",
+    directions: "الاتجاهات",
+    contactTitle: "تواصل",
     payAtCounter: "تدفع عند الصندوق، كالعادة",
     viewMenu: "عرض القائمة",
     invalidQr: "رمز QR غير صالح",
@@ -618,6 +621,8 @@ export const ar: Dictionary = {
       address: "العنوان",
       city: "المدينة",
       phone: "الهاتف",
+      whatsapp: "واتساب",
+      instagram: "إنستغرام",
       languages: "لغات القائمة",
       defaultLanguage: "اللغة الافتراضية",
       hours: "أوقات العمل",

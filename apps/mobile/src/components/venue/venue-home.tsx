@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LANGUAGE_LABELS, formatRating, interpolate, type Language } from "@chehia/shared";
+import { LANGUAGE_LABELS, formatRating, interpolate, type Language, type Restaurant } from "@chehia/shared";
 import { CtaButton, PhotoPlaceholder, Stars, T, Wordmark, ZelligeMark } from "../ui";
 import { useI18n } from "@/lib/i18n";
 import { go } from "@/lib/nav";
@@ -291,6 +291,9 @@ export function VenueHome() {
             </T>
           )}
 
+          {/* Contact card — reach the venue (self-hides when nothing is set) */}
+          <ContactRow restaurant={restaurant} />
+
           {/* Language switch */}
           <View style={{ marginTop: 20, gap: 8 }}>
             <T lang={lang} weight="bold" size={12} color={theme.mutedSoft} style={{ letterSpacing: 0.5, textAlign: isRtl ? "right" : "left" }}>
@@ -360,6 +363,65 @@ export function VenueHome() {
       </ScrollView>
 
       {pickerOpen && <TablePicker onClose={() => setPickerOpen(false)} />}
+    </View>
+  );
+}
+
+/** Reach the venue: call · WhatsApp · Instagram · directions. Each chip appears
+ * only when the venue provided that channel, so the row self-hides if empty. */
+function ContactRow({ restaurant }: { restaurant: Restaurant }) {
+  const { t, lang, isRtl } = useI18n();
+  const theme = useTheme();
+
+  const digits = (s: string) => s.replace(/[^\d+]/g, "");
+  const chips: { key: string; label: string; glyph: string; url: string }[] = [];
+  if (restaurant.phone?.trim()) chips.push({ key: "call", label: t.landing.call, glyph: "📞", url: `tel:${digits(restaurant.phone)}` });
+  if (restaurant.whatsapp?.trim()) {
+    const wa = digits(restaurant.whatsapp).replace(/^\+/, "");
+    chips.push({ key: "wa", label: "WhatsApp", glyph: "💬", url: `https://wa.me/${wa}` });
+  }
+  if (restaurant.instagram?.trim()) {
+    const handle = restaurant.instagram.trim().replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//, "").replace(/\/$/, "");
+    chips.push({ key: "ig", label: "Instagram", glyph: "📸", url: `https://instagram.com/${handle}` });
+  }
+  if (restaurant.latitude != null && restaurant.longitude != null) {
+    chips.push({ key: "dir", label: t.landing.directions, glyph: "🧭", url: `https://maps.apple.com/?daddr=${restaurant.latitude},${restaurant.longitude}` });
+  }
+  if (chips.length === 0) return null;
+
+  return (
+    <View style={{ marginTop: 18, gap: 8 }}>
+      <T lang={lang} weight="bold" size={12} color={theme.mutedSoft} style={{ letterSpacing: 0.5, textAlign: isRtl ? "right" : "left" }}>
+        {t.landing.contactTitle}
+      </T>
+      <View style={[rowDir(lang), { flexWrap: "wrap", gap: 8 }]}>
+        {chips.map((c) => (
+          <Pressable
+            key={c.key}
+            onPress={() => void Linking.openURL(c.url)}
+            accessibilityRole="button"
+            accessibilityLabel={c.label}
+            style={[
+              rowDir(lang),
+              {
+                alignItems: "center",
+                gap: 6,
+                backgroundColor: theme.card,
+                borderWidth: 1.5,
+                borderColor: theme.border,
+                borderRadius: 100,
+                paddingVertical: 9,
+                paddingHorizontal: 14,
+              },
+            ]}
+          >
+            <T size={14}>{c.glyph}</T>
+            <T lang={lang} weight="bold" size={13} color={theme.ink}>
+              {c.label}
+            </T>
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 }

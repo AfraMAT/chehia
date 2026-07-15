@@ -34,6 +34,9 @@ export const en: Dictionary = {
   landing: {
     openUntil: "open until",
     tableContext: "Your order will be served here",
+    call: "Call",
+    directions: "Directions",
+    contactTitle: "Contact",
     payAtCounter: "You pay at the counter, as usual",
     viewMenu: "View the menu",
     invalidQr: "This QR code is not valid",
@@ -619,6 +622,8 @@ export const en: Dictionary = {
       address: "Address",
       city: "City",
       phone: "Phone",
+      whatsapp: "WhatsApp",
+      instagram: "Instagram",
       languages: "Menu languages",
       defaultLanguage: "Default language",
       hours: "Opening hours",
