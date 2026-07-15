@@ -6,7 +6,37 @@ _Generated 2026-07-12 from a 58-agent audit of the full monorepo (14 core areas 
 
 ---
 
-# Execution log — 2026-07-13
+# Execution log — 2026-07-15
+
+## RESUBMISSION EXECUTED (session 3)
+
+Everything machine-doable for the App Store resubmission was completed and verified this session:
+
+- **Build 1.0 (3) built on EAS and submitted to App Store Connect.** First attempt errored
+  (`EAS_BUILD_SYSTEM_DEPS_INSTALL_ERROR` — corepack flake installing `packageManager` pnpm);
+  fixed by pinning `"pnpm": "10.6.1"` in eas.json's production profile. Guideline 4 fix
+  **verified in the built output** via `expo prebuild`: Info.plist ships ONLY camera +
+  when-in-use location (French) + fr/ar/en `InfoPlist.strings`.
+- **AASA live**: set `APPLE_TEAM_ID=9KSK39WBM6` on Vercel prod (CLI), redeployed —
+  `https://app.chehia.app/.well-known/apple-app-site-association` serves 200 and Apple's
+  CDN ingested it (`9KSK39WBM6.tn.chehia.app`). Universal links verify on next install.
+  (`ANDROID_CERT_SHA256` still pending — Play-only, not needed for Apple.)
+- **Reviewer flow proven on prod**: anonymous sign-in → live menu fetch → order placed via
+  the demo QR token with NO location (A-509, HTTP 200) → cancelled. Demo QR PNG decodes to
+  the exact live URL (CoreImage).
+- **verify_jwt=true deployed** to prod `admin-provision-business` + `create-staff` via
+  `supabase functions deploy` (shared deps bundled). No-auth → gateway 401; valid JWT →
+  internal authz unchanged.
+- **Pre-flight adversarial audit of never-device-QA'd code shipping in build 3** (3 agents):
+  fetchMenu throw = CRASH-SAFE (single guarded call site, cache fallback, recoverable error UI);
+  theme port = CRASH-SAFE (demo venue's `appearance:{}` → default Harissa via never-throws
+  resolver; all live nulls guarded); language sweep = CLEAN (983/983/983 i18n keys; one edge
+  fix landed: hardcoded "Guest" group-nickname fallback → `t.rating.anon`, mobile + web).
+- **ASC pack finalized** in `docs/app-store-review/review-reply.md`: review notes + QR
+  attachment, the 7 Guideline 2.1(b) answers, age-rating questionnaire answers (§C), and
+  the exact click-path. **Remaining are the ASC UI steps only**: select build 3, App Review
+  Info (notes + attachment), age-rating questionnaire, reply, Resubmit. Recommended first:
+  TestFlight build 3 on a real iPhone + iPad (reviewer used iPad Air 11" M3).
 
 ## PROD DEPLOY + LIVE AUDIT (session 2)
 

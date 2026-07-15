@@ -38,7 +38,7 @@ export function GroupSheet({
     if (mode === "join" && !code.trim()) return;
     setBusy(true);
     setError(null);
-    const nick = nickname.trim() || "Guest";
+    const nick = nickname.trim() || t.rating.anon;
     try {
       localStorage.setItem(NICK_KEY, nick);
     } catch {

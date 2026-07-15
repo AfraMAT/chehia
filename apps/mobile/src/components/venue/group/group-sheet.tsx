@@ -49,7 +49,7 @@ export function GroupSheet({
     if (mode === "join" && !code.trim()) return;
     setBusy(true);
     setError(null);
-    const nick = nickname.trim() || "Guest";
+    const nick = nickname.trim() || t.rating.anon;
     void AsyncStorage.setItem(NICK_KEY, nick);
     const err = mode === "start" ? await start(nick) : await join(code.trim(), nick);
     setBusy(false);
