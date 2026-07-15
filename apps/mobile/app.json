@@ -10,14 +10,18 @@
     "backgroundColor": "#FAF6EF",
     "ios": {
       "bundleIdentifier": "tn.chehia.app",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "supportsTablet": false,
       "associatedDomains": [
         "applinks:app.chehia.app"
       ],
       "infoPlist": {
         "CFBundleDevelopmentRegion": "fr",
-        "CFBundleLocalizations": ["fr", "ar", "en"],
+        "CFBundleLocalizations": [
+          "fr",
+          "ar",
+          "en"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       },
       "privacyManifests": {

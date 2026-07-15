@@ -1,9 +1,30 @@
 # Chehia — App Review resubmission (Submission 780237f1-…)
 
-Everything below is copy-paste ready. Three things to do in App Store Connect:
-1. Upload a **new iOS build** that contains the Guideline 4 permission fix (rebuild via EAS — see "Build" at the bottom).
-2. Fill **App Review Information → Notes** (and the Attachment) — see §A.
-3. **Reply to Apple's message** with the text in §B, then **Resubmit to App Review**.
+_Updated 2026-07-15. Everything below is copy-paste ready._
+
+## Already done for you (verified live)
+
+- ✅ **Build 1.0 (3)** with the Guideline 4 fix built via EAS and uploaded to App Store Connect.
+- ✅ Guideline 4 fix **verified in the built Info.plist**: only camera + when-in-use location
+  usage strings ship, in French, plus per-device-language `InfoPlist.strings` (fr/ar/en).
+  No microphone / always-location / motion strings.
+- ✅ Demo venue **Café El Marsa** verified in PROD: active, `require_location=false`
+  (reviewer is not geo-blocked), 4 categories / 14 trilingual menu items.
+- ✅ Demo QR (`demo-qr-cafe-el-marsa-table-12.png`) decodes to
+  `https://app.chehia.app/r/cafe-el-marsa/t/demo-elmarsa-t12` → live, HTTP 200.
+- ✅ Universal links fixed: `APPLE_TEAM_ID` set on Vercel prod; AASA serves 200 and
+  Apple's CDN has ingested it (`9KSK39WBM6.tn.chehia.app`).
+
+## What YOU do in App Store Connect (in this order)
+
+1. Wait for build **1.0 (3)** to finish processing (TestFlight tab).
+2. **Version page** (iOS App 1.0) → Build section → select build **3**.
+3. Same page → **App Review Information** → paste §A notes + upload the QR attachment.
+   Sign-in required: **No**. Save.
+4. **App Information** → complete the **age-rating questionnaire** incl. the new
+   social-media questions (due Sept 7) — answers in §C.
+5. **Submission page** → Reply to Apple's message with §B.
+6. Click **Resubmit to App Review** (replying alone does NOT restart review).
 
 ---
 
@@ -39,10 +60,9 @@ Option B — No scan needed (browse flow)
 3. Select "Café El Marsa", choose a table, then browse the menu and order.
 
 The app's primary localization is French; it also supports Arabic and English
-based on the device language.
+based on the device language. Permission prompts are localized to the device
+language (fr/ar/en).
 ```
-
-> Action for you before submitting: confirm the demo venue **Café El Marsa** and table **demo-elmarsa-t12** exist and are **active with a menu in the PRODUCTION Supabase project**. If not, either run the seed / create a demo venue+table in the admin portal, or tell me and I'll give you a one-off SQL insert to paste into the prod SQL editor. (Option B works with any active prod venue, so it's the safe fallback.)
 
 ---
 
@@ -51,19 +71,23 @@ based on the device language.
 ```
 Hello, and thank you for the detailed feedback.
 
-Guideline 4 (Design) — permission language
-You are right. The camera and location permission prompts previously combined
-three languages (French, Arabic, English) in a single string. We have fixed this:
-the usage descriptions are now written in the app's primary localization (French),
-and the app declares its supported localizations (French, Arabic, English) via
-CFBundleLocalizations. This fix is included in the new build we have just uploaded.
+Guideline 4 (Design) — permission-request language
+You are right — the permission requests did not match the app's localization.
+This is fixed in the new build (1.0 build 3):
+- The camera and location usage descriptions are written in the app's primary
+  localization (French), and are additionally localized for every supported
+  localization (French, Arabic, English) via InfoPlist.strings, so the system
+  permission prompts always appear in the same language as the app's UI.
+- We also removed usage strings for capabilities the app does not use
+  (microphone, always-on location, motion).
 Chehia is designed as an iPhone app (a portrait, on-the-go tool used at a café
-table); it also runs and functions on iPad in iPhone-compatibility mode.
+table); it also runs and functions fully on iPad in iPhone-compatibility mode.
 
 Guideline 2.1(a) — demo details
-No login is required (the customer app is anonymous). We have added a demo QR code
-as an attachment and step-by-step instructions in the App Review Information → Notes.
-There is also a no-scan path: tap "Find a restaurant", select the demo venue, and
+No login is required (the customer app is anonymous). We have added a demo QR
+code as an attachment and step-by-step instructions in App Review Information →
+Notes. There is also a no-scan path: tap "Find a restaurant" (Trouver un
+restaurant), select the demo venue "Café El Marsa", pick a table, and
 browse/order without scanning.
 
 Guideline 2.1(b) — business model
@@ -72,12 +96,11 @@ Guideline 2.1(b) — business model
 2) What are the paid content or services, and what are the costs?
    None in the app. The only thing a customer pays for is the physical food and
    drinks they order, which are prepared and consumed in person at the café/
-   restaurant. These are physical goods/services (Guideline 3.1.3(e)) and are not
-   digital content.
+   restaurant. These are physical goods/services and are not digital content.
 3) Do individual customers pay for the content or services?
-   Customers pay the café/restaurant directly, in person at the counter, for their
-   food and drinks. No payment ever happens inside the app — the app does not
-   process or collect any money.
+   Customers pay the café/restaurant directly, in person at the counter, for
+   their food and drinks. No payment ever happens inside the app — the app does
+   not process or collect any money.
 4) If no, does a company or organization pay for the content or services?
    The cafés/restaurants (our B2B clients) subscribe to Chehia's service. That
    subscription is handled entirely outside this iOS app, on our separate web
@@ -98,22 +121,42 @@ We are happy to provide anything else you need. Thank you.
 
 ---
 
-## Build (Guideline 4 fix ships in the binary)
+## C. Age-rating questionnaire (incl. the new social-media questions, due Sept 7 2026)
 
-The fix is in `apps/mobile/app.json` (permission strings are now single-language
-French; `CFBundleLocalizations` declared). It requires a **new build**:
+Facts about the app (what the answers must reflect):
 
-```
-cd apps/mobile
-eas build --platform ios --profile production
-# then, once built:
-eas submit --platform ios --profile production   # or upload the build in ASC
-```
+- **No** violence, horror, mature/suggestive themes, profanity, drugs*, gambling,
+  contests, or unrestricted web access. (*The app shows café menus — coffee/tea/food.
+  If asked about alcohol/tobacco/drug **references**: venues could theoretically list
+  such items; today's demo content has none. "None" is accurate for the app itself.)
+- **No** social-media features: no user profiles, no follower/friend systems, no
+  feeds, no photo/video sharing, no user-to-user messaging or chat.
+- **Limited, moderated user-generated content only:**
+  - Venue **reviews** (rating + optional comment + optional first name) — **pre-moderated**:
+    an admin approves every review before it is published.
+  - **Group-order nicknames** — visible only to the handful of people sharing one
+    table's ordering session, never public.
+  - Free-text **order notes** go to the venue's kitchen (customer→business), not to
+    other users.
+- **No** account creation, no age-gated content, no ads.
 
-Then in App Store Connect: select the new build for version 1.0, save §A, post §B,
-and click **Resubmit to App Review**.
+Recommended answers:
+- All content-descriptor questions (violence, sexual content, profanity, drugs,
+  gambling, horror…): **None**.
+- "Unrestricted web access": **No**.
+- Social-media / communication questions: users **cannot** communicate freely with
+  other users; **no** user profiles; **no** content feeds.
+- User-generated content questions: **Yes, with restrictions** — UGC (reviews) is
+  reviewed/approved by the operator **before publication** (pre-moderation); there
+  is a way to contact us (privacy page / About screen) to report or request removal.
+- Expected resulting rating: **4+** (unchanged).
 
-> Tip: to sanity-check the localized permission strings before the cloud build,
-> run `npx expo prebuild -p ios --clean` locally and inspect
-> `ios/Chehia/Info.plist` — the NSCameraUsageDescription / NSLocationWhenInUse…
-> values should be the clean French sentences.
+---
+
+## D. After approval / optional
+
+- TestFlight-install build 3 on a real iPhone AND an iPad (reviewer used an
+  iPad Air 11" M3) and run one full order on the demo venue before resubmitting —
+  15 minutes well spent.
+- Android: `ANDROID_CERT_SHA256` on Vercel + `assetlinks.json` only matter for the
+  Play submission later; not needed for Apple.
