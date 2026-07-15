@@ -1,10 +1,9 @@
 /** Brand primitives: the 8-point zellige star mark and the wordmark. */
 
 /**
- * The Chehia "Scan & Fork" mark — a QR-scan finder + a fork, echoing the app
- * icon (scan → order → eat). Reduced form (single finder + fork) so it stays
- * legible from ~16px nav marks up. Kept the `ZelligeMark` export name so every
- * existing caller keeps working.
+ * The Chehia "Scan & Sip" mark — a rounded harissa tile with a steaming coffee
+ * cup, echoing the app icon (scan → order → sip). Café-shaped for the Tunisian
+ * market. Kept the `ZelligeMark` export name so every existing caller works.
  */
 export function ZelligeMark({
   size = 30,
@@ -21,16 +20,15 @@ export function ZelligeMark({
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden style={{ display: "block", flexShrink: 0 }}>
       <rect width="100" height="100" rx={rx} fill={color} />
-      {/* "scan" QR finder, top-left */}
-      <rect x="19" y="19" width="25" height="25" rx="7" fill="none" stroke={inner} strokeWidth="5.5" />
-      <rect x="28" y="28" width="7" height="7" rx="2" fill={inner} />
-      {/* fork */}
-      <g fill={inner}>
-        <rect x="52" y="40" width="4.4" height="23" rx="2.2" />
-        <rect x="59" y="40" width="4.4" height="23" rx="2.2" />
-        <rect x="66" y="40" width="4.4" height="23" rx="2.2" />
-        <rect x="52" y="59" width="18.4" height="5" rx="2.5" />
-        <rect x="59" y="62" width="4.8" height="21" rx="2.4" />
+      {/* steaming coffee cup, centered */}
+      <g transform="translate(50,52) scale(0.62)" fill={inner}>
+        <path d="M -44 -4 h 70 v 20 a 35 35 0 0 1 -70 0 z" />
+        <path d="M 26 2 h 14 a 17 17 0 0 1 0 34 h -8 v -12 h 6 a 5 5 0 0 0 0 -10 h -12 z" />
+        <g stroke={inner} strokeWidth="6.5" strokeLinecap="round" fill="none">
+          <path d="M -22 -20 q 8 -11 0 -24" />
+          <path d="M -1 -20 q 8 -11 0 -24" />
+          <path d="M 19 -20 q 8 -11 0 -24" />
+        </g>
       </g>
     </svg>
   );

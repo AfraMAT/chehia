@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
-import Svg, { Defs, G, Pattern, Rect } from "react-native-svg";
+import Svg, { Defs, G, Path, Pattern, Rect } from "react-native-svg";
 import type { Language, Sentiment } from "@chehia/shared";
 import { useI18n } from "../lib/i18n";
 import { colors, displayFace, faceFor, fontFamily, shadowCta, sizeFor, useTheme } from "../lib/theme";
@@ -95,10 +95,9 @@ export function FaceInput({
 }
 
 /**
- * The Chehia "Scan & Fork" mark — a QR-scan finder + a fork, echoing the app
- * icon (scan → order → eat). Matches the web brand mark (apps/web brand.tsx) so
- * the launcher icon and the in-app mark are one identity. Reduced form (single
- * finder + fork) stays legible from ~16px nav marks up. Export name kept as
+ * The Chehia steaming-cup mark — a café-shaped icon (scan → order → sip) on a
+ * rounded harissa tile. Matches the web brand mark (apps/web brand.tsx) so the
+ * launcher icon and the in-app mark are one identity. Export name kept as
  * `ZelligeMark` so every existing caller keeps working.
  */
 export function ZelligeMark({
@@ -119,16 +118,15 @@ export function ZelligeMark({
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100">
       <Rect width={100} height={100} rx={rx} fill={fill} />
-      {/* "scan" QR finder, top-left */}
-      <Rect x={19} y={19} width={25} height={25} rx={7} fill="none" stroke={inner} strokeWidth={5.5} />
-      <Rect x={28} y={28} width={7} height={7} rx={2} fill={inner} />
-      {/* fork */}
-      <G fill={inner}>
-        <Rect x={52} y={40} width={4.4} height={23} rx={2.2} />
-        <Rect x={59} y={40} width={4.4} height={23} rx={2.2} />
-        <Rect x={66} y={40} width={4.4} height={23} rx={2.2} />
-        <Rect x={52} y={59} width={18.4} height={5} rx={2.5} />
-        <Rect x={59} y={62} width={4.8} height={21} rx={2.4} />
+      {/* steaming coffee cup, centered (café-shaped mark) */}
+      <G transform="translate(50,52) scale(0.62)" fill={inner}>
+        <Path d="M -44 -4 h 70 v 20 a 35 35 0 0 1 -70 0 z" />
+        <Path d="M 26 2 h 14 a 17 17 0 0 1 0 34 h -8 v -12 h 6 a 5 5 0 0 0 0 -10 h -12 z" />
+        <G stroke={inner} strokeWidth={6.5} strokeLinecap="round" fill="none">
+          <Path d="M -22 -20 q 8 -11 0 -24" />
+          <Path d="M -1 -20 q 8 -11 0 -24" />
+          <Path d="M 19 -20 q 8 -11 0 -24" />
+        </G>
       </G>
     </Svg>
   );

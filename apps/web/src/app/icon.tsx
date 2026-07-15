@@ -3,18 +3,8 @@ import { ImageResponse } from "next/og";
 export const size = { width: 32, height: 32 };
 export const contentType = "image/png";
 
-/** Generated favicon — the Chehia "Scan & Fork" mark (cream fork on harissa). */
+/** Generated favicon — the Chehia steaming-cup mark (cream cup on harissa). */
 export default function Icon() {
-  const tine = (left: number) => ({
-    position: "absolute" as const,
-    left,
-    top: 5,
-    width: 2.6,
-    height: 12,
-    background: "#FFFFFF",
-    borderRadius: 1.3,
-    display: "flex" as const,
-  });
   return new ImageResponse(
     (
       <div
@@ -28,13 +18,17 @@ export default function Icon() {
           borderRadius: 8,
         }}
       >
-        <div style={{ position: "relative", width: 22, height: 24, display: "flex" }}>
-          <div style={tine(5)} />
-          <div style={tine(9.7)} />
-          <div style={tine(14.4)} />
-          <div style={{ position: "absolute", left: 5, top: 15, width: 12, height: 2.8, background: "#FFFFFF", borderRadius: 1.4, display: "flex" }} />
-          <div style={{ position: "absolute", left: 9.7, top: 17, width: 2.6, height: 9, background: "#FFFFFF", borderRadius: 1.3, display: "flex" }} />
-        </div>
+        <svg width="24" height="24" viewBox="0 0 100 100">
+          <g transform="translate(50,52) scale(0.62)" fill="#FFFFFF">
+            <path d="M -44 -4 h 70 v 20 a 35 35 0 0 1 -70 0 z" />
+            <path d="M 26 2 h 14 a 17 17 0 0 1 0 34 h -8 v -12 h 6 a 5 5 0 0 0 0 -10 h -12 z" />
+            <g stroke="#FFFFFF" strokeWidth="6.5" strokeLinecap="round" fill="none">
+              <path d="M -22 -20 q 8 -11 0 -24" />
+              <path d="M -1 -20 q 8 -11 0 -24" />
+              <path d="M 19 -20 q 8 -11 0 -24" />
+            </g>
+          </g>
+        </svg>
       </div>
     ),
     { ...size },

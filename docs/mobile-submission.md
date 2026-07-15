@@ -3,7 +3,7 @@
 The customer app (`apps/mobile`, Expo SDK 57) is an **anonymous, order-only, pay-at-counter** app: no accounts, no in-app payment, and two when-in-use permissions (camera for QR scanning — processed on-device, no image leaves the phone; optional location to sort nearby venues **and**, when ordering remotely from a venue that requires presence, to verify you are on-site — see the geofence note below). That keeps review simple — it sidesteps Sign in with Apple (no third-party login), IAP (physical goods/services), and most privacy obligations.
 
 ## What's already done in the repo
-- **Branded assets** — Scan & Fork icon (teal QR frame + harissa fork on cream) at all sizes: `icon.png` (1024), Android adaptive `foreground`/`background`/`monochrome`, `splash-icon.png`, `favicon.png`. Expo starter cruft removed.
+- **Branded assets** — steaming-cup icon (harissa cup on cream, café-shaped) at all sizes: `icon.png` (1024), Android adaptive `foreground`/`background`/`monochrome`, `splash-icon.png`, `favicon.png`. Expo starter cruft removed.
 - **app.json** — `ios.buildNumber "1"`, `android.versionCode 1`, `ITSAppUsesNonExemptEncryption:false`, iOS **privacy manifest** (required-reason APIs for AsyncStorage/file-timestamp/boot-time/disk), trilingual camera **and** when-in-use location usage strings, light splash/adaptive backgrounds, universal links (`applinks:chehia.app` / Android `autoVerify` intent filter).
 - **eas.json** — `development`/`preview` (dev Supabase) + `production` (prod Supabase) build profiles, `autoIncrement`, and a `submit.production` block (fill in the placeholders).
 - **Backend selection** — a release build defaults to the **prod** Supabase project (never localhost); dev/preview builds use the dev project via eas.json env.
