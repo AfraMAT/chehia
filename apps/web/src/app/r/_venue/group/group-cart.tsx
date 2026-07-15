@@ -42,7 +42,11 @@ export function GroupCart({ onClose }: { onClose: () => void }) {
   };
 
   const myLines = lines.filter((l) => l.participant_id === myParticipantId);
-  const groupTotal = lines.reduce((s, l) => s + unitOf(l.item_id, l.modifier_ids) * l.qty, 0);
+  // Total only what's visible: lines owned by participants still in the session —
+  // a leaver's residue must never inflate the footer (the server now deletes it
+  // in leave_session; this also guards against realtime lag).
+  const activeIds = new Set(activeParticipants.map((p) => p.id));
+  const groupTotal = lines.filter((l) => activeIds.has(l.participant_id)).reduce((s, l) => s + unitOf(l.item_id, l.modifier_ids) * l.qty, 0);
   const myTotal = myLines.reduce((s, l) => s + unitOf(l.item_id, l.modifier_ids) * l.qty, 0);
 
   if (!session) return null;

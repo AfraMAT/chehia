@@ -64,3 +64,19 @@ export function formatClock(date: Date, lang: Language = "fr"): string {
   }
   return `${h}:${m}`;
 }
+
+/**
+ * Accent/variant-insensitive folding for customer search: strips Latin
+ * diacritics (café → cafe) and normalises the Arabic letters customers type
+ * interchangeably (hamza'd alefs → ا, ة → ه, ى → ي). Fold BOTH the query and
+ * the haystack before comparing.
+ */
+export function foldSearch(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
+    .toLowerCase();
+}

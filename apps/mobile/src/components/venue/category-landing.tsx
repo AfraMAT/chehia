@@ -64,11 +64,14 @@ export function CategoryLanding({
   layout,
   itemCountByCategory,
   onSelect,
+  bottomPad = 24,
 }: {
   tree: CategoryNode[];
   layout: CategoryLayout;
   itemCountByCategory: Record<string, number>;
   onSelect: (node: CategoryNode) => void;
+  /** Extra bottom inset so the floating cart bar can't cover the last row. */
+  bottomPad?: number;
 }) {
   const { t, tr, lang, isRtl } = useI18n();
   const theme = useTheme();
@@ -83,7 +86,7 @@ export function CategoryLanding({
 
   if (layout === "list") {
     return (
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: bottomPad }}>
         {heading}
         <View style={{ paddingHorizontal: 20, gap: 10 }}>
           {tree.map((node) => (
@@ -113,7 +116,7 @@ export function CategoryLanding({
 
   if (layout === "circles") {
     return (
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: bottomPad }}>
         {heading}
         <View style={{ paddingHorizontal: 20, gap: 16 }}>
           {chunk(tree, 3).map((row, ri) => (
@@ -142,7 +145,7 @@ export function CategoryLanding({
 
   if (layout === "banner") {
     return (
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: bottomPad }}>
         {heading}
         <View style={{ paddingHorizontal: 20, gap: 12 }}>
           {tree.map((node) => (
@@ -173,7 +176,7 @@ export function CategoryLanding({
 
   if (layout === "carousel") {
     return (
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: bottomPad }}>
         {heading}
         <ScrollView
           horizontal
@@ -210,7 +213,7 @@ export function CategoryLanding({
 
   // Default: grid (2 columns).
   return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: bottomPad }}>
       {heading}
       <View style={{ paddingHorizontal: 20, gap: 12 }}>
         {chunk(tree, 2).map((row, ri) => (

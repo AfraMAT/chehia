@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, View } from "react-native";
 import { formatDistanceKm, interpolate } from "@chehia/shared";
 import { CtaButton, T } from "../ui";
 import { useI18n } from "@/lib/i18n";
@@ -44,8 +44,19 @@ export function LocationGateCard({ venueName }: { venueName: string }) {
           tint: colors.warningTint,
           fg: colors.warningText,
           title: t.location.gate.denied,
-          body: t.location.gate.deniedBody,
+          body: t.location.gate.blockedBody,
           cta: t.location.gate.retry,
+        };
+      // Permanently refused: iOS never re-prompts, so retry would be a dead
+      // end — the only way forward is the app's Settings page.
+      case "blocked":
+        return {
+          glyph: "⚑",
+          tint: colors.warningTint,
+          fg: colors.warningText,
+          title: t.location.gate.denied,
+          body: t.location.gate.blockedBody,
+          cta: t.landing.openSettings,
         };
       // idle + unsupported both invite the customer to share their location.
       default:
@@ -105,7 +116,10 @@ export function LocationGateCard({ venueName }: { venueName: string }) {
           height={48}
           disabled={gate.status === "locating"}
           label={view.cta}
-          onPress={() => void gate.request()}
+          onPress={() => {
+            if (gate.status === "blocked") void Linking.openSettings();
+            else void gate.request();
+          }}
         />
       )}
     </View>
@@ -149,6 +163,7 @@ export function LocationBanner({ venueName }: { venueName: string }) {
           press: true,
         };
       case "denied":
+      case "blocked":
         return {
           glyph: "⚑",
           tint: colors.warningTint,
@@ -200,7 +215,10 @@ export function LocationBanner({ venueName }: { venueName: string }) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={view.label}
-      onPress={() => void gate.request()}
+      onPress={() => {
+        if (gate.status === "blocked") void Linking.openSettings();
+        else void gate.request();
+      }}
     >
       {inner}
     </Pressable>

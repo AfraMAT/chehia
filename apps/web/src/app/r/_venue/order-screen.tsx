@@ -21,7 +21,7 @@ import { RatingSheet } from "./rating-sheet";
 
 /** P5/P9 · Order tracking — live via realtime, animated preparing state, waiter one tap away. */
 export function OrderScreen({ orderId }: { orderId: string }) {
-  const { restaurant, table, basePath, activeOrder, forgetOrder, online } = useVenue();
+  const { restaurant, table, basePath, activeOrders, forgetOrder, online } = useVenue();
   const { t, tr, lang } = useI18n();
 
   const [order, setOrder] = useState<Order | null>(null);
@@ -74,6 +74,21 @@ export function OrderScreen({ orderId }: { orderId: string }) {
       if (!cancelled) setLoadStalled(true);
     }, 7000);
 
+    // The lines query is independent of the order query — on flaky Wi-Fi one can
+    // fail while the other succeeds, leaving a "0 items" summary. Retried on the
+    // channel-join refetch until it lands.
+    let linesLoaded = false;
+    const fetchLines = async () => {
+      const { data: li, error } = await supabase
+        .from("order_items")
+        .select("*")
+        .eq("order_id", orderId)
+        .overrideTypes<OrderItem[], { merge: false }>();
+      if (cancelled || error || !li) return;
+      linesLoaded = true;
+      setLines(li);
+    };
+
     void (async () => {
       // Ensure the anonymous session is loaded before reading under RLS — covers
       // landing directly on the order URL (return-to-order, refresh) before any
@@ -82,12 +97,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
       if (cancelled) return;
 
       void fetchOrder(false);
-      const { data: li } = await supabase
-        .from("order_items")
-        .select("*")
-        .eq("order_id", orderId)
-        .overrideTypes<OrderItem[], { merge: false }>();
-      if (!cancelled) setLines(li ?? []);
+      await fetchLines();
 
       channel = supabase
         .channel(`order-${orderId}`)
@@ -97,7 +107,10 @@ export function OrderScreen({ orderId }: { orderId: string }) {
           (payload) => setOrder((prev) => ({ ...(prev as Order), ...(payload.new as Order) })),
         )
         .subscribe((status) => {
-          if (status === "SUBSCRIBED") void fetchOrder(true);
+          if (status === "SUBSCRIBED") {
+            void fetchOrder(true);
+            if (!linesLoaded) void fetchLines();
+          }
         });
     })();
 
@@ -111,10 +124,37 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   // Stop tracking once the order is done, so the "return to your order" banner
   // clears and doesn't surface to the next customer at the same table.
   useEffect(() => {
-    if (order && activeOrder?.id === orderId && (order.status === "served" || order.status === "cancelled")) {
-      forgetOrder();
+    if (order && (order.status === "served" || order.status === "cancelled")) {
+      forgetOrder(orderId);
     }
-  }, [order, activeOrder, orderId, forgetOrder]);
+  }, [order, orderId, forgetOrder]);
+
+  // A meal is often several sends — surface the customer's other open orders at
+  // this table so placing a follow-up never "loses" the previous one.
+  const otherIds = useMemo(() => activeOrders.map((o) => o.id).filter((id) => id !== orderId), [activeOrders, orderId]);
+  const [fetchedOthers, setFetchedOthers] = useState<Pick<Order, "id" | "order_number" | "status">[]>([]);
+  useEffect(() => {
+    if (otherIds.length === 0) return; // render filters against otherIds below
+    let cancelled = false;
+    void getSupabase()
+      .from("orders")
+      .select("id,order_number,status")
+      .in("id", otherIds)
+      .then(({ data }) => {
+        if (!cancelled && data) {
+          setFetchedOthers(data as Pick<Order, "id" | "order_number" | "status">[]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [otherIds]);
+  // Keep most-recent-first ordering from activeOrders; a forgotten/finished id
+  // drops out here without needing a state reset inside the effect.
+  const otherOrders = useMemo(() => {
+    const byId = new Map(fetchedOthers.map((o) => [o.id, o]));
+    return otherIds.map((id) => byId.get(id)).filter((o): o is Pick<Order, "id" | "order_number" | "status"> => Boolean(o));
+  }, [fetchedOthers, otherIds]);
 
   // Invite a rating once, the moment the order is served — never nag: a persisted
   // flag means it won't reopen on refresh, but the customer can still tap "Rate".
@@ -133,6 +173,28 @@ export function OrderScreen({ orderId }: { orderId: string }) {
     const id = window.setInterval(() => setTick((n) => n + 1), 30000);
     return () => window.clearInterval(id);
   }, [counting]);
+
+  // Realtime is the fast path, but a socket can die silently on café Wi-Fi and
+  // the status would freeze forever. While the order is still moving, poll
+  // slowly and refetch whenever the tab becomes visible again as a safety net.
+  const stillMoving = !order || (order.status !== "served" && order.status !== "cancelled");
+  useEffect(() => {
+    if (!stillMoving) return;
+    const supabase = getSupabase();
+    const refetch = async () => {
+      const { data: o } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle<Order>();
+      if (o) setOrder((prev) => (prev ? { ...prev, ...o } : o));
+    };
+    const id = window.setInterval(() => void refetch(), 25000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refetch();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [stillMoving, orderId]);
 
   // Fire a one-time cue the moment the kitchen marks the order ready, so a
   // customer who set the phone down on the table notices without watching it:
@@ -420,6 +482,38 @@ export function OrderScreen({ orderId }: { orderId: string }) {
             )}
           </>
         )
+      )}
+
+      {/* Other open orders from this device at this table (multi-send meals) */}
+      {otherOrders.length > 0 && (
+        <div className="mx-5 mt-3.5 flex flex-col gap-2">
+          <span className="text-xs font-bold text-muted-soft tracking-wider uppercase">{t.order.othersTitle}</span>
+          {otherOrders.map((o) => {
+            const done = o.status === "served" || o.status === "cancelled";
+            const label =
+              o.status === "cancelled" ? t.order.cancelled
+              : o.status === "served" ? t.order.servedTitle
+              : o.status === "ready" ? t.order.ready
+              : o.status === "preparing" ? t.order.preparing
+              : t.order.received;
+            return (
+              <Link
+                key={o.id}
+                href={`${base}/order/${o.id}`}
+                className="bg-white border border-line rounded-xl px-3.5 py-3 flex items-center gap-2.5"
+              >
+                <span
+                  className={`w-[9px] h-[9px] rounded-full shrink-0 ${
+                    o.status === "cancelled" ? "bg-danger" : done ? "bg-success" : "bg-warning"
+                  }`}
+                />
+                <span className="flex-1 font-extrabold text-[13.5px] text-ink">#{o.order_number}</span>
+                <span className="text-[12.5px] font-semibold text-muted-soft">{label}</span>
+                <span className="text-muted-soft font-extrabold rtl:rotate-180">›</span>
+              </Link>
+            );
+          })}
+        </div>
       )}
 
       <div className="flex-1 min-h-6" />

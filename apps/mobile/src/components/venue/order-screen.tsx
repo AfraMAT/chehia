@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { AccessibilityInfo, ActivityIndicator, AppState, Pressable, ScrollView, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -28,7 +28,7 @@ import { useVenue } from "@/lib/venue";
  * from the provider's basePath. Render only under a "ready" venue guard.
  */
 export function OrderScreen({ orderId }: { orderId: string }) {
-  const { restaurant, table, basePath, activeOrder, forgetOrder, online } = useVenue();
+  const { restaurant, table, basePath, activeOrders, forgetOrder, online } = useVenue();
   const { t, tr, lang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -82,6 +82,21 @@ export function OrderScreen({ orderId }: { orderId: string }) {
       if (!cancelled) setLoadStalled(true);
     }, 7000);
 
+    // The lines query is independent of the order query — on flaky Wi-Fi one can
+    // fail while the other succeeds, leaving a "0 items" summary. Retried on the
+    // channel-join refetch until it lands.
+    let linesLoaded = false;
+    const fetchLines = async () => {
+      const { data: li, error } = await supabase
+        .from("order_items")
+        .select("*")
+        .eq("order_id", String(orderId))
+        .overrideTypes<OrderItem[], { merge: false }>();
+      if (cancelled || error || !li) return;
+      linesLoaded = true;
+      setLines(li);
+    };
+
     void (async () => {
       // Ensure the anonymous session is loaded before reading under RLS — covers
       // returning to the order after a cold app start, before any other action.
@@ -89,12 +104,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
       if (cancelled) return;
 
       void fetchOrder(false);
-      const { data: li } = await supabase
-        .from("order_items")
-        .select("*")
-        .eq("order_id", String(orderId))
-        .overrideTypes<OrderItem[], { merge: false }>();
-      if (!cancelled) setLines(li ?? []);
+      await fetchLines();
 
       channel = supabase
         .channel(`order-${orderId}`)
@@ -104,7 +114,10 @@ export function OrderScreen({ orderId }: { orderId: string }) {
           (payload) => setOrder((prev) => ({ ...(prev as Order), ...(payload.new as Order) })),
         )
         .subscribe((status) => {
-          if (status === "SUBSCRIBED") void fetchOrder(true);
+          if (status === "SUBSCRIBED") {
+            void fetchOrder(true);
+            if (!linesLoaded) void fetchLines();
+          }
         });
     })();
 
@@ -118,10 +131,40 @@ export function OrderScreen({ orderId }: { orderId: string }) {
   // Stop tracking once the order is done, so the "return to your order" affordance
   // clears and doesn't surface to the next customer at the same table.
   useEffect(() => {
-    if (order && activeOrder?.id === String(orderId) && (order.status === "served" || order.status === "cancelled")) {
-      forgetOrder();
+    if (order && (order.status === "served" || order.status === "cancelled")) {
+      forgetOrder(String(orderId));
     }
-  }, [order, activeOrder, orderId, forgetOrder]);
+  }, [order, orderId, forgetOrder]);
+
+  // A meal is often several sends — surface the customer's other open orders at
+  // this table so placing a follow-up never "loses" the previous one.
+  const otherIds = useMemo(
+    () => activeOrders.map((o) => o.id).filter((id) => id !== String(orderId)),
+    [activeOrders, orderId],
+  );
+  const [fetchedOthers, setFetchedOthers] = useState<Pick<Order, "id" | "order_number" | "status">[]>([]);
+  useEffect(() => {
+    if (otherIds.length === 0) return; // render filters against otherIds below
+    let cancelled = false;
+    void supabase
+      .from("orders")
+      .select("id,order_number,status")
+      .in("id", otherIds)
+      .then(({ data }) => {
+        if (!cancelled && data) {
+          setFetchedOthers(data as Pick<Order, "id" | "order_number" | "status">[]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [otherIds]);
+  // Keep most-recent-first ordering from activeOrders; a forgotten/finished id
+  // drops out here without needing a state reset inside the effect.
+  const otherOrders = useMemo(() => {
+    const byId = new Map(fetchedOthers.map((o) => [o.id, o]));
+    return otherIds.map((id) => byId.get(id)).filter((o): o is Pick<Order, "id" | "order_number" | "status"> => Boolean(o));
+  }, [fetchedOthers, otherIds]);
 
   // Invite a rating once, the moment the order is served — never nag: a persisted
   // flag means it won't reopen on relaunch, but the customer can still tap "Rate".
@@ -167,6 +210,26 @@ export function OrderScreen({ orderId }: { orderId: string }) {
     const id = setInterval(() => setTick((n) => n + 1), 30000);
     return () => clearInterval(id);
   }, [counting]);
+
+  // Realtime is the fast path, but a socket can die silently on café Wi-Fi and
+  // the status would freeze forever. While the order is still moving, poll
+  // slowly and refetch on every return to the foreground as a safety net.
+  const stillMoving = !order || (order.status !== "served" && order.status !== "cancelled");
+  useEffect(() => {
+    if (!stillMoving) return;
+    const refetch = async () => {
+      const { data: o } = await supabase.from("orders").select("*").eq("id", String(orderId)).maybeSingle<Order>();
+      if (o) setOrder((prev) => (prev ? { ...prev, ...o } : o));
+    };
+    const id = setInterval(() => void refetch(), 25000);
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") void refetch();
+    });
+    return () => {
+      clearInterval(id);
+      sub.remove();
+    };
+  }, [stillMoving, orderId]);
 
   const count = useMemo(() => lines.reduce((s, l) => s + l.qty, 0), [lines]);
   const tableLabel = table?.label ?? "";
@@ -487,6 +550,63 @@ export function OrderScreen({ orderId }: { orderId: string }) {
               )}
             </>
           )
+        )}
+
+        {/* Other open orders from this device at this table (multi-send meals) */}
+        {otherOrders.length > 0 && (
+          <View style={{ marginHorizontal: 20, marginTop: 14, gap: 8 }}>
+            <T lang={lang} weight="bold" size={12} color={theme.mutedSoft} style={{ letterSpacing: lang === "ar" ? 0 : 0.5, ...align }}>
+              {t.order.othersTitle.toUpperCase()}
+            </T>
+            {otherOrders.map((o) => {
+              const done = o.status === "served" || o.status === "cancelled";
+              const label =
+                o.status === "cancelled" ? t.order.cancelled
+                : o.status === "served" ? t.order.servedTitle
+                : o.status === "ready" ? t.order.ready
+                : o.status === "preparing" ? t.order.preparing
+                : t.order.received;
+              return (
+                <Pressable
+                  key={o.id}
+                  onPress={() => go(`${basePath}/order/${o.id}`, "replace")}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t.order.order} #${o.order_number} — ${label}`}
+                  style={[
+                    rowDir(lang),
+                    {
+                      backgroundColor: theme.card,
+                      borderWidth: 1,
+                      borderColor: theme.border,
+                      borderRadius: 14,
+                      paddingVertical: 12,
+                      paddingHorizontal: 14,
+                      alignItems: "center",
+                      gap: 10,
+                    },
+                  ]}
+                >
+                  <View
+                    style={{
+                      width: 9,
+                      height: 9,
+                      borderRadius: 5,
+                      backgroundColor: o.status === "cancelled" ? colors.danger : done ? colors.success : colors.warning,
+                    }}
+                  />
+                  <T lang={lang} weight="extrabold" size={13.5} style={{ flex: 1, ...align }}>
+                    #{o.order_number}
+                  </T>
+                  <T lang={lang} weight="semibold" size={12.5} color={theme.mutedSoft}>
+                    {label}
+                  </T>
+                  <T weight="extrabold" size={14} color={theme.mutedSoft}>
+                    {isRtl ? "‹" : "›"}
+                  </T>
+                </Pressable>
+              );
+            })}
+          </View>
         )}
 
         <View style={{ flex: 1, minHeight: 24 }} />

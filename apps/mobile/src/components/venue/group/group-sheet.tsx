@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, TextInput, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, TextInput, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CtaButton, Handle, SheetClose, T } from "../../ui";
@@ -51,13 +51,20 @@ export function GroupSheet({
     setError(null);
     const nick = nickname.trim() || t.rating.anon;
     void AsyncStorage.setItem(NICK_KEY, nick);
-    const err = mode === "start" ? await start(nick) : await join(code.trim(), nick);
-    setBusy(false);
-    if (err) {
-      setError(errMsg(err));
-      return;
+    try {
+      const err = mode === "start" ? await start(nick) : await join(code.trim(), nick);
+      if (err) {
+        setError(errMsg(err));
+        return;
+      }
+      onJoined();
+    } catch {
+      // A thrown failure (e.g. anonymous sign-in refused) must not leave the
+      // spinner stuck — surface it like any other error.
+      setError(t.errors.generic);
+    } finally {
+      setBusy(false);
     }
-    onJoined();
   };
 
   const inputStyle = {
@@ -74,6 +81,8 @@ export function GroupSheet({
 
   return (
     <Modal animationType="slide" transparent onRequestClose={onClose}>
+      {/* Lift the sheet above the keyboard so its inputs stay visible. */}
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
       <View style={{ flex: 1, backgroundColor: "rgba(34,26,19,0.45)", justifyContent: "flex-end" }}>
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityRole="button" accessibilityLabel={t.common.close} />
         <View
@@ -171,6 +180,7 @@ export function GroupSheet({
           )}
         </View>
       </View>
+    </KeyboardAvoidingView>
     </Modal>
   );
 }

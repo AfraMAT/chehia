@@ -8,6 +8,79 @@ _Generated 2026-07-12 from a 58-agent audit of the full monorepo (14 core areas 
 
 # Execution log — 2026-07-15
 
+## CUSTOMER-UX AUDIT + BUILD 4 (session 3, continued — 2026-07-15 evening)
+
+Build 3 was killed by Apple's delivery scanner (**ITMS-90683**: a library references the
+motion API, so NSMotionUsageDescription must EXIST — suppressing it was wrong; it now
+ships localized fr/ar/en, prebuild-verified). The user also found two real UX bugs, so a
+**37-agent customer-UX audit** (8 dimensions, adversarially verified: 49 confirmed
+findings) + hands-on iPhone-simulator QA (idb) ran before build 4.
+
+**Fixed for build 4 (all verified — gates green, key flows re-tested in the simulator):**
+- **HIGH · RTL double-flip**: shipping an ar localization makes native iOS set
+  I18nManager.isRTL=true on Arabic-system devices, inverting the app's manual mirroring
+  on EVERY screen. Pinned native LTR via `["expo-localization", {"supportsRTL": false}]`
+  (prebuild-verified `ExpoLocalization_supportsRTL=false`); the in-app rowDir mirroring
+  stays the single source of truth. Confirm on TestFlight with an Arabic-language device.
+- **HIGH · group ghost items**: leaving a group kept the leaver's lines in the placed
+  order (billed, invisible, unremovable). Migration `20260715211228_group_session_hygiene`
+  (applied dev+prod): leave_session deletes the leaver's lines; client totals only count
+  active participants; leave now confirms first.
+- **HIGH · zombie group sessions**: sessions never expired — the next party inherited a
+  stranger's group. start/join now close/reject sessions older than 6h (same migration).
+- **Order-continuation** (user-reported): multi-order tracking (activeOrders list, mobile+web),
+  "your other orders" on the tracking screen, count-aware banner. Sim-verified end-to-end.
+- **In-flow language switcher** (user-reported): FR/ع/EN pill in the menu header
+  (mobile+web), cycles the venue's supported languages. Sim-verified incl. full RTL flip.
+- Order tracking realtime fallback: slow poll + foreground/visibility refetch (mobile+web);
+  order-lines fetch retried on channel join ("0 items" bug).
+- Stable client_ref idempotency on mobile (dupe-order guard, mirrors web).
+- Location gate: distinct "blocked" state + Open Settings CTA (iOS never re-prompts);
+  native copy (the old string said "browser" in the app).
+- Accent/hamza-insensitive search everywhere ("cafe" finds "Café"; أ/إ/آ→ا, ة→ه, ى→ي) —
+  shared foldSearch + tests. Sim-verified.
+- Keyboard no longer covers inputs in group/rating/waiter sheets (KeyboardAvoidingView).
+- Floating cart bar no longer hides the last menu row in category views.
+- Group-sheet spinner can't hang on thrown auth errors; group invite links use
+  app.chehia.app (associated domain) instead of the apex; branded +not-found route;
+  localized "Guest" fallback; menu back-button hitSlop.
+
+**Deferred to post-submission backlog (31 findings, none reviewer-blocking):**
+- **MEDIUM** · Queued offline order that the server permanently rejects is silently dumped back into the cart — customer keeps waiting for food that was never ordere (`apps/mobile/src/lib/venue.tsx`)
+- **MEDIUM** · A queued order cannot be cancelled or edited, and auto-submits up to 3 hours later on any connectivity change (`apps/mobile/src/components/venue/cart-screen.tsx`)
+- **MEDIUM** · Group-order guests get zero confirmation or tracking when the host places the order — the group UI just vanishes (`apps/mobile/src/lib/session.tsx`)
+- **MEDIUM** · Network failure with no cached menu renders "This QR code is not valid" (scanned) / "No venue found" (browse) instead of a network error, with no retr (`apps/mobile/src/lib/venue.tsx`)
+- **MEDIUM** · Group session: any failed refetch silently wipes participants and cart lines from the UI (`apps/mobile/src/lib/session.tsx`)
+- **MEDIUM** · Adding a dish to the group cart is fire-and-forget: on failure the sheet closes with success haptics but nothing was added (`apps/mobile/src/components/venue/item-sheet.tsx`)
+- **MEDIUM** · Host splitting off solo ("Order my items separately") orphans the group — no host handoff, group can never be placed (`supabase/migrations/20260709000002_group_ordering.sql`)
+- **MEDIUM** · When the host places the group order, every other device's group cart silently vanishes with no confirmation or order access (`apps/mobile/src/lib/session.tsx`)
+- **MEDIUM** · Items added to the personal cart before joining a group are silently excluded from the group order (two parallel carts) (`apps/mobile/src/components/venue/item-sheet.tsx`)
+- **MEDIUM** · Removing an item from the group cart never syncs to other devices — realtime DELETE events are dropped by the filtered subscription (`apps/mobile/src/lib/session.tsx`)
+- **MEDIUM** · iOS Precise Location off makes gated venues un-orderable while standing inside them, with a nonsense distance (`apps/mobile/src/lib/location-gate.tsx`)
+- **MEDIUM** · Location Services off / failed GPS read in the gate silently loops back to the 'Share your location' prompt with zero feedback (`apps/mobile/src/components/venue/location-gate.tsx`)
+- **LOW** · Staff cancellation is only discoverable by manually opening the tracking screen — the menu pill keeps saying 'order in progress' (`apps/mobile/src/components/venue/menu-screen.tsx`)
+- **LOW** · Android hardware back while the QR scanner is open exits the app instead of closing the scanner (`apps/mobile/src/app/index.tsx`)
+- **LOW** · Back buttons that navigate-with-replace grow the stack with duplicate screens — every placed order adds a phantom menu screen behind Android back / iO (`apps/mobile/src/components/venue/order-screen.tsx`)
+- **LOW** · Scanned venue landing has no visible back/close affordance after an in-app scan (browse landing has one) (`apps/mobile/src/components/venue/venue-home.tsx`)
+- **LOW** · Category back-pill Text missing lang prop: Arabic label renders in wrong font, wrong size, and relies on bidi luck for chevron placement (`apps/mobile/src/components/venue/category-items.tsx`)
+- **LOW** · Logical paddingStart/paddingEnd don't follow the manual mirroring — asymmetric padding sits against the wrong child in Arabic (`apps/mobile/src/components/venue/menu-screen.tsx`)
+- **LOW** · Star ratings always fill/order left-to-right, not mirrored in Arabic — RTL reader can tap the wrong star value (`apps/mobile/src/components/ui.tsx`)
+- **LOW** · Allergen pill uses French-style spaced colon and Latin commas in Arabic (and English) (`apps/mobile/src/components/venue/item-sheet.tsx`)
+- **LOW** · Discover venue list has no pull-to-refresh and never refetches after the first successful load (`apps/mobile/src/components/discover.tsx`)
+- **LOW** · A venue with an empty menu (or empty category) shows search-flavored copy: "No results — Try another word, or browse the categories" (`apps/mobile/src/components/venue/menu-screen.tsx`)
+- **LOW** · Group-cart writes ignore all errors — an add at the wrong moment is silently lost (`apps/mobile/src/lib/session.tsx`)
+- **LOW** · Group state goes stale after backgrounding — no refetch on foreground or channel rejoin (`apps/mobile/src/lib/session.tsx`)
+- **LOW** · Nickname collisions make guests indistinguishable in the cart and on the printed order (`apps/mobile/src/components/venue/group/group-sheet.tsx`)
+- **LOW** · Share codes are venue-agnostic — entering a code while at a different venue joins the session but renders a broken cart (`supabase/migrations/20260709000002_group_ordering.sql`)
+- **LOW** · No timeout on GPS reads — 'Checking your location…' can spin forever with the place-order button hidden and no cancel/retry (`apps/mobile/src/lib/location-gate.tsx`)
+- **LOW** · Venue list renders full-resolution cover images into 104x104 cells with no downscaling or cache policy (`apps/mobile/src/components/ui.tsx`)
+- **LOW** · Unbounded Dynamic Type scaling clips text in fixed-height controls across the app (T component sets no maxFontSizeMultiplier) (`apps/mobile/src/components/ui.tsx`)
+- **LOW** · Status bar icons illegible on the full-screen QR scanner (global dark status style over a dark camera view) (`apps/mobile/src/app/index.tsx`)
+- **LOW** · Discover footer 'scan instead' link: no accessibilityRole and a ~16pt tap target (`apps/mobile/src/components/discover.tsx`)
+
+**Coverage note:** the cart/modifier-edge-cases auditor died mid-run (API error) — that
+dimension is only covered by the simulator pass, not a code audit. Re-run it post-submission.
+
 ## RESUBMISSION EXECUTED (session 3)
 
 Everything machine-doable for the App Store resubmission was completed and verified this session:

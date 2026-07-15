@@ -56,3 +56,21 @@ describe("formatTimer", () => {
     expect(formatTimer(since, now)).toBe("4:12");
   });
 });
+
+import { foldSearch } from "../format";
+
+describe("foldSearch", () => {
+  it("strips Latin accents both ways", () => {
+    expect(foldSearch("Café El Marsa")).toContain("cafe");
+    expect(foldSearch("cafe")).toBe("cafe");
+    expect(foldSearch("Pâtisserie Générale")).toBe("patisserie generale");
+  });
+  it("normalises Arabic letter variants", () => {
+    expect(foldSearch("قهوة")).toBe(foldSearch("قهوه"));
+    expect(foldSearch("إسبريسو")).toBe(foldSearch("اسبريسو"));
+    expect(foldSearch("مقهى")).toBe(foldSearch("مقهي"));
+  });
+  it("is case-insensitive", () => {
+    expect(foldSearch("ESPRESSO")).toBe("espresso");
+  });
+});

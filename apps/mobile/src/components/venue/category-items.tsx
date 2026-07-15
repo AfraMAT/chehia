@@ -20,6 +20,7 @@ export function CategoryItems({
   itemLayout,
   onBack,
   onOpen,
+  bottomPad = 24,
 }: {
   node: CategoryNode;
   items: MenuItem[];
@@ -27,6 +28,8 @@ export function CategoryItems({
   itemLayout: ItemLayout;
   onBack: () => void;
   onOpen: (item: MenuItem) => void;
+  /** Extra bottom inset so the floating cart bar can't cover the last row. */
+  bottomPad?: number;
 }) {
   const { t, tr, lang, isRtl } = useI18n();
   const theme = useTheme();
@@ -66,7 +69,7 @@ export function CategoryItems({
   };
 
   return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: bottomPad }}>
       {/* Back header */}
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8, gap: 10 }}>
         <View style={[rowDir(lang), { alignItems: "center", gap: 10 }]}>

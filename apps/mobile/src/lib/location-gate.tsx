@@ -10,10 +10,11 @@ import { clampGeofence, distanceMeters, withinGeofence, type Coords } from "@che
  * - `locating`    permission + position read in flight
  * - `ok`          within the venue's geofence — ordering allowed
  * - `far`         outside the geofence (carries `distanceM`)
- * - `denied`      the OS location permission was refused
+ * - `denied`      the OS location permission was refused (asking again is possible)
+ * - `blocked`     permanently refused — only the OS Settings screen can undo it
  * - `unsupported` the position read failed / native module unavailable
  */
-export type LocationGateStatus = "idle" | "locating" | "ok" | "far" | "denied" | "unsupported";
+export type LocationGateStatus = "idle" | "locating" | "ok" | "far" | "denied" | "blocked" | "unsupported";
 
 export interface LocationGateValue {
   /** True only in the browse flow of a venue that requires location AND has a pin. */
@@ -82,14 +83,17 @@ export function LocationGateProvider({
     }
     setStatus("locating");
     try {
-      // Same expo-location pattern discovery uses for "near me".
-      const { granted } = await Location.requestForegroundPermissionsAsync();
+      // Same expo-location pattern discovery uses for "near me". iOS never
+      // re-prompts once refused (canAskAgain=false): that's a dead end unless
+      // we route the customer to Settings, so surface it as a distinct state.
+      const { granted, canAskAgain } = await Location.requestForegroundPermissionsAsync();
       if (!granted) {
         setCoords(null);
         setAccuracy(null);
         setDistanceM(null);
-        setStatus("denied");
-        return "denied";
+        const refusal: LocationGateStatus = canAskAgain ? "denied" : "blocked";
+        setStatus(refusal);
+        return refusal;
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const here: Coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };

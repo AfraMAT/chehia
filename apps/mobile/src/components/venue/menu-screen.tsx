@@ -3,14 +3,17 @@ import { useEffect, useMemo, useState } from "react";
 import { BackHandler, FlatList, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
+  foldSearch,
   buildCategoryTree,
   cartCount,
   cartTotal,
   currencyLabel,
   descendantCategoryIds,
+  interpolate,
   millimesToDisplay,
   resolveAppearance,
   type CategoryNode,
+  type Language,
   type MenuItem,
 } from "@chehia/shared";
 import { T, ZelligeMark } from "../ui";
@@ -34,8 +37,8 @@ import { GroupEntry } from "./group/group-entry";
  */
 export function MenuScreen() {
   const venue = useVenue();
-  const { restaurant, table, categories, items, groupsByItem, cart, basePath, activeOrder } = venue;
-  const { t, tr, lang, isRtl } = useI18n();
+  const { restaurant, table, categories, items, groupsByItem, cart, basePath, activeOrders } = venue;
+  const { t, tr, lang, setLang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
 
@@ -80,12 +83,12 @@ export function MenuScreen() {
   const searching = search.trim().length > 0;
 
   const searchResults = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = foldSearch(search.trim());
     if (!q) return [];
     return onMenuItems.filter((i) =>
       Object.values(i.name_i18n)
         .concat(Object.values(i.description_i18n))
-        .some((s) => s?.toLowerCase().includes(q)),
+        .some((s) => s && foldSearch(s).includes(q)),
     );
   }, [onMenuItems, search]);
 
@@ -100,6 +103,15 @@ export function MenuScreen() {
   const count = cartCount(cart);
   const cards = appearance.itemLayout === "cards";
   const padBottom = count > 0 ? 96 : 24;
+
+  // In-flow language switch: cycle through the venue's supported languages
+  // without leaving the menu (the landing-screen pills stay the full picker).
+  const supportedLangs = useMemo(() => {
+    const langs = ((restaurant.languages ?? []) as Language[]).filter((l) => ["fr", "ar", "en"].includes(l));
+    return langs.length > 0 ? langs : (["fr", "ar", "en"] as Language[]);
+  }, [restaurant.languages]);
+  const nextLang = supportedLangs[(supportedLangs.indexOf(lang) + 1) % supportedLangs.length] ?? supportedLangs[0]!;
+  const langShort = { fr: "FR", ar: "ع", en: "EN" } as const;
 
   const emptyState = (
     <View style={{ alignItems: "center", paddingVertical: 60, gap: 6 }}>
@@ -149,7 +161,7 @@ export function MenuScreen() {
 
       {/* Header */}
       <View style={[rowDir(lang), { alignItems: "center", gap: 10, paddingHorizontal: 20, paddingTop: 12 }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel={t.common.back} onPress={() => router.back()}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t.common.back} hitSlop={10} onPress={() => router.back()}>
           <ZelligeMark size={30} />
         </Pressable>
         <View style={{ flex: 1 }}>
@@ -160,6 +172,29 @@ export function MenuScreen() {
             {t.menu.title} · {lang === "fr" ? "Français" : lang === "ar" ? "العربية" : "English"}
           </T>
         </View>
+        {supportedLangs.length > 1 && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.common.language}
+            onPress={() => setLang(nextLang)}
+            hitSlop={8}
+            style={{
+              height: 40,
+              minWidth: 40,
+              paddingHorizontal: 6,
+              borderRadius: 20,
+              backgroundColor: theme.card,
+              borderWidth: 1.5,
+              borderColor: theme.border,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <T weight="extrabold" size={12.5} color={theme.ink}>
+              {langShort[lang]}
+            </T>
+          </Pressable>
+        )}
         {table && (
           <View style={{ backgroundColor: theme.harissaTint, borderRadius: 100, paddingVertical: 7, paddingHorizontal: 12 }}>
             <T lang={lang} weight="extrabold" size={13} color={theme.harissaPressed}>
@@ -189,12 +224,13 @@ export function MenuScreen() {
         )}
       </View>
 
-      {/* Return to an order placed from this device */}
-      {activeOrder && (
+      {/* Return to orders placed from this device (most recent first; the order
+          screen links across the rest of the meal's sends) */}
+      {activeOrders.length > 0 && (
         <Pressable
-          onPress={() => go(`${basePath}/order/${activeOrder.id}`)}
+          onPress={() => go(`${basePath}/order/${activeOrders[0]!.id}`)}
           accessibilityRole="button"
-          accessibilityLabel={t.order.inProgress}
+          accessibilityLabel={activeOrders.length > 1 ? interpolate(t.order.inProgressMany, { count: activeOrders.length }) : t.order.inProgress}
           style={[
             rowDir(lang),
             shadowDark,
@@ -212,7 +248,7 @@ export function MenuScreen() {
         >
           <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: theme.harissa }} />
           <T lang={lang} weight="extrabold" size={13.5} color={theme.cream} style={{ flex: 1, textAlign: isRtl ? "right" : "left" }}>
-            {t.order.inProgress}
+            {activeOrders.length > 1 ? interpolate(t.order.inProgressMany, { count: activeOrders.length }) : t.order.inProgress}
           </T>
           <View style={{ backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 10, paddingVertical: 6, paddingHorizontal: 12 }}>
             <T lang={lang} weight="extrabold" size={13} color={theme.cream}>
@@ -316,6 +352,7 @@ export function MenuScreen() {
           itemLayout={appearance.itemLayout}
           onBack={() => setSelectedRootId(null)}
           onOpen={setOpenItem}
+          bottomPad={padBottom}
         />
       ) : useLanding ? (
         <CategoryLanding
@@ -323,6 +360,7 @@ export function MenuScreen() {
           layout={appearance.categoryLayout}
           itemCountByCategory={itemCountByCategory}
           onSelect={(node) => setSelectedRootId(node.id)}
+          bottomPad={padBottom}
         />
       ) : (
         <View style={{ flex: 1 }}>{itemList(classicItems)}</View>

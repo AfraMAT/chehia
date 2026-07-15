@@ -22,7 +22,8 @@
           "ar",
           "en"
         ],
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMotionUsageDescription": "Chehia utilise les données de mouvement pour améliorer la précision de la localisation lorsque vous confirmez votre présence sur place."
       },
       "privacyManifests": {
         "NSPrivacyTracking": false,
@@ -105,7 +106,12 @@
           "imageWidth": 200
         }
       ],
-      "expo-localization",
+      [
+        "expo-localization",
+        {
+          "supportsRTL": false
+        }
+      ],
       [
         "expo-camera",
         {
@@ -120,7 +126,7 @@
           "locationWhenInUsePermission": "Chehia utilise votre position pour afficher les cafés à proximité et confirmer votre présence lorsque vous commandez sur place.",
           "locationAlwaysAndWhenInUsePermission": false,
           "locationAlwaysPermission": false,
-          "motionUsagePermission": false,
+          "motionUsagePermission": "Chehia utilise les données de mouvement pour améliorer la précision de la localisation lorsque vous confirmez votre présence sur place.",
           "isIosBackgroundLocationEnabled": false,
           "isAndroidBackgroundLocationEnabled": false
         }

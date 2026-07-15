@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, Share, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Share, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { currencyLabel, formatPrice, millimesToDisplay } from "@chehia/shared";
 import { CtaButton, SheetClose, Stepper, T } from "../../ui";
@@ -9,8 +9,9 @@ import { colors, rowDir, useTheme } from "@/lib/theme";
 import { useVenue } from "@/lib/venue";
 import { useSession } from "@/lib/session";
 
-/** Customer web host for the join deep link (same scheme the table QR encodes). */
-const SHARE_HOST = "https://chehia.app";
+/** Customer web host for the join deep link — app.chehia.app is the associated
+ * domain (universal links), so the invite opens the app when it's installed. */
+const SHARE_HOST = "https://app.chehia.app";
 
 /** The shared group cart: participants, attributed lines, ready state, placement. */
 export function GroupCart({ onClose }: { onClose: () => void }) {
@@ -46,7 +47,11 @@ export function GroupCart({ onClose }: { onClose: () => void }) {
   };
 
   const myLines = lines.filter((l) => l.participant_id === myParticipantId);
-  const groupTotal = lines.reduce((s, l) => s + unitOf(l.item_id, l.modifier_ids) * l.qty, 0);
+  // Total only what's visible: lines owned by participants still in the session —
+  // a leaver's residue must never inflate the footer (the server now deletes it
+  // in leave_session; this also guards against realtime lag).
+  const activeIds = new Set(activeParticipants.map((p) => p.id));
+  const groupTotal = lines.filter((l) => activeIds.has(l.participant_id)).reduce((s, l) => s + unitOf(l.item_id, l.modifier_ids) * l.qty, 0);
   const myTotal = myLines.reduce((s, l) => s + unitOf(l.item_id, l.modifier_ids) * l.qty, 0);
 
   if (!session) return null;
@@ -257,7 +262,16 @@ export function GroupCart({ onClose }: { onClose: () => void }) {
               />
             )}
 
-            <Pressable onPress={() => void leave().then(onClose)} accessibilityRole="button" style={{ height: 36, alignItems: "center", justifyContent: "center" }}>
+            <Pressable
+              onPress={() =>
+                Alert.alert(t.group.leaveConfirm, undefined, [
+                  { text: t.common.cancel, style: "cancel" },
+                  { text: t.group.leave, style: "destructive", onPress: () => void leave().then(onClose) },
+                ])
+              }
+              accessibilityRole="button"
+              style={{ height: 36, alignItems: "center", justifyContent: "center" }}
+            >
               <T lang={lang} weight="bold" size={12} color={theme.mutedSoft}>
                 {t.group.leave}
               </T>

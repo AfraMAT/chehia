@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Modal, Pressable, TextInput, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, TextInput, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { WaiterCallReason } from "@chehia/shared";
@@ -42,6 +42,8 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal animationType="slide" transparent onRequestClose={onClose}>
+      {/* Lift the sheet above the keyboard so its inputs stay visible. */}
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
       <View style={{ flex: 1, backgroundColor: "rgba(34,26,19,0.45)", justifyContent: "flex-end" }}>
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityRole="button" accessibilityLabel={t.common.close} />
         <View
@@ -164,6 +166,7 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
           )}
         </View>
       </View>
+    </KeyboardAvoidingView>
     </Modal>
   );
 }

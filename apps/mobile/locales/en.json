@@ -1,4 +1,5 @@
 {
   "NSCameraUsageDescription": "Chehia uses the camera to scan your table's QR code and show the menu.",
-  "NSLocationWhenInUseUsageDescription": "Chehia uses your location to show nearby cafés and to confirm you are at the venue when you order on-site."
+  "NSLocationWhenInUseUsageDescription": "Chehia uses your location to show nearby cafés and to confirm you are at the venue when you order on-site.",
+  "NSMotionUsageDescription": "Chehia uses motion data to improve location accuracy when you confirm you are at the venue."
 }

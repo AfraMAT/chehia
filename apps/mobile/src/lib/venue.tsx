@@ -99,10 +99,13 @@ interface VenueContextValue {
   callWaiter: (reason: string, note: string) => Promise<boolean>;
   /** Most-recent order placed from this device for this venue/table (kept ~4h). */
   activeOrder: { id: string } | null;
+  /** Every still-open order placed from this device here (most recent first).
+   * A meal is often several sends — each stays reachable until served/cancelled. */
+  activeOrders: { id: string }[];
   /** Remember a just-placed order so the customer can navigate back to it. */
   rememberOrder: (id: string) => void;
-  /** Forget the tracked order (called when it reaches a terminal state). */
-  forgetOrder: () => void;
+  /** Forget one tracked order (called when it reaches a terminal state). */
+  forgetOrder: (id: string) => void;
 }
 
 const VenueContext = createContext<VenueContextValue | null>(null);
@@ -270,7 +273,7 @@ export function VenueProvider(props: ProviderProps) {
   const [cachedAt, setCachedAt] = useState<string | null>(null);
   const [queuedOrder, setQueuedOrder] = useState<{ count: number; totalMillimes: number } | null>(null);
   const [queuedPlacedOrderId, setQueuedPlacedOrderId] = useState<string | null>(null);
-  const [activeOrder, setActiveOrder] = useState<{ id: string } | null>(null);
+  const [activeOrders, setActiveOrders] = useState<{ id: string; at: number }[]>([]);
   const submittingRef = useRef(false);
 
   // Connectivity.
@@ -390,16 +393,27 @@ export function VenueProvider(props: ProviderProps) {
     if (cartHydrated) void AsyncStorage.setItem(cartKey(target), JSON.stringify(cart));
   }, [cart, target, cartHydrated]);
 
-  // Restore a recent active order so "return to your order" survives navigating
-  // away, backgrounding, or a cold app start. Stale pointers (past TTL) are dropped.
+  // Restore recent active orders so "return to your order" survives navigating
+  // away, backgrounding, or a cold app start. Stale entries (past TTL) are dropped.
+  // Storage shape is a list — a meal is often several sends and each order must
+  // stay reachable — but a legacy single `{id, at}` pointer still hydrates.
   useEffect(() => {
     void (async () => {
       const raw = await AsyncStorage.getItem(orderKey(target));
       if (!raw) return;
       try {
-        const parsed = JSON.parse(raw) as { id?: string; at?: number };
-        if (parsed.id && typeof parsed.at === "number" && Date.now() - parsed.at < ACTIVE_ORDER_TTL_MS) {
-          setActiveOrder({ id: parsed.id });
+        const parsed = JSON.parse(raw) as { id?: string; at?: number; orders?: { id: string; at: number }[] };
+        const entries = Array.isArray(parsed.orders)
+          ? parsed.orders
+          : parsed.id && typeof parsed.at === "number"
+            ? [{ id: parsed.id, at: parsed.at }]
+            : [];
+        const fresh = entries.filter((e) => e.id && typeof e.at === "number" && Date.now() - e.at < ACTIVE_ORDER_TTL_MS);
+        if (fresh.length > 0) {
+          setActiveOrders(fresh);
+          if (fresh.length !== entries.length) {
+            await AsyncStorage.setItem(orderKey(target), JSON.stringify({ orders: fresh }));
+          }
         } else {
           await AsyncStorage.removeItem(orderKey(target));
         }
@@ -409,18 +423,36 @@ export function VenueProvider(props: ProviderProps) {
     })();
   }, [target]);
 
-  const rememberOrder = useCallback(
-    (id: string) => {
-      setActiveOrder({ id });
-      void AsyncStorage.setItem(orderKey(target), JSON.stringify({ id, at: Date.now() }));
+  const persistOrders = useCallback(
+    (orders: { id: string; at: number }[]) => {
+      if (orders.length > 0) void AsyncStorage.setItem(orderKey(target), JSON.stringify({ orders }));
+      else void AsyncStorage.removeItem(orderKey(target));
     },
     [target],
   );
 
-  const forgetOrder = useCallback(() => {
-    setActiveOrder(null);
-    void AsyncStorage.removeItem(orderKey(target));
-  }, [target]);
+  const rememberOrder = useCallback(
+    (id: string) => {
+      setActiveOrders((prev) => {
+        // Most recent first; re-placing (idempotent retry) must not duplicate.
+        const next = [{ id, at: Date.now() }, ...prev.filter((o) => o.id !== id)].slice(0, 8);
+        persistOrders(next);
+        return next;
+      });
+    },
+    [persistOrders],
+  );
+
+  const forgetOrder = useCallback(
+    (id: string) => {
+      setActiveOrders((prev) => {
+        const next = prev.filter((o) => o.id !== id);
+        persistOrders(next);
+        return next;
+      });
+    },
+    [persistOrders],
+  );
 
   // One-shot: the cart screen navigates to a just-auto-placed queued order, then
   // clears this so re-opening the cart doesn't re-eject the customer to it.
@@ -526,6 +558,16 @@ export function VenueProvider(props: ProviderProps) {
     [],
   );
 
+  // Idempotency key: stable across RETRIES of the same cart (an ambiguous HTTP
+  // failure after the server committed must not double-order on the next tap),
+  // reset whenever the cart meaningfully changes (a different cart is a
+  // different order). Mirrors the web cart's clientRefRef pattern.
+  const clientRefRef = useRef<string | null>(null);
+  const cartSig = useMemo(() => JSON.stringify([cart.lines, cart.note, cart.tableId]), [cart]);
+  useEffect(() => {
+    clientRefRef.current = null;
+  }, [cartSig]);
+
   const placeOrder = useCallback(
     async (language: string, geo?: CustomerGeo | null): Promise<PlaceOrderResult> => {
       if (submittingRef.current) return { ok: false };
@@ -533,10 +575,11 @@ export function VenueProvider(props: ProviderProps) {
       try {
         // Idempotency key survives into the queue: even if the first request
         // committed but the response was lost, the retry cannot duplicate it.
-        const clientRef = randomUUID();
+        const clientRef = (clientRefRef.current ??= randomUUID());
         try {
           const result = await submitCart(cart, language, clientRef, geo);
           if (result.ok && result.orderId) {
+            clientRefRef.current = null;
             rememberOrder(result.orderId);
             // Clear the cart after a placed order so a follow-up order starts
             // fresh (keep the browse table for a quick re-order). Without this
@@ -690,11 +733,12 @@ export function VenueProvider(props: ProviderProps) {
       placeOrder,
       retryQueued,
       callWaiter,
-      activeOrder,
+      activeOrder: activeOrders.length > 0 ? { id: activeOrders[0]!.id } : null,
+      activeOrders: activeOrders.map(({ id }) => ({ id })),
       rememberOrder,
       forgetOrder,
     }),
-    [state, basePath, browse, setTable, cart, online, cachedAt, queuedOrder, queuedPlacedOrderId, clearQueuedPlaced, addToCart, updateQty, setCartNote, clearCart, placeOrder, retryQueued, callWaiter, activeOrder, rememberOrder, forgetOrder],
+    [state, basePath, browse, setTable, cart, online, cachedAt, queuedOrder, queuedPlacedOrderId, clearQueuedPlaced, addToCart, updateQty, setCartNote, clearCart, placeOrder, retryQueued, callWaiter, activeOrders, rememberOrder, forgetOrder],
   );
 
   // Runtime theme (Epic 1): re-skin every downstream screen from the venue's

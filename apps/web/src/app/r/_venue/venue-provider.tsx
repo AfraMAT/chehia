@@ -59,10 +59,13 @@ interface VenueContextValue extends Omit<VenueBundle, "table"> {
   online: boolean;
   /** Most-recent order placed from this device for this venue/table (kept ~4h), or null. */
   activeOrder: ActiveOrder | null;
+  /** Every still-open order placed from this device here (most recent first).
+   * A meal is often several sends — each stays reachable until served/cancelled. */
+  activeOrders: ActiveOrder[];
   /** Remember a just-placed order so the customer can navigate back to it. */
   rememberOrder: (id: string) => void;
-  /** Forget the tracked order (called when it reaches a terminal state). */
-  forgetOrder: () => void;
+  /** Forget one tracked order (called when it reaches a terminal state). */
+  forgetOrder: (id: string) => void;
   /**
    * Client-side "are you at the venue?" gate for the browse flow. Shared across
    * screens so locating once on the venue home carries into the cart. When
@@ -102,7 +105,7 @@ export function VenueProvider({
   const [hydrated, setHydrated] = useState(false);
   const [items, setItems] = useState(bundle.items);
   const [online, setOnline] = useState(true);
-  const [activeOrder, setActiveOrder] = useState<ActiveOrder | null>(null);
+  const [activeOrders, setActiveOrders] = useState<{ id: string; at: number }[]>([]);
 
   // Hydrate the cart from localStorage, reconciling stale lines/prices against
   // the freshly loaded menu. Also restores a table picked earlier (browse flow).
@@ -141,15 +144,24 @@ export function VenueProvider({
     if (hydrated) storageSet(cartKey, JSON.stringify(cart));
   }, [cart, cartKey, hydrated]);
 
-  // Restore a recent active order so "return to your order" survives navigation,
-  // refresh, and re-scanning the same QR. Stale pointers (past the TTL) are dropped.
+  // Restore recent active orders so "return to your order" survives navigation,
+  // refresh, and re-scanning the same QR. Stale entries (past the TTL) are dropped.
+  // Storage is a list — a meal is often several sends and each order must stay
+  // reachable — but a legacy single `{id, at}` pointer still hydrates.
   useEffect(() => {
     try {
       const raw = storageGet(orderKey);
       if (!raw) return;
-      const parsed = JSON.parse(raw) as { id?: string; at?: number };
-      if (parsed.id && typeof parsed.at === "number" && Date.now() - parsed.at < ACTIVE_ORDER_TTL_MS) {
-        setActiveOrder({ id: parsed.id });
+      const parsed = JSON.parse(raw) as { id?: string; at?: number; orders?: { id: string; at: number }[] };
+      const entries = Array.isArray(parsed.orders)
+        ? parsed.orders
+        : parsed.id && typeof parsed.at === "number"
+          ? [{ id: parsed.id, at: parsed.at }]
+          : [];
+      const fresh = entries.filter((e) => e.id && typeof e.at === "number" && Date.now() - e.at < ACTIVE_ORDER_TTL_MS);
+      if (fresh.length > 0) {
+        setActiveOrders(fresh);
+        if (fresh.length !== entries.length) storageSet(orderKey, JSON.stringify({ orders: fresh }));
       } else {
         storageRemove(orderKey);
       }
@@ -158,18 +170,36 @@ export function VenueProvider({
     }
   }, [orderKey]);
 
-  const rememberOrder = useCallback(
-    (id: string) => {
-      setActiveOrder({ id });
-      storageSet(orderKey, JSON.stringify({ id, at: Date.now() }));
+  const persistOrders = useCallback(
+    (orders: { id: string; at: number }[]) => {
+      if (orders.length > 0) storageSet(orderKey, JSON.stringify({ orders }));
+      else storageRemove(orderKey);
     },
     [orderKey],
   );
 
-  const forgetOrder = useCallback(() => {
-    setActiveOrder(null);
-    storageRemove(orderKey);
-  }, [orderKey]);
+  const rememberOrder = useCallback(
+    (id: string) => {
+      setActiveOrders((prev) => {
+        // Most recent first; an idempotent re-place must not duplicate.
+        const next = [{ id, at: Date.now() }, ...prev.filter((o) => o.id !== id)].slice(0, 8);
+        persistOrders(next);
+        return next;
+      });
+    },
+    [persistOrders],
+  );
+
+  const forgetOrder = useCallback(
+    (id: string) => {
+      setActiveOrders((prev) => {
+        const next = prev.filter((o) => o.id !== id);
+        persistOrders(next);
+        return next;
+      });
+    },
+    [persistOrders],
+  );
 
   // Track connectivity for the offline banner + queued submissions.
   useEffect(() => {
@@ -260,12 +290,13 @@ export function VenueProvider({
       clearCart,
       reconcileNow,
       online,
-      activeOrder,
+      activeOrder: activeOrders.length > 0 ? { id: activeOrders[0]!.id } : null,
+      activeOrders: activeOrders.map(({ id }) => ({ id })),
       rememberOrder,
       forgetOrder,
       locationGate,
     }),
-    [bundle, basePath, table, setTable, items, cart, addToCart, updateQty, setCartNote, clearCart, reconcileNow, online, activeOrder, rememberOrder, forgetOrder, locationGate],
+    [bundle, basePath, table, setTable, items, cart, addToCart, updateQty, setCartNote, clearCart, reconcileNow, online, activeOrders, rememberOrder, forgetOrder, locationGate],
   );
 
   return (

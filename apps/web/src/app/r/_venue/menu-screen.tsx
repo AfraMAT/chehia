@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  foldSearch,
   buildCategoryTree,
   cartCount,
   cartTotal,
@@ -10,6 +11,7 @@ import {
   formatPrice,
   resolveAppearance,
   type CategoryNode,
+  type Language,
   type MenuItem,
 } from "@chehia/shared";
 import { useI18n } from "@/components/i18n-provider";
@@ -33,8 +35,17 @@ import { GroupEntry } from "./group/group-entry";
 export function MenuScreen() {
   const venue = useVenue();
   const { restaurant, table, categories, items, cart, groupsByItem, basePath } = venue;
-  const { t, tr, lang } = useI18n();
+  const { t, tr, lang, setLang } = useI18n();
   const router = useRouter();
+
+  // In-flow language switch: cycle through the venue's supported languages
+  // without leaving the menu (the landing-screen pills stay the full picker).
+  const supportedLangs = useMemo(() => {
+    const langs = ((restaurant.languages ?? []) as Language[]).filter((l) => ["fr", "ar", "en"].includes(l));
+    return langs.length > 0 ? langs : (["fr", "ar", "en"] as Language[]);
+  }, [restaurant.languages]);
+  const nextLang = supportedLangs[(supportedLangs.indexOf(lang) + 1) % supportedLangs.length] ?? supportedLangs[0]!;
+  const langShort = { fr: "FR", ar: "ع", en: "EN" } as const;
 
   const appearance = useMemo(() => resolveAppearance(restaurant.appearance), [restaurant.appearance]);
   const tree = useMemo(() => buildCategoryTree(categories), [categories]);
@@ -74,12 +85,12 @@ export function MenuScreen() {
   }, [items, categories]);
 
   const searchResults = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = foldSearch(search.trim());
     if (!q) return [];
     return onMenuItems.filter((i) =>
       Object.values(i.name_i18n)
         .concat(Object.values(i.description_i18n))
-        .some((s) => s?.toLowerCase().includes(q)),
+        .some((s) => s && foldSearch(s).includes(q)),
     );
   }, [onMenuItems, search]);
 
@@ -109,6 +120,16 @@ export function MenuScreen() {
             {t.menu.title} · {lang === "fr" ? "Français" : lang === "ar" ? "العربية" : "English"}
           </span>
         </div>
+        {supportedLangs.length > 1 && (
+          <button
+            type="button"
+            onClick={() => setLang(nextLang)}
+            aria-label={t.common.language}
+            className="shrink-0 h-10 min-w-10 px-1.5 rounded-full bg-card border-[1.5px] border-line flex items-center justify-center font-extrabold text-[12.5px] text-ink hover:border-harissa transition-colors cursor-pointer"
+          >
+            {langShort[lang]}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => router.push(basePath)}

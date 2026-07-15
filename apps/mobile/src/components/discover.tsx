@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
+  foldSearch,
   clampGeofence,
   DEFAULT_GEOFENCE_M,
   formatDistanceKm,
@@ -97,7 +98,7 @@ export function Discover() {
 
   const results = useMemo(() => {
     const list = venues ?? [];
-    const q = search.trim().toLowerCase();
+    const q = foldSearch(search.trim());
     const withDist = list.map((v) => {
       const pin = v.latitude != null && v.longitude != null ? { latitude: v.latitude, longitude: v.longitude } : null;
       const dist = coords && pin ? haversineKm(coords, pin) : null;
@@ -111,7 +112,7 @@ export function Discover() {
     });
     const filtered = q
       ? withDist.filter(({ venue }) =>
-          [venue.name, venue.city, tr(venue.tagline_i18n)].some((s) => s?.toLowerCase().includes(q)),
+          [venue.name, venue.city, tr(venue.tagline_i18n)].some((s) => s && foldSearch(s).includes(q)),
         )
       : withDist;
     filtered.sort((a, b) => {

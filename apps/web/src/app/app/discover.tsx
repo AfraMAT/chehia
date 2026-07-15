@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  foldSearch,
   DEFAULT_GEOFENCE_M,
   formatDistanceKm,
   formatRating,
@@ -56,7 +57,7 @@ function DiscoverInner({ venues, loadError }: { venues: DiscoveryVenue[]; loadEr
   }, []);
 
   const results = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = foldSearch(search.trim());
     const withDist = venues.map((v) => {
       const hasPin = v.latitude != null && v.longitude != null;
       const dist =
@@ -78,7 +79,7 @@ function DiscoverInner({ venues, loadError }: { venues: DiscoveryVenue[]; loadEr
     });
     const filtered = q
       ? withDist.filter(({ venue }) =>
-          [venue.name, venue.city, venue.address, tr(venue.tagline_i18n)].some((s) => s?.toLowerCase().includes(q)),
+          [venue.name, venue.city, venue.address, tr(venue.tagline_i18n)].some((s) => s && foldSearch(s).includes(q)),
         )
       : withDist;
     filtered.sort((a, b) => {

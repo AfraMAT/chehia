@@ -1,4 +1,5 @@
 {
   "NSCameraUsageDescription": "Chehia utilise l'appareil photo pour scanner le code QR de votre table et afficher le menu.",
-  "NSLocationWhenInUseUsageDescription": "Chehia utilise votre position pour afficher les cafés à proximité et confirmer votre présence lorsque vous commandez sur place."
+  "NSLocationWhenInUseUsageDescription": "Chehia utilise votre position pour afficher les cafés à proximité et confirmer votre présence lorsque vous commandez sur place.",
+  "NSMotionUsageDescription": "Chehia utilise les données de mouvement pour améliorer la précision de la localisation lorsque vous confirmez votre présence sur place."
 }
