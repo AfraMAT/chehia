@@ -44,6 +44,20 @@ export interface Restaurant {
    * already proves presence) and when the venue has no pin set.
    */
   require_location: boolean;
+  /**
+   * When true, a customer order must be confirmed by floor staff
+   * (owner/manager/waiter) before the kitchen may see or prepare it — the
+   * waiter walks to the table, verifies the order is real, then confirms.
+   * The kitchen role cannot confirm. Off by default. POS-rung orders are exempt.
+   */
+  require_table_confirmation?: boolean;
+  /** Owner kill switch: while true, place-order refuses new customer orders. */
+  ordering_paused?: boolean;
+  /** When true, customer ordering is refused outside `opening_hours`. Off by default. */
+  enforce_opening_hours?: boolean;
+  /** Contact card (customer-facing): tap-to-call / WhatsApp / Instagram / directions. */
+  whatsapp?: string | null;
+  instagram?: string | null;
   /** Average visit rating (approved reviews only); null until first review. */
   rating_avg?: number | null;
   rating_count?: number;

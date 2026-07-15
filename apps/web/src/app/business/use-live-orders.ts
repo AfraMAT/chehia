@@ -170,18 +170,31 @@ export function useLiveOrders(restaurantId: string, { sound = false }: { sound?:
   }, [restaurantId, reload, beep]);
 
   const setOrderStatus = useCallback(
-    async (orderId: string, status: OrderStatus) => {
-      // Optimistic update; realtime reload confirms.
+    async (orderId: string, status: OrderStatus, reason?: string) => {
+      // Optimistic update; realtime reload confirms. The write goes through the
+      // attributed advance_order_status RPC — the server validates the
+      // transition, records WHO acted (accepted_by/served_by/cancelled_by) and
+      // appends the order_status_events audit row. Direct UPDATEs are revoked.
       setState((prev) => ({
         ...prev,
         orders: prev.orders
           .map((o) => (o.id === orderId ? { ...o, status } : o))
           .filter((o) => ["new", "preparing", "ready"].includes(o.status)),
       }));
-      await getSupabase().from("orders").update({ status }).eq("id", orderId);
+      const { error } = await getSupabase().rpc("advance_order_status", {
+        p_order: orderId,
+        p_to: status,
+        ...(reason ? { p_reason: reason } : {}),
+      });
       void reload();
+      return !error;
     },
     [reload],
+  );
+
+  const cancelOrder = useCallback(
+    (orderId: string, reason: string) => setOrderStatus(orderId, "cancelled", reason),
+    [setOrderStatus],
   );
 
   const acknowledgeCall = useCallback(
@@ -189,14 +202,12 @@ export function useLiveOrders(restaurantId: string, { sound = false }: { sound?:
       setState((prev) => ({ ...prev, calls: prev.calls.filter((c) => c.id !== callId) }));
       // Reconcile with the DB afterwards: if the write failed, reload restores the
       // call to the board so a customer's request is never silently dropped.
-      await getSupabase()
-        .from("waiter_calls")
-        .update({ status: "acknowledged", acknowledged_at: new Date().toISOString() })
-        .eq("id", callId);
+      // ack_waiter_call attributes the acknowledgement to the acting staff member.
+      await getSupabase().rpc("ack_waiter_call", { p_call: callId });
       void reload();
     },
     [reload],
   );
 
-  return { ...state, reload, setOrderStatus, acknowledgeCall };
+  return { ...state, reload, setOrderStatus, cancelOrder, acknowledgeCall };
 }

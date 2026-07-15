@@ -307,6 +307,9 @@ export function OrderScreen({ orderId }: { orderId: string }) {
 
   const isServed = order.status === "served";
   const isCancelled = order.status === "cancelled";
+  // Under table-confirmation mode a 'new' order is not yet in the kitchen — a
+  // waiter must confirm it at the table first. Say so instead of "sent to kitchen".
+  const awaitingConfirm = order.status === "new" && restaurant.require_table_confirmation === true;
 
   const statusTitle = isCancelled
     ? t.order.cancelled
@@ -316,7 +319,9 @@ export function OrderScreen({ orderId }: { orderId: string }) {
         ? t.order.ready
         : order.status === "preparing"
           ? t.order.preparing
-          : t.order.received;
+          : awaitingConfirm
+            ? t.order.awaiting
+            : t.order.received;
 
   const servedInMin =
     order.served_at && order.created_at
@@ -328,11 +333,13 @@ export function OrderScreen({ orderId }: { orderId: string }) {
     ? t.order.servedSubtitle
     : isCancelled
       ? t.order.cancelledBody
-      : order.status === "ready"
-        ? `${t.order.readyBody}${tableSuffix}`
-        : remaining != null
-          ? `${interpolate(t.order.remaining, { min: remaining })}${tableSuffix}`
-          : `${t.order.soon}${tableSuffix}`;
+      : awaitingConfirm
+        ? t.order.awaitingBody
+        : order.status === "ready"
+          ? `${t.order.readyBody}${tableSuffix}`
+          : remaining != null
+            ? `${interpolate(t.order.remaining, { min: remaining })}${tableSuffix}`
+            : `${t.order.soon}${tableSuffix}`;
 
   return (
     <div className="flex flex-col min-h-dvh pb-4">

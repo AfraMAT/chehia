@@ -10,16 +10,26 @@ import {
 } from "@chehia/shared";
 import { useI18n } from "@/components/i18n-provider";
 import { Toggle } from "@/components/ui";
+import { getSupabase } from "@/lib/supabase";
 import { usePortal } from "../portal-provider";
 import { useLiveOrders, type LiveOrder } from "../use-live-orders";
 
 /** W1 · Live orders — realtime feed, new-order ring + sound, floor map, waiter calls. */
 export default function OrdersPage() {
-  const { restaurant } = usePortal();
+  const { restaurant, refreshRestaurant, canManage } = usePortal();
   const { t, lang } = useI18n();
   const [soundOn, setSoundOn] = useState(true);
-  const { orders, tables, calls, todayCount, todayRevenue, setOrderStatus, acknowledgeCall, loading } =
+  const [paused, setPaused] = useState(restaurant.ordering_paused === true);
+  const { orders, tables, calls, todayCount, todayRevenue, setOrderStatus, cancelOrder, acknowledgeCall, loading } =
     useLiveOrders(restaurant.id, { sound: soundOn });
+
+  const togglePause = async () => {
+    const next = !paused;
+    setPaused(next); // optimistic
+    const { error } = await getSupabase().from("restaurants").update({ ordering_paused: next }).eq("id", restaurant.id);
+    if (error) setPaused(!next); // revert on failure
+    else void refreshRestaurant();
+  };
 
   const orderByTable = useMemo(() => {
     const map = new Map<string, LiveOrder>();
@@ -51,7 +61,27 @@ export default function OrdersPage() {
           <Toggle checked={soundOn} onChange={setSoundOn} label={t.portal.orders.sound} />
           {t.portal.orders.sound}
         </span>
+        {canManage && (
+          <button
+            type="button"
+            onClick={() => void togglePause()}
+            className={`inline-flex items-center gap-2 text-[12.5px] font-extrabold rounded-full px-3.5 py-2 transition-colors cursor-pointer ${
+              paused
+                ? "bg-danger text-white hover:opacity-90"
+                : "bg-card border border-line text-muted hover:border-danger hover:text-danger"
+            }`}
+          >
+            <span className={`w-[7px] h-[7px] rounded-full ${paused ? "bg-white animate-ch-pulse" : "bg-danger"}`} />
+            {paused ? t.portal.settings.resumeOrdering : t.portal.settings.pauseOrdering}
+          </button>
+        )}
       </div>
+      {paused && (
+        <div className="mx-6 mb-2 flex items-center gap-2.5 bg-danger-tint text-danger-text rounded-xl px-4 py-2.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-danger animate-ch-pulse shrink-0" />
+          <span className="font-extrabold text-[13px]">{t.portal.settings.paused}</span>
+        </div>
+      )}
 
       <div className="flex-1 flex gap-4.5 px-6 pb-5 min-h-0 items-start gap-5">
         {/* Order cards column */}
@@ -68,7 +98,9 @@ export default function OrdersPage() {
               key={order.id}
               order={order}
               tableLabel={tables.find((tb) => tb.id === order.table_id)?.label ?? "?"}
+              confirmMode={restaurant.require_table_confirmation === true}
               onAdvance={(status) => void setOrderStatus(order.id, status)}
+              onCancel={(reason) => void cancelOrder(order.id, reason)}
             />
           ))}
         </div>
@@ -206,14 +238,20 @@ function LegendDot({ color, label, textClass }: { color: string; label: string; 
 function OrderCard({
   order,
   tableLabel,
+  confirmMode,
   onAdvance,
+  onCancel,
 }: {
   order: LiveOrder;
   tableLabel: string;
+  confirmMode: boolean;
   onAdvance: (status: OrderStatus) => void;
+  onCancel: (reason: string) => void;
 }) {
   const { t, tr, lang } = useI18n();
   const isNew = order.status === "new";
+  const [cancelling, setCancelling] = useState(false);
+  const [reason, setReason] = useState("");
 
   const statusLabel = isNew ? t.portal.orders.newOrder : order.status === "preparing" ? t.order.preparing : t.order.ready;
 
@@ -287,22 +325,70 @@ function OrderCard({
         </div>
       </div>
 
-      {isNew ? (
-        <button
-          type="button"
-          onClick={() => onAdvance("preparing")}
-          className="h-11 rounded-md bg-harissa text-white font-extrabold text-sm cursor-pointer hover:bg-harissa-pressed transition-colors"
-        >
-          {t.portal.orders.accept}
-        </button>
+      {cancelling ? (
+        <div className="flex flex-col gap-2 border-t border-dashed border-line pt-2.5">
+          <span className="text-[12px] font-extrabold text-ink">{t.portal.orders.cancelReasonLabel}</span>
+          <input
+            autoFocus
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder={t.portal.orders.cancelReasonPlaceholder}
+            className="h-10 rounded-md border-[1.5px] border-line-strong bg-white px-3 text-[13px] font-bold text-ink outline-none focus:border-harissa"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setCancelling(false);
+                setReason("");
+              }}
+              className="flex-1 h-10 rounded-md border-2 border-ink text-ink font-extrabold text-[13px] cursor-pointer hover:bg-sand"
+            >
+              {t.portal.orders.keepOrder}
+            </button>
+            <button
+              type="button"
+              disabled={!reason.trim()}
+              onClick={() => {
+                onCancel(reason.trim());
+                setCancelling(false);
+                setReason("");
+              }}
+              className="flex-1 h-10 rounded-md bg-danger text-white font-extrabold text-[13px] cursor-pointer hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {t.portal.orders.cancelConfirm}
+            </button>
+          </div>
+        </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => onAdvance("served")}
-          className="h-[42px] rounded-md border-2 border-ink text-ink font-extrabold text-[13.5px] cursor-pointer hover:bg-sand transition-colors"
-        >
-          {t.portal.orders.markServed}
-        </button>
+        <div className="flex gap-2">
+          {isNew ? (
+            <button
+              type="button"
+              onClick={() => onAdvance("preparing")}
+              className="flex-1 h-11 rounded-md bg-harissa text-white font-extrabold text-sm cursor-pointer hover:bg-harissa-pressed transition-colors"
+            >
+              {confirmMode ? t.portal.orders.confirmAtTable : t.portal.orders.accept}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onAdvance("served")}
+              className="flex-1 h-[42px] rounded-md border-2 border-ink text-ink font-extrabold text-[13.5px] cursor-pointer hover:bg-sand transition-colors"
+            >
+              {t.portal.orders.markServed}
+            </button>
+          )}
+          <button
+            type="button"
+            aria-label={t.portal.orders.cancelOrder}
+            title={t.portal.orders.cancelOrder}
+            onClick={() => setCancelling(true)}
+            className="w-11 shrink-0 rounded-md border-2 border-line text-muted font-extrabold cursor-pointer hover:border-danger hover:text-danger transition-colors"
+          >
+            ✕
+          </button>
+        </div>
       )}
     </div>
   );

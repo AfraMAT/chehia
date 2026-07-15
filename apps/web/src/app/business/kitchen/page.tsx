@@ -22,8 +22,14 @@ export default function KitchenPage() {
     return () => clearInterval(id);
   }, []);
 
+  // Under table-confirmation mode, unconfirmed 'new' orders belong to the floor
+  // (a waiter must verify them at the table first) — the kitchen never sees them
+  // until a floor confirmation moves them to 'preparing'.
+  const confirmMode = restaurant.require_table_confirmation === true;
   const columns: { key: OrderStatus; title: string; dot: string; orders: LiveOrder[] }[] = [
-    { key: "new", title: t.portal.kitchen.toPrepare, dot: "bg-harissa-soft", orders: orders.filter((o) => o.status === "new") },
+    ...(confirmMode
+      ? []
+      : [{ key: "new" as OrderStatus, title: t.portal.kitchen.toPrepare, dot: "bg-harissa-soft", orders: orders.filter((o) => o.status === "new") }]),
     { key: "preparing", title: t.portal.kitchen.inProgress, dot: "bg-kwarning", orders: orders.filter((o) => o.status === "preparing") },
     { key: "ready", title: t.portal.kitchen.ready, dot: "bg-ksuccess", orders: orders.filter((o) => o.status === "ready") },
   ];
@@ -63,7 +69,7 @@ export default function KitchenPage() {
       </header>
 
       {/* Columns */}
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4.5 p-6 gap-5 content-start">
+      <div className={`flex-1 grid grid-cols-1 gap-4.5 p-6 gap-5 content-start ${confirmMode ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
         {columns.map((col) => (
           <div key={col.key} className="flex flex-col gap-3 min-h-0">
             <div className="flex items-center gap-2.5">

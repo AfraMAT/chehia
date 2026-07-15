@@ -34,6 +34,8 @@ export default function SettingsPage() {
   const [defaultLanguage, setDefaultLanguage] = useState<Language>(restaurant.default_language as Language);
   const [hours, setHours] = useState<Record<Day, DayHours>>(() => parseHours(restaurant.opening_hours));
   const [requireQr, setRequireQr] = useState(restaurant.require_qr ?? false);
+  const [requireConfirm, setRequireConfirm] = useState(restaurant.require_table_confirmation === true);
+  const [enforceHours, setEnforceHours] = useState(restaurant.enforce_opening_hours === true);
   const [reviewsEnabled, setReviewsEnabled] = useState(restaurant.reviews_enabled !== false);
   const [inventoryAlerts, setInventoryAlerts] = useState(restaurant.inventory_alerts_enabled !== false);
   const [coverUrl, setCoverUrl] = useState<string | null>(restaurant.cover_url);
@@ -95,7 +97,7 @@ export default function SettingsPage() {
     for (const d of DAYS) if (!hours[d].closed) opening[d] = `${hours[d].open}-${hours[d].close}`;
     await supabase
       .from("restaurants")
-      .update({ name, address, city, phone, languages, default_language: defaultLanguage, opening_hours: opening, require_qr: requireQr, reviews_enabled: reviewsEnabled, inventory_alerts_enabled: inventoryAlerts, cover_url: coverUrl, latitude, longitude, geofence_radius_m: radiusM, require_location: requireLocation })
+      .update({ name, address, city, phone, languages, default_language: defaultLanguage, opening_hours: opening, require_qr: requireQr, require_table_confirmation: requireConfirm, enforce_opening_hours: enforceHours, reviews_enabled: reviewsEnabled, inventory_alerts_enabled: inventoryAlerts, cover_url: coverUrl, latitude, longitude, geofence_radius_m: radiusM, require_location: requireLocation })
       .eq("id", restaurant.id);
     await refreshRestaurant();
     // Don't force the operator's portal UI language to the venue default on save —
@@ -236,6 +238,22 @@ export default function SettingsPage() {
                 <span className="text-[11.5px] text-muted leading-relaxed">{t.portal.settings.requireQrHint}</span>
               </div>
               <Toggle checked={requireQr} onChange={setRequireQr} label={t.portal.settings.requireQr} disabled={!canManage} />
+            </div>
+
+            <div className="flex items-start justify-between gap-3 pt-3 mt-1 border-t border-line">
+              <div className="flex flex-col gap-0.5 flex-1">
+                <span className="text-[13px] font-extrabold text-ink">{t.portal.settings.requireConfirm}</span>
+                <span className="text-[11.5px] text-muted leading-relaxed">{t.portal.settings.requireConfirmHint}</span>
+              </div>
+              <Toggle checked={requireConfirm} onChange={setRequireConfirm} label={t.portal.settings.requireConfirm} disabled={!canManage} />
+            </div>
+
+            <div className="flex items-start justify-between gap-3 pt-3 mt-1 border-t border-line">
+              <div className="flex flex-col gap-0.5 flex-1">
+                <span className="text-[13px] font-extrabold text-ink">{t.portal.settings.enforceHours}</span>
+                <span className="text-[11.5px] text-muted leading-relaxed">{t.portal.settings.enforceHoursHint}</span>
+              </div>
+              <Toggle checked={enforceHours} onChange={setEnforceHours} label={t.portal.settings.enforceHours} disabled={!canManage} />
             </div>
 
             <div className="flex items-start justify-between gap-3 pt-3 mt-1 border-t border-line">

@@ -40,6 +40,62 @@ type PlaceOrderInput = {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Is the venue open right now, per its `opening_hours` map (keys sun..sat, values
+ * "HH:MM-HH:MM"), evaluated in the venue's timezone? Handles ranges that cross
+ * midnight (e.g. a café open "18:00-02:00" is open at 00:30 on the *next* day).
+ * Fails OPEN on any malformed/blank entry — closing the venue on bad data would
+ * be worse than letting an order through.
+ */
+function isWithinOpeningHours(hours: Record<string, string>, timeZone: string): boolean {
+  const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+  let hh: number, mm: number, dow: number;
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      weekday: "short",
+    }).formatToParts(new Date());
+    const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+    hh = parseInt(get("hour"), 10) % 24;
+    mm = parseInt(get("minute"), 10);
+    dow = days.indexOf(get("weekday").toLowerCase());
+    if (dow < 0 || Number.isNaN(hh) || Number.isNaN(mm)) return true;
+  } catch {
+    return true; // bad timezone → don't block
+  }
+  const nowMin = hh * 60 + mm;
+
+  const openAt = (dayIdx: number): { start: number; end: number } | null => {
+    const raw = hours[days[(dayIdx + 7) % 7]];
+    if (!raw || typeof raw !== "string" || !raw.includes("-")) return null;
+    const [a, b] = raw.split("-");
+    const [ah, am] = a.split(":").map((n) => parseInt(n, 10));
+    const [bh, bm] = b.split(":").map((n) => parseInt(n, 10));
+    if ([ah, am, bh, bm].some((n) => Number.isNaN(n))) return null;
+    return { start: ah * 60 + am, end: bh * 60 + bm };
+  };
+
+  const today = openAt(dow);
+  if (today) {
+    if (today.end > today.start) {
+      if (nowMin >= today.start && nowMin < today.end) return true;
+    } else {
+      // Crosses midnight: open from start until end-of-day today.
+      if (nowMin >= today.start) return true;
+    }
+  }
+  // A range from yesterday that crosses midnight may still be open now.
+  const yesterday = openAt(dow - 1);
+  if (yesterday && yesterday.end <= yesterday.start && nowMin < yesterday.end) return true;
+
+  // If NO day has any valid range, the map is effectively unconfigured → open.
+  const anyConfigured = days.some((d) => openAt(days.indexOf(d)) !== null);
+  return anyConfigured ? false : true;
+}
+
 // Kept in sync with @chehia/shared's geo.ts (edge functions can't import it).
 const GEOFENCE_ACCURACY_SLACK_M = 100;
 function distanceMeters(aLat: number, aLng: number, bLat: number, bLng: number): number {
@@ -201,11 +257,25 @@ Deno.serve(async (req) => {
 
   const { data: restaurant } = await admin
     .from("restaurants")
-    .select("id, is_active, require_qr, require_location, geofence_radius_m, latitude, longitude")
+    .select("id, is_active, require_qr, require_location, geofence_radius_m, latitude, longitude, ordering_paused, enforce_opening_hours, opening_hours, timezone")
     .eq("id", table.restaurant_id)
     .maybeSingle();
   if (!restaurant?.is_active) {
     return errorResponse("restaurant_inactive", "This venue is not taking orders", 409);
+  }
+
+  // Owner kill switch: ordering paused (incident response for abuse / rush).
+  if (restaurant.ordering_paused) {
+    return errorResponse("ordering_paused", "This venue has paused ordering right now", 409);
+  }
+
+  // Closed-hours block (opt-in): refuse orders outside the venue's opening
+  // hours, evaluated in the venue's own timezone. Off by default so venues with
+  // aspirational/blank hours keep working; a malformed range fails open.
+  if (restaurant.enforce_opening_hours && restaurant.opening_hours) {
+    if (!isWithinOpeningHours(restaurant.opening_hours, restaurant.timezone ?? "Africa/Tunis")) {
+      return errorResponse("venue_closed", "This venue is closed right now", 409);
+    }
   }
 
   // Scanned (qr_token) vs remote browse (table_id chosen from discovery).
