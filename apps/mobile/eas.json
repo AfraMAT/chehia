@@ -14,6 +14,11 @@
     },
     "preview": {
       "distribution": "internal",
+      "node": "20.18.0",
+      "pnpm": "10.6.1",
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://sxmbqwldtqkkmlfbjyzc.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_pEBLwqR-_d8lIXtYTcIQRQ_n9NW_gqq"
