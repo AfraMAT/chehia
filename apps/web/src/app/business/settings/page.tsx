@@ -8,6 +8,7 @@ import { useI18n } from "@/components/i18n-provider";
 import { usePortal } from "../portal-provider";
 import { SetPasswordForm } from "../set-password-gate";
 import { LocationPicker } from "./location-picker";
+import { resizeImage } from "@/lib/resize-image";
 
 interface StaffRow {
   id: string;
@@ -52,11 +53,12 @@ export default function SettingsPage() {
 
   // Upload a venue cover to the tenant-scoped folder (reuses the item-photos
   // bucket; storage RLS rejects writes outside the caller's own restaurant).
-  const onPickCover = async (file: File) => {
-    if (!/^image\/(png|jpe?g|webp)$/.test(file.type) || file.size > 5_000_000) return;
+  const onPickCover = async (raw: File) => {
+    if (!/^image\/(png|jpe?g|webp)$/.test(raw.type) || raw.size > 10_000_000) return;
     setUploadingCover(true);
-    const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-    const path = `${restaurant.id}/cover-${crypto.randomUUID()}.${ext}`;
+    // Downscale before upload so covers don't ship megabytes to customers.
+    const file = await resizeImage(raw, 1600, 0.82);
+    const path = `${restaurant.id}/cover-${crypto.randomUUID()}.jpg`;
     const { error: upErr } = await supabase.storage
       .from("item-photos")
       .upload(path, file, { upsert: false, contentType: file.type });
@@ -80,6 +82,13 @@ export default function SettingsPage() {
   useEffect(() => {
     void loadStaff();
   }, [loadStaff]);
+
+  const toggleStaffActive = async (row: StaffRow) => {
+    // Optimistic; reload reconciles (and surfaces a server guard rejection).
+    setStaffRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, is_active: !r.is_active } : r)));
+    await supabase.rpc("set_staff_active", { p_staff: row.id, p_active: !row.is_active });
+    void loadStaff();
+  };
 
   const toggleLanguage = (code: Language) => {
     setLanguages((prev) => {
@@ -361,7 +370,7 @@ export default function SettingsPage() {
           <span className="font-extrabold text-[15px] text-ink">{t.portal.staff.title}</span>
           <div className="flex flex-col gap-2">
             {staffRows.map((row) => (
-              <div key={row.id} className="flex items-center gap-3 bg-sand rounded-md px-3.5 py-3">
+              <div key={row.id} className={`flex items-center gap-3 bg-sand rounded-md px-3.5 py-3 ${row.is_active ? "" : "opacity-60"}`}>
                 <div className="w-9 h-9 rounded-full bg-teal-tint text-teal-pressed font-extrabold text-sm flex items-center justify-center shrink-0">
                   {row.display_name.slice(0, 1).toUpperCase()}
                 </div>
@@ -374,8 +383,19 @@ export default function SettingsPage() {
                     row.is_active ? "text-success-text bg-success-tint" : "text-muted-soft bg-sand-deep"
                   }`}
                 >
-                  {row.is_active ? t.portal.staff.active : "—"}
+                  {row.is_active ? t.portal.staff.active : t.portal.staff.inactive}
                 </span>
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => void toggleStaffActive(row)}
+                    className={`text-[11px] font-extrabold rounded-md px-2.5 py-1.5 cursor-pointer transition-colors ${
+                      row.is_active ? "text-danger hover:bg-danger-tint" : "text-teal-pressed hover:bg-teal-tint"
+                    }`}
+                  >
+                    {row.is_active ? t.portal.staff.deactivate : t.portal.staff.reactivate}
+                  </button>
+                )}
               </div>
             ))}
           </div>

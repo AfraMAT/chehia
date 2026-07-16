@@ -23,6 +23,21 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
+
+  const sendReset = async () => {
+    if (!email.trim()) {
+      setError(t.auth.enterEmailFirst);
+      return;
+    }
+    setError(null);
+    const supabase = getSupabase();
+    await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/business/reset`,
+    });
+    // Always report success (don't leak which emails exist).
+    setResetSent(true);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,12 +97,20 @@ function LoginForm() {
             />
           </div>
           {error && <p className="text-[13px] font-bold text-danger-text">{error}</p>}
+          {resetSent && <p className="text-[13px] font-bold text-success-text">{t.auth.resetSent}</p>}
           <button
             type="submit"
             disabled={submitting}
             className="h-12 rounded-lg bg-harissa text-white font-extrabold text-[15px] flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(188,75,38,0.25)] hover:bg-harissa-pressed transition-colors cursor-pointer disabled:opacity-60"
           >
             {submitting ? <Spinner /> : t.auth.signIn}
+          </button>
+          <button
+            type="button"
+            onClick={() => void sendReset()}
+            className="text-[12.5px] font-bold text-muted-soft hover:text-harissa transition-colors cursor-pointer"
+          >
+            {t.auth.forgotPassword}
           </button>
         </form>
       </div>

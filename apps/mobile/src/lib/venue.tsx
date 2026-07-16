@@ -106,6 +106,11 @@ interface VenueContextValue {
   rememberOrder: (id: string) => void;
   /** Forget one tracked order (called when it reaches a terminal state). */
   forgetOrder: (id: string) => void;
+  /** The customer's last order here ("your usual"), for one-tap reordering;
+   * null until they've placed one. Lines are reconciled against the live menu. */
+  lastOrder: CartLine[] | null;
+  /** Re-add "your usual" to the cart (dropping any items no longer available). */
+  reorderLast: () => void;
 }
 
 const VenueContext = createContext<VenueContextValue | null>(null);
@@ -116,6 +121,9 @@ const menuCacheKey = (slug: string, target: string) => `chehia.menu.${slug}.${ta
 const cartKey = (target: string) => `chehia.cart.${target}`;
 const queueKey = (target: string) => `chehia.queue.${target}`;
 const orderKey = (target: string) => `chehia.order.${target}`;
+// "Your usual" — keyed by slug so a regular's last order survives table changes
+// and scan-vs-browse. Holds the placed cart's lines for one-tap reordering.
+const lastOrderKey = (slug: string) => `chehia.usual.${slug}`;
 
 // Keep the "return to your order" pointer ~4h: long enough to finish a meal,
 // short enough it doesn't surface to the next customer at the same table.
@@ -274,6 +282,7 @@ export function VenueProvider(props: ProviderProps) {
   const [queuedOrder, setQueuedOrder] = useState<{ count: number; totalMillimes: number } | null>(null);
   const [queuedPlacedOrderId, setQueuedPlacedOrderId] = useState<string | null>(null);
   const [activeOrders, setActiveOrders] = useState<{ id: string; at: number }[]>([]);
+  const [lastOrder, setLastOrder] = useState<CartLine[] | null>(null);
   const submittingRef = useRef(false);
 
   // Connectivity.
@@ -431,6 +440,19 @@ export function VenueProvider(props: ProviderProps) {
     [target],
   );
 
+  // Hydrate "your usual" for this venue (slug-keyed, survives table/flow changes).
+  useEffect(() => {
+    void AsyncStorage.getItem(lastOrderKey(slug)).then((raw) => {
+      if (!raw) return;
+      try {
+        const lines = JSON.parse(raw) as CartLine[];
+        if (Array.isArray(lines) && lines.length > 0) setLastOrder(lines);
+      } catch {
+        // ignore
+      }
+    });
+  }, [slug]);
+
   const rememberOrder = useCallback(
     (id: string) => {
       setActiveOrders((prev) => {
@@ -510,6 +532,17 @@ export function VenueProvider(props: ProviderProps) {
     [token, browse],
   );
 
+  // "Order my usual again": add the saved last-order lines to the cart, dropping
+  // any items no longer on the live menu (reconcileCart re-prices + prunes).
+  const reorderLast = useCallback(() => {
+    if (!lastOrder || state.status !== "ready") return;
+    const bundle = state.bundle;
+    setCart((c) => {
+      const withLines = lastOrder.reduce((acc, line) => addLineBase(acc, line), c);
+      return reconcileCart(withLines, bundle.items, bundle.groupsByItem).cart;
+    });
+  }, [lastOrder, state]);
+
   const submitCart = useCallback(
     async (
       payloadCart: Cart,
@@ -577,10 +610,16 @@ export function VenueProvider(props: ProviderProps) {
         // committed but the response was lost, the retry cannot duplicate it.
         const clientRef = (clientRefRef.current ??= randomUUID());
         try {
+          const placedLines = cart.lines;
           const result = await submitCart(cart, language, clientRef, geo);
           if (result.ok && result.orderId) {
             clientRefRef.current = null;
             rememberOrder(result.orderId);
+            // Save "your usual" for one-tap reordering next visit.
+            if (placedLines.length > 0) {
+              setLastOrder(placedLines);
+              void AsyncStorage.setItem(lastOrderKey(slug), JSON.stringify(placedLines));
+            }
             // Clear the cart after a placed order so a follow-up order starts
             // fresh (keep the browse table for a quick re-order). Without this
             // the persistent cart bar keeps the just-ordered items and "Add
@@ -612,7 +651,7 @@ export function VenueProvider(props: ProviderProps) {
         submittingRef.current = false;
       }
     },
-    [cart, submitCart, target, token, browse, rememberOrder],
+    [cart, submitCart, target, token, browse, rememberOrder, slug],
   );
 
   const retryQueued = useCallback(
@@ -737,8 +776,10 @@ export function VenueProvider(props: ProviderProps) {
       activeOrders: activeOrders.map(({ id }) => ({ id })),
       rememberOrder,
       forgetOrder,
+      lastOrder,
+      reorderLast,
     }),
-    [state, basePath, browse, setTable, cart, online, cachedAt, queuedOrder, queuedPlacedOrderId, clearQueuedPlaced, addToCart, updateQty, setCartNote, clearCart, placeOrder, retryQueued, callWaiter, activeOrders, rememberOrder, forgetOrder],
+    [state, basePath, browse, setTable, cart, online, cachedAt, queuedOrder, queuedPlacedOrderId, clearQueuedPlaced, addToCart, updateQty, setCartNote, clearCart, placeOrder, retryQueued, callWaiter, activeOrders, rememberOrder, forgetOrder, lastOrder, reorderLast],
   );
 
   // Runtime theme (Epic 1): re-skin every downstream screen from the venue's

@@ -15,6 +15,7 @@ import { ArtPicker } from "@/components/art-picker";
 import { usePortal } from "../portal-provider";
 import { ConfirmDialog } from "../confirm-dialog";
 import { useInventoryUnit } from "../inventory/unit-label";
+import { resizeImage } from "@/lib/resize-image";
 
 interface InvOption {
   id: string;
@@ -137,15 +138,16 @@ export function ItemEditor({
 
   // Upload to the tenant-scoped folder (<restaurant_id>/…); storage RLS rejects
   // writes outside the caller's own restaurant.
-  const onPickPhoto = async (file: File) => {
-    if (!/^image\/(png|jpe?g|webp)$/.test(file.type) || file.size > 5_000_000) {
+  const onPickPhoto = async (raw: File) => {
+    if (!/^image\/(png|jpe?g|webp)$/.test(raw.type) || raw.size > 10_000_000) {
       setError(t.errors.generic);
       return;
     }
     setUploading(true);
     setError(null);
-    const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-    const path = `${restaurant.id}/${crypto.randomUUID()}.${ext}`;
+    // Downscale before upload so item photos stay light on Tunisian data plans.
+    const file = await resizeImage(raw, 1280, 0.82);
+    const path = `${restaurant.id}/${crypto.randomUUID()}.jpg`;
     const { error: upErr } = await supabase.storage
       .from("item-photos")
       .upload(path, file, { upsert: false, contentType: file.type });

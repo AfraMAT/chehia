@@ -37,7 +37,7 @@ import { GroupEntry } from "./group/group-entry";
  */
 export function MenuScreen() {
   const venue = useVenue();
-  const { restaurant, table, categories, items, groupsByItem, cart, basePath, activeOrders } = venue;
+  const { restaurant, table, categories, items, groupsByItem, cart, basePath, activeOrders, lastOrder, reorderLast } = venue;
   const { t, tr, lang, setLang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -260,6 +260,36 @@ export function MenuScreen() {
 
       {/* Group ordering entry (scanned tables only; self-hides otherwise) */}
       <GroupEntry style={{ marginHorizontal: 20, marginTop: 12 }} />
+
+      {/* "Order my usual again" — a regular's one-tap reorder (cart empty only) */}
+      {lastOrder && lastOrder.length > 0 && count === 0 && (
+        <Pressable
+          onPress={reorderLast}
+          accessibilityRole="button"
+          accessibilityLabel={t.menu.reorderUsual}
+          style={[
+            rowDir(lang),
+            {
+              marginHorizontal: 20,
+              marginTop: 12,
+              alignItems: "center",
+              gap: 8,
+              backgroundColor: theme.harissaTint,
+              borderRadius: 12,
+              paddingVertical: 11,
+              paddingHorizontal: 14,
+            },
+          ]}
+        >
+          <T size={15}>↺</T>
+          <T lang={lang} weight="extrabold" size={13.5} color={theme.harissaPressed} style={{ flex: 1, textAlign: isRtl ? "right" : "left" }}>
+            {t.menu.reorderUsual}
+          </T>
+          <T lang={lang} weight="bold" size={12} color={theme.harissaPressed}>
+            {lastOrder.reduce((s, l) => s + l.qty, 0)} {t.common.items}
+          </T>
+        </Pressable>
+      )}
 
       {/* Search */}
       <View style={{ paddingHorizontal: 20, paddingTop: 14 }}>
