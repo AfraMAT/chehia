@@ -25,15 +25,23 @@ build 6._
 - App Review Information: contact = Moez Abbes / abbesmoez22@gmail.com, sign-in
   required = No, QR attachment uploaded.
 
-## What YOU do in App Store Connect (only the irreversible clicks)
+## What YOU do in App Store Connect (in this order)
 
-1. **Submission page** (App Review → the rejected iOS Submission) → **Reply to App
-   Review** → paste §B below.
-2. Same page → click **Resubmit to App Review** (replying alone does NOT restart
+0. If a macOS dialog "Visual Studio Code wants access to control Finder" is still
+   on screen: click **Don't Allow** (it was an automation attempt; not needed).
+1. **Screenshots** (~30 seconds): Version page → Previews and Screenshots →
+   **Delete All** on the old 6.5" set (old fork logo) → drag the 7 files from
+   **~/Desktop/chehia-asc-screenshots/** (numbered in order: landing, discover,
+   menu, item, cart, tracking, venue — fresh 1320×2868 captures of build 6 with
+   the café-cup logo, taken on the demo venue) into the same screenshots area →
+   **Save**.
+2. **Submission page** (App Review → the rejected iOS Submission) → **Reply to
+   App Review** → paste §B below.
+3. Same page → click **Resubmit to App Review** (replying alone does NOT restart
    review).
 
 Everything else (build 6 selected, notes updated, App Privacy, age rating,
-metadata, screenshots) is already done and verified — see the audit report.
+metadata) is already done and verified in ASC.
 
 ---
 
