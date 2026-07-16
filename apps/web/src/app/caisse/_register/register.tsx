@@ -9,6 +9,7 @@ import { Ticket } from "./ticket";
 import { ModifierSheet } from "./modifier-sheet";
 import { TenderSheet } from "./tender-sheet";
 import { TableSheet } from "./table-sheet";
+import { TableOrdersSheet } from "./table-orders-sheet";
 import { CashDrawer } from "./cash-drawer";
 import { LockScreen } from "./lock-screen";
 import { money } from "./util";
@@ -19,12 +20,13 @@ const ORDER_TYPE_KEYS: OrderType[] = ["comptoir", "emporter", "surplace"];
 /** The register — header (routing) + product grid + ticket, orchestrating the sheets. */
 export function Register() {
   const { t, lang, setLang } = useI18n();
-  const { restaurant, staff, orderType, setOrderType, table, groupsByItem, addToTicket, ticketCount, ticketTotal, cashSession, online, pendingCount, failedCount, locked, lock, signOut } = useCaisse();
+  const { restaurant, staff, orderType, setOrderType, table, groupsByItem, addToTicket, ticketCount, ticketTotal, cashSession, online, pendingCount, failedCount, locked, lock, signOut, unpaidOrders, setSettleTarget } = useCaisse();
   const [modifierItem, setModifierItem] = useState<MenuItem | null>(null);
   const [tenderOpen, setTenderOpen] = useState(false);
   const [tableSheetOpen, setTableSheetOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [mobileTicketOpen, setMobileTicketOpen] = useState(false);
+  const [tableOrdersOpen, setTableOrdersOpen] = useState(false);
 
   const pick = (item: MenuItem) => {
     if ((groupsByItem[item.id]?.length ?? 0) > 0) {
@@ -84,6 +86,21 @@ export function Register() {
 
         {/* Table (sur place) + drawer + language + staff */}
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setTableOrdersOpen(true)}
+            title={t.caisse.tableOrders.tooltip}
+            className={`relative h-9 px-3 rounded-lg text-[12.5px] font-extrabold cursor-pointer transition-colors flex items-center gap-1.5 ${
+              unpaidOrders.length > 0 ? "bg-harissa text-white hover:bg-harissa-pressed" : "bg-sand text-ink hover:bg-harissa-tint"
+            }`}
+          >
+            🧾 {t.caisse.tableOrders.button}
+            {unpaidOrders.length > 0 && (
+              <span className="min-w-5 h-5 px-1 rounded-full bg-white text-harissa-pressed text-[11px] font-extrabold flex items-center justify-center">
+                {unpaidOrders.length}
+              </span>
+            )}
+          </button>
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
@@ -173,6 +190,16 @@ export function Register() {
       {modifierItem && <ModifierSheet item={modifierItem} onClose={() => setModifierItem(null)} />}
       {tenderOpen && <TenderSheet onClose={() => setTenderOpen(false)} />}
       {tableSheetOpen && <TableSheet onClose={() => setTableSheetOpen(false)} />}
+      {tableOrdersOpen && (
+        <TableOrdersSheet
+          onClose={() => setTableOrdersOpen(false)}
+          onPay={(o) => {
+            setSettleTarget(o);
+            setTableOrdersOpen(false);
+            setTenderOpen(true);
+          }}
+        />
+      )}
       {drawerOpen && <CashDrawer onClose={() => setDrawerOpen(false)} />}
       {locked && <LockScreen />}
     </div>

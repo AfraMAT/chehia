@@ -730,6 +730,15 @@ export const en: Dictionary = {
       title: "Choose a table",
       empty: "No tables. Add tables in the portal.",
     },
+    tableOrders: {
+      button: "Orders",
+      tooltip: "Take payment for a customer (QR) order",
+      title: "Orders to settle",
+      empty: "No orders awaiting payment",
+      emptyBody: "Orders customers place via QR appear here to be paid at the counter.",
+      pay: "Take payment",
+      noDrawer: "Open the cash drawer so the payment is counted in the Z-report.",
+    },
     drawer: {
       tooltip: "Cash drawer",
       title: "Register — drawer",

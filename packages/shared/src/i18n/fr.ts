@@ -729,6 +729,15 @@ export const fr = {
       title: "Choisir une table",
       empty: "Aucune table. Ajoutez des tables dans le portail.",
     },
+    tableOrders: {
+      button: "Commandes",
+      tooltip: "Encaisser une commande client (QR)",
+      title: "Commandes à encaisser",
+      empty: "Aucune commande en attente",
+      emptyBody: "Les commandes passées par les clients via QR apparaissent ici pour encaissement.",
+      pay: "Encaisser",
+      noDrawer: "Ouvrez le tiroir-caisse pour que l'encaissement soit compté dans le rapport Z.",
+    },
     drawer: {
       tooltip: "Tiroir-caisse",
       title: "Caisse — tiroir",

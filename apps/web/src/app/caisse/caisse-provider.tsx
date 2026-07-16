@@ -81,6 +81,18 @@ export type SettleResult =
   | { ok: true; fiscalNumber: string; amount: number; change: number; tax: number; timbre: number; rounding: number }
   | { ok: false; code: string };
 
+/** A placed-but-unpaid customer order shown in the counter-settlement picker. */
+export interface UnpaidOrder {
+  id: string;
+  order_number: string;
+  table_id: string;
+  table_label: string;
+  total_millimes: number;
+  status: string;
+  created_at: string;
+  lines: { id: string; name_snapshot: Record<string, string>; qty: number; unit_price_millimes: number; modifiers_snapshot: { choice: Record<string, string> }[]; note: string }[];
+}
+
 export interface RestaurantFiscal {
   matricule_fiscal: string;
   regime: string;
@@ -147,6 +159,14 @@ interface CaisseContextValue {
   placeOrder: () => Promise<PlaceResult>;
   /** Record payment + stamp the fiscal receipt for a created order. */
   settleOrder: (orderId: string, method: TenderMethod, tenderedMillimes: number | null) => Promise<SettleResult>;
+  /** Unpaid customer (QR) orders awaiting counter payment — so their cash
+   * reaches the drawer and the Z-report. Refreshed live. */
+  unpaidOrders: UnpaidOrder[];
+  refreshUnpaidOrders: () => Promise<void>;
+  /** An existing order the cashier chose to settle at the counter (or null for
+   * a fresh ticket sale). The tender sheet reads this to pay it directly. */
+  settleTarget: UnpaidOrder | null;
+  setSettleTarget: (o: UnpaidOrder | null) => void;
   /** The most recent completed sale, for the on-screen + printed receipt. */
   lastSale: ReceiptData | null;
   setLastSale: (data: ReceiptData | null) => void;
@@ -248,6 +268,8 @@ export function CaisseProvider({ children }: { children: React.ReactNode }) {
   const [ticket, setTicket] = useState<Cart>(() => emptyCart("", ""));
   const [orderType, setOrderType] = useState<OrderType>("comptoir");
   const [table, setTable] = useState<CaisseTable | null>(null);
+  const [unpaidOrders, setUnpaidOrders] = useState<UnpaidOrder[]>([]);
+  const [settleTarget, setSettleTarget] = useState<UnpaidOrder | null>(null);
 
   const clientRefRef = useRef<string | null>(null);
   const settleRefRef = useRef<string | null>(null);
@@ -429,6 +451,54 @@ export function CaisseProvider({ children }: { children: React.ReactNode }) {
     },
     [],
   );
+
+  // Unpaid customer orders (QR/browse/group), most recent first, so the cashier
+  // can settle them at the counter — the only way their cash enters the drawer
+  // and the Z-report. POS-rung orders (created_by_staff) are settled at ring-up,
+  // so they're excluded.
+  const refreshUnpaidOrders = useCallback(async () => {
+    if (!staff) return;
+    const supabase = getSupabase();
+    const { data: orders } = await supabase
+      .from("orders")
+      .select("id, order_number, table_id, total_millimes, status, created_at")
+      .eq("restaurant_id", staff.restaurant_id)
+      .is("paid_at", null)
+      .is("created_by_staff", null)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false });
+    if (!orders || orders.length === 0) {
+      setUnpaidOrders([]);
+      return;
+    }
+    const ids = orders.map((o) => o.id);
+    const { data: items } = await supabase
+      .from("order_items")
+      .select("id, order_id, name_snapshot, qty, unit_price_millimes, modifiers_snapshot, note")
+      .in("order_id", ids);
+    const byOrder = new Map<string, UnpaidOrder["lines"]>();
+    for (const it of items ?? []) {
+      const arr = byOrder.get(it.order_id) ?? [];
+      arr.push({ id: it.id, name_snapshot: it.name_snapshot, qty: it.qty, unit_price_millimes: it.unit_price_millimes, modifiers_snapshot: it.modifiers_snapshot ?? [], note: it.note ?? "" });
+      byOrder.set(it.order_id, arr);
+    }
+    const tableLabel = (id: string) => tables.find((t) => t.id === id)?.label ?? "?";
+    setUnpaidOrders(orders.map((o) => ({ ...o, table_label: tableLabel(o.table_id), lines: byOrder.get(o.id) ?? [] })));
+  }, [staff, tables]);
+
+  // Load once ready + refresh live on any order change for this venue.
+  useEffect(() => {
+    if (!staff) return;
+    void refreshUnpaidOrders();
+    const supabase = getSupabase();
+    const channel = supabase
+      .channel(`caisse-unpaid-${staff.restaurant_id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `restaurant_id=eq.${staff.restaurant_id}` }, () => void refreshUnpaidOrders())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [staff, refreshUnpaidOrders]);
 
   const openCashSession = useCallback(
     async (openingFloatMillimes: number): Promise<CashActionResult> => {
@@ -695,6 +765,10 @@ export function CaisseProvider({ children }: { children: React.ReactNode }) {
       serviceTable,
       placeOrder,
       settleOrder,
+      unpaidOrders,
+      refreshUnpaidOrders,
+      settleTarget,
+      setSettleTarget,
       lastSale,
       setLastSale,
       cashSession,
@@ -715,7 +789,7 @@ export function CaisseProvider({ children }: { children: React.ReactNode }) {
       clockOut,
       signOut,
     };
-  }, [staff, restaurant, fiscal, menu, ticket, orderType, table, tables, serviceTable, addToTicket, setTicketQty, clearTicket, placeOrder, settleOrder, lastSale, cashSession, openCashSession, closeCashSession, getCashReport, online, pendingCount, failedCount, queueSale, locked, hasPin, lock, unlock, setPin, myShift, clockIn, clockOut, signOut]);
+  }, [staff, restaurant, fiscal, menu, ticket, orderType, table, tables, serviceTable, addToTicket, setTicketQty, clearTicket, placeOrder, settleOrder, unpaidOrders, refreshUnpaidOrders, settleTarget, lastSale, cashSession, openCashSession, closeCashSession, getCashReport, online, pendingCount, failedCount, queueSale, locked, hasPin, lock, unlock, setPin, myShift, clockIn, clockOut, signOut]);
 
   let body: React.ReactNode;
   if (state === "no-staff") {

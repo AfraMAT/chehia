@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { CartLine } from "@chehia/shared";
 import { useI18n } from "@/components/i18n-provider";
 import { useCaisse } from "../caisse-provider";
 import { money } from "./util";
@@ -18,7 +19,24 @@ export function TenderSheet({ onClose }: { onClose: () => void }) {
   const {
     ticketTotal, placeOrder, settleOrder, clearTicket, online, queueSale,
     ticket, restaurant, staff, fiscal, orderType, table, lastSale, setLastSale,
+    settleTarget, setSettleTarget, refreshUnpaidOrders,
   } = useCaisse();
+  // Paying an existing (QR) order picked from the counter list, vs a fresh ticket.
+  const payingExisting = settleTarget !== null;
+  const baseTotal = payingExisting ? settleTarget.total_millimes : ticketTotal;
+  // Map the order's stored snapshot lines to CartLine shape for the receipt.
+  const receiptLines: CartLine[] = payingExisting
+    ? settleTarget.lines.map((l) => ({
+        key: l.id,
+        itemId: "",
+        name: l.name_snapshot,
+        qty: l.qty,
+        unitPriceMillimes: l.unit_price_millimes,
+        modifierIds: [],
+        modifierLabels: (l.modifiers_snapshot ?? []).map((m) => ({ group: {}, choice: m.choice, delta: 0 })),
+        note: l.note,
+      }))
+    : ticket.lines;
   const errorLabel = (code: string, fallback: string): string => {
     const map: Record<string, string> = {
       no_table: t.caisse.errors.noTable,
@@ -42,7 +60,7 @@ export function TenderSheet({ onClose }: { onClose: () => void }) {
   // the venue's step. Mirrors the server so the displayed due + change match.
   const timbre = fiscal?.regime === "reel" ? fiscal.timbre_millimes ?? 0 : 0;
   const step = fiscal?.cash_rounding_millimes ?? 100;
-  const grossDue = ticketTotal + timbre;
+  const grossDue = baseTotal + timbre;
   const cashDue = useMemo(() => (step > 0 ? Math.round(grossDue / step) * step : grossDue), [grossDue, step]);
   const tendered = Number(raw || 0);
   const change = Math.max(0, tendered - cashDue);
@@ -53,8 +71,9 @@ export function TenderSheet({ onClose }: { onClose: () => void }) {
     setError(null);
 
     // Offline: store the sale locally and hand the cashier a provisional receipt.
-    // It syncs (and gets its fiscal number) when the network returns.
-    if (!online) {
+    // It syncs (and gets its fiscal number) when the network returns. Only ticket
+    // sales queue offline; an existing QR order must be settled online.
+    if (!online && !payingExisting) {
       const q = await queueSale(method, method === "cash" ? tendered : null);
       if (!q.ok) {
         setError(t.caisse.errors.noTable);
@@ -65,33 +84,52 @@ export function TenderSheet({ onClose }: { onClose: () => void }) {
       setPhase("done");
       return;
     }
-
-    // Create (fires to kitchen) then settle (records payment + fiscal receipt).
-    // Both are idempotent, so a retry after a partial failure is safe.
-    const created = await placeOrder();
-    if (!created.ok) {
-      setError(errorLabel(created.code, t.caisse.errors.orderFailed));
+    if (!online && payingExisting) {
+      setError(t.caisse.errors.network);
       setPhase("tender");
       return;
     }
-    const settled = await settleOrder(created.order.id, method, method === "cash" ? tendered : null);
+
+    // Existing QR order: it's already in the kitchen — settle it directly so its
+    // cash posts to the open drawer. Fresh ticket: create (fires to kitchen) then
+    // settle. Both settle paths are idempotent, so a retry is safe.
+    let orderId: string;
+    let orderNumber: string;
+    if (payingExisting) {
+      orderId = settleTarget.id;
+      orderNumber = settleTarget.order_number;
+    } else {
+      const created = await placeOrder();
+      if (!created.ok) {
+        setError(errorLabel(created.code, t.caisse.errors.orderFailed));
+        setPhase("tender");
+        return;
+      }
+      orderId = created.order.id;
+      orderNumber = created.order.order_number;
+    }
+    const settled = await settleOrder(orderId, method, method === "cash" ? tendered : null);
     if (!settled.ok) {
       setError(errorLabel(settled.code, t.caisse.errors.settleFailed));
       setPhase("tender");
       return;
     }
     const orderTypeLabel = { comptoir: "Comptoir", emporter: "À emporter", surplace: "Sur place" }[orderType];
-    const tableLabel = orderType === "surplace" ? (table ? `Table ${table.label}` : "—") : orderTypeLabel;
+    const tableLabel = payingExisting
+      ? `Table ${settleTarget.table_label}`
+      : orderType === "surplace"
+        ? (table ? `Table ${table.label}` : "—")
+        : orderTypeLabel;
     const tvaRate = fiscal?.tva_registered && fiscal?.regime === "reel" ? Number(fiscal.default_tva_rate) : 0;
     setLastSale(
       buildReceiptData({
         restaurant,
         fiscal,
-        lines: ticket.lines,
-        subtotalMillimes: ticketTotal,
-        orderNumber: created.order.order_number,
+        lines: receiptLines,
+        subtotalMillimes: baseTotal,
+        orderNumber,
         fiscalNumber: settled.fiscalNumber,
-        orderTypeLabel,
+        orderTypeLabel: payingExisting ? "Sur place" : orderTypeLabel,
         tableLabel,
         staffName: staff.display_name,
         method,
@@ -105,12 +143,17 @@ export function TenderSheet({ onClose }: { onClose: () => void }) {
         dateISO: new Date().toISOString(),
       }),
     );
-    setResult({ change: settled.change, orderNumber: created.order.order_number, fiscalNumber: settled.fiscalNumber });
+    setResult({ change: settled.change, orderNumber, fiscalNumber: settled.fiscalNumber });
     setPhase("done");
   };
 
   const finish = () => {
-    clearTicket();
+    if (payingExisting) {
+      setSettleTarget(null);
+      void refreshUnpaidOrders();
+    } else {
+      clearTicket();
+    }
     onClose();
   };
 
