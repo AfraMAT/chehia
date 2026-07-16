@@ -154,6 +154,7 @@ export const fr = {
     receivedBody: "transmise à la cuisine",
     awaiting: "En attente de confirmation",
     awaitingBody: "Un serveur va confirmer votre commande à votre table.",
+    awaitingShort: "en attente de confirmation du serveur",
     preparing: "En préparation",
     preparingBody: "La cuisine s'en occupe",
     ready: "Prête",

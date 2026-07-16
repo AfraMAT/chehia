@@ -156,6 +156,7 @@ export const en: Dictionary = {
     receivedBody: "sent to the kitchen",
     awaiting: "Awaiting confirmation",
     awaitingBody: "A server will confirm your order at your table.",
+    awaitingShort: "awaiting server confirmation",
     preparing: "Preparing",
     preparingBody: "The kitchen is on it",
     ready: "Ready",

@@ -463,8 +463,8 @@ export function OrderScreen({ orderId }: { orderId: string }) {
               >
                 <TimelineRow
                   state={step >= 1 ? "done" : "active"}
-                  title={t.order.received}
-                  body={`${formatClock(new Date(order.created_at), lang)} — ${t.order.receivedBody}`}
+                  title={awaitingConfirm ? t.order.awaiting : t.order.received}
+                  body={`${formatClock(new Date(order.created_at), lang)} — ${awaitingConfirm ? t.order.awaitingShort : t.order.receivedBody}`}
                   hasLine
                   lineActive={step >= 1}
                   isRtl={isRtl}

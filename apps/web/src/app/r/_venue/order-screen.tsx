@@ -432,8 +432,8 @@ export function OrderScreen({ orderId }: { orderId: string }) {
             <div className="mx-5 bg-white border border-line rounded-2xl p-4.5 flex flex-col p-4">
               <TimelineRow
                 state={step >= 1 ? "done" : "active"}
-                title={t.order.received}
-                body={`${formatClock(new Date(order.created_at), lang)} — ${t.order.receivedBody}`}
+                title={awaitingConfirm ? t.order.awaiting : t.order.received}
+                body={`${formatClock(new Date(order.created_at), lang)} — ${awaitingConfirm ? t.order.awaitingShort : t.order.receivedBody}`}
                 hasLine
                 lineActive={step >= 1}
               />

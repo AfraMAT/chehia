@@ -156,6 +156,7 @@ export const ar: Dictionary = {
     receivedBody: "أُرسل إلى المطبخ",
     awaiting: "في انتظار التأكيد",
     awaitingBody: "سيؤكّد النادل طلبك عند طاولتك.",
+    awaitingShort: "بانتظار تأكيد النادل",
     preparing: "قيد التحضير",
     preparingBody: "المطبخ يعمل عليه",
     ready: "جاهز",
