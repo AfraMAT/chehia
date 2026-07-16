@@ -398,7 +398,7 @@ function ContactRow({ restaurant }: { restaurant: Restaurant }) {
         {chips.map((c) => (
           <Pressable
             key={c.key}
-            onPress={() => void Linking.openURL(c.url)}
+            onPress={() => void Linking.openURL(c.url).catch(() => {})}
             accessibilityRole="button"
             accessibilityLabel={c.label}
             style={[

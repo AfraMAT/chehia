@@ -72,6 +72,8 @@ export function CartScreen() {
       qr_required: t.errors.qrRequired,
       rate_limited: t.errors.rateLimited,
       restaurant_inactive: t.errors.venueClosed,
+      ordering_paused: t.errors.venueClosed,
+      venue_closed: t.errors.venueClosed,
       too_many_open_orders: t.errors.tooManyOpenOrders,
       too_many_lines: t.errors.orderInvalid,
       too_many_modifiers: t.errors.orderInvalid,

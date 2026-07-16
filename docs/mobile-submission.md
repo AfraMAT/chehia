@@ -29,14 +29,21 @@ eas submit --platform ios --profile production      # uploads to App Store Conne
 eas submit --platform android --profile production  # uploads to Play Console
 ```
 
-## Store listing content (starter copy)
+## Store listing content (LIVE in ASC as of 2026-07-16 — French primary locale)
 - **Name:** Chehia
-- **Subtitle / short description:** Scan, order, enjoy — at your table.
-- **Description:** Chehia lets you order from your table at cafés and restaurants — scan the QR code (or find a place nearby), browse the menu in French, Arabic or English, and send your order straight to the kitchen. No app account, no waiting for a waiter. You pay at the counter, as usual.
-- **Keywords:** qr menu, order, restaurant, cafe, table, tunisia, menu, food
+- **Subtitle (fr, 28 chars ≤30):** Scannez, commandez, savourez
+  - en-US option if an English localization is added later: "Scan & order at your table" (26)
+- **Promotional text (fr, 170):** Nouveau : commande de groupe, personnalisation des articles, avis clients et « ma commande habituelle ». Scannez le QR de la table et payez au comptoir, comme d'habitude.
+- **Description (fr):** the full feature description now in ASC (scan QR → menu fr/ar/en →
+  order to staff → pay at counter; group ordering, reorder-my-usual, moderated reviews,
+  contact chips, privacy-by-design). English translation available in the 2026-07-16 audit
+  (copy/final-description-en) for a future en-US localization.
+- **Keywords (fr, 93 ≤100):** `qr,menu,carte,commande,commander,table,café,restaurant,tunisie,tunis,scanner,serveur,boissons`
+  - en-US option: `qr,menu,order,table,cafe,coffee,restaurant,tunisia,tunis,scan,waiter,drinks,carte`
 - **Category:** Food & Drink
-- **Age rating:** 4+ / Everyone
-- **Support URL:** https://chehia.app · **Privacy URL:** https://chehia.app/legal/privacy
+- **Age rating:** 4+ (new 7-step questionnaire completed 2026-07-16; UGC=Yes moderated, everything else None/No)
+- **Support URL:** https://chehia.app · **Marketing URL:** https://chehia.app · **Privacy URL:** https://chehia.app/legal/privacy
+- **Copyright:** 2026 AfraMAT
 
 ## App Privacy (Apple) / Data Safety (Google) answers
 - **Data collected:** order contents + table + optional free-text note (linked to an anonymous session id, not to a person). No account, email, or phone. Optional **reviews** (rating, optional comment, optional first name — moderated before publishing) and optional **group-order nicknames** (visible to others at the table) are user-provided and stored.
