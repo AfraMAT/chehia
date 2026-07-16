@@ -4,7 +4,7 @@ _Updated 2026-07-15. Everything below is copy-paste ready._
 
 ## Already done for you (verified live)
 
-- ✅ **Build 1.0 (3)** with the Guideline 4 fix built via EAS and uploaded to App Store Connect.
+- ✅ **Build 1.0 (6)** with the Guideline 4 fix built via EAS and uploaded to App Store Connect.
 - ✅ Guideline 4 fix **verified in the built Info.plist**: only camera + when-in-use location
   usage strings ship, in French, plus per-device-language `InfoPlist.strings` (fr/ar/en).
   No microphone / always-location / motion strings.
@@ -17,8 +17,8 @@ _Updated 2026-07-15. Everything below is copy-paste ready._
 
 ## What YOU do in App Store Connect (in this order)
 
-1. Wait for build **1.0 (3)** to finish processing (TestFlight tab).
-2. **Version page** (iOS App 1.0) → Build section → select build **3**.
+1. Wait for build **1.0 (6)** to finish processing (TestFlight tab).
+2. **Version page** (iOS App 1.0) → Build section → select build **6**.
 3. Same page → **App Review Information** → paste §A notes + upload the QR attachment.
    Sign-in required: **No**. Save.
 4. **App Information** → complete the **age-rating questionnaire** incl. the new
@@ -56,7 +56,7 @@ Option A — Scan the attached demo QR code
 
 Option B — No scan needed (browse flow)
 1. Open Chehia.
-2. Tap "Trouver un restaurant" (Find a restaurant).
+2. Tap "Trouver un établissement" (Find a place).
 3. Select "Café El Marsa", choose a table, then browse the menu and order.
 
 The app's primary localization is French; it also supports Arabic and English
@@ -73,7 +73,7 @@ Hello, and thank you for the detailed feedback.
 
 Guideline 4 (Design) — permission-request language
 You are right — the permission requests did not match the app's localization.
-This is fixed in the new build (1.0 build 3):
+This is fixed in the new build (1.0 build 6):
 - The camera and location usage descriptions are written in the app's primary
   localization (French), and are additionally localized for every supported
   localization (French, Arabic, English) via InfoPlist.strings, so the system
@@ -86,8 +86,7 @@ table); it also runs and functions fully on iPad in iPhone-compatibility mode.
 Guideline 2.1(a) — demo details
 No login is required (the customer app is anonymous). We have added a demo QR
 code as an attachment and step-by-step instructions in App Review Information →
-Notes. There is also a no-scan path: tap "Find a restaurant" (Trouver un
-restaurant), select the demo venue "Café El Marsa", pick a table, and
+Notes. There is also a no-scan path: tap "Find a place" (Trouver un établissement), select the demo venue "Café El Marsa", pick a table, and
 browse/order without scanning.
 
 Guideline 2.1(b) — business model
@@ -155,7 +154,7 @@ Recommended answers:
 
 ## D. After approval / optional
 
-- TestFlight-install build 3 on a real iPhone AND an iPad (reviewer used an
+- TestFlight-install build 6 on a real iPhone AND an iPad (reviewer used an
   iPad Air 11" M3) and run one full order on the demo venue before resubmitting —
   15 minutes well spent.
 - Android: `ANDROID_CERT_SHA256` on Vercel + `assetlinks.json` only matter for the

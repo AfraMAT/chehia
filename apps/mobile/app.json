@@ -10,7 +10,7 @@
     "backgroundColor": "#FAF6EF",
     "ios": {
       "bundleIdentifier": "tn.chehia.app",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "supportsTablet": false,
       "associatedDomains": [
         "applinks:app.chehia.app"
