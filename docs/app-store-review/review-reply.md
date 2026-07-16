@@ -38,7 +38,9 @@ build 6._
 2. **Submission page** (App Review → the rejected iOS Submission) → **Reply to
    App Review** → paste §B below.
 3. Same page → click **Resubmit to App Review** (replying alone does NOT restart
-   review).
+   review). If that button is greyed out, use the blue **Update Review** button on
+   the version page instead — it submits the updated version to the same open
+   submission.
 
 Everything else (build 6 selected, notes updated, App Privacy, age rating,
 metadata) is already done and verified in ASC.
