@@ -19,7 +19,7 @@ whole repo (97 findings, each re-verified against the real code before being fix
 | --- | --- |
 | Code fixes | ✅ committed on `develop`, all four gates green |
 | **Build 1.0 (7)** | ✅ **BUILT** — EAS `acb5d805-02af-47d6-8678-0071f86f7cc6`, from commit `aff4e9f`, finished 2026-07-27 15:22 |
-| Upload to ASC | ⏳ `eas submit` running at time of writing — confirm it landed in TestFlight/Activity |
+| Upload to ASC | ✅ **delivered** — EAS submission `459c5ab6-6301-48e6-bf21-221530547045` **FINISHED** 2026-07-27 19:30. Three later submissions of the same binary ERRORED/were cancelled: that is the expected redundant-binary rejection, not a problem. |
 | Screenshots | ➖ existing 6.9" set still accurate — see §F step 2 |
 | App Review notes (§A) | ✅ text final below — **re-paste, one label changed** |
 | Reply to Apple (§B) | ✅ text final below — **you paste this** |
@@ -226,14 +226,15 @@ Do not gate this venue. Apple's reviewer re-tests this exact path after every up
 
 ## F. What YOU still have to do
 
-**1. Confirm build 7 arrived.** It is built and `eas submit` was run against it. Check
-App Store Connect → your app → **TestFlight** (or the Activity tab) for **1.0 (7)**. Apple
-takes 5–30 min to finish processing after upload. If it is not there, re-run:
+**1. Confirm build 7 in TestFlight.** EAS submission `459c5ab6` finished successfully, so
+Apple accepted the binary. Check App Store Connect → **TestFlight** for **1.0 (7)**; Apple
+takes 5–30 min to finish processing after delivery.
 
-```bash
-cd apps/mobile
-eas submit --platform ios --profile production --id acb5d805-02af-47d6-8678-0071f86f7cc6
-```
+You will also see three failed/cancelled submissions of the same build from the same evening.
+Ignore them: once a binary is delivered, Apple rejects any further upload of the same
+version+build as redundant. Only `459c5ab6` (19:30) matters, and it succeeded. Do **not**
+re-run `eas submit` for build 7 — it can only fail the same way. If a genuinely new binary is
+ever needed, bump the build number and build again.
 
 **2. Screenshots — nothing to do unless you want to.** The existing 6.9" set
 (`~/Desktop/chehia-asc-screenshots/`, 1320×2868, in order: landing, discover, menu, item,
