@@ -385,6 +385,8 @@ export const fr = {
       priceColumn: "PRIX",
       availableColumn: "DISPONIBLE",
       editItem: "Modifier",
+      moveItemUp: "Monter l'article",
+      moveItemDown: "Descendre l'article",
       newItem: "Nouvel article",
       name: "NOM",
       description: "DESCRIPTION",

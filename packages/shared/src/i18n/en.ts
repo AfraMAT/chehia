@@ -386,6 +386,8 @@ export const en: Dictionary = {
       priceColumn: "PRICE",
       availableColumn: "AVAILABLE",
       editItem: "Edit",
+      moveItemUp: "Move item up",
+      moveItemDown: "Move item down",
       newItem: "New item",
       name: "NAME",
       description: "DESCRIPTION",

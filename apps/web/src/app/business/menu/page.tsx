@@ -273,7 +273,7 @@ export default function MenuManagementPage() {
                 <div className="w-12 flex flex-col items-center gap-0.5">
                   <button
                     type="button"
-                    aria-label="up"
+                    aria-label={`${t.portal.menu.moveItemUp} — ${tr(item.name_i18n)}`}
                     disabled={index === 0}
                     onClick={() => void moveItem(item, -1)}
                     className="text-disabled hover:text-ink disabled:opacity-30 cursor-pointer text-xs font-extrabold"
@@ -282,7 +282,7 @@ export default function MenuManagementPage() {
                   </button>
                   <button
                     type="button"
-                    aria-label="down"
+                    aria-label={`${t.portal.menu.moveItemDown} — ${tr(item.name_i18n)}`}
                     disabled={index === visibleItems.length - 1}
                     onClick={() => void moveItem(item, 1)}
                     className="text-disabled hover:text-ink disabled:opacity-30 cursor-pointer text-xs font-extrabold"

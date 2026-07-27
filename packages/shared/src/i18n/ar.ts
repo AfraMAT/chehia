@@ -386,6 +386,8 @@ export const ar: Dictionary = {
       priceColumn: "السعر",
       availableColumn: "متوفر",
       editItem: "تعديل",
+      moveItemUp: "تحريك العنصر لأعلى",
+      moveItemDown: "تحريك العنصر لأسفل",
       newItem: "عنصر جديد",
       name: "الاسم",
       description: "الوصف",

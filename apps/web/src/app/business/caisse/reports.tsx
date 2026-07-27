@@ -37,6 +37,31 @@ function sinceISO(range: Range): string {
   return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 }
 
+/**
+ * Read every row a filter matches, not just the first page.
+ *
+ * PostgREST caps each response at `max_rows` (1000 on Supabase) and gives no
+ * signal that it truncated. These queries feed the Z-report money totals, so a
+ * venue that took more than 1000 payments in the selected range simply saw a
+ * smaller number and had no way to know. Pages until a short page comes back.
+ *
+ * The caller must supply a deterministic `.order()` — range pagination over an
+ * unordered result can repeat or skip rows between pages.
+ */
+const PAGE_SIZE = 1000;
+async function fetchAllRows<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: T[] | null }>,
+): Promise<T[]> {
+  const all: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data } = await page(from, from + PAGE_SIZE - 1);
+    if (!data?.length) break;
+    all.push(...data);
+    if (data.length < PAGE_SIZE) break;
+  }
+  return all;
+}
+
 export function Reports() {
   const supabase = getSupabase();
   const { t, lang } = useI18n();
@@ -56,20 +81,40 @@ export function Reports() {
     setLoading(true);
     const since = sinceISO(range);
     // RLS scopes every table to the caller's venue, so no restaurant_id filter needed.
-    const [{ data: payments }, { data: orders }, { data: closed }] = await Promise.all([
-      supabase.from("payments").select("method, amount_millimes, created_at").gte("created_at", since),
-      supabase.from("orders").select("tax_total_millimes, timbre_millimes, paid_at").gte("paid_at", since).not("paid_at", "is", null),
-      supabase
-        .from("cash_sessions")
-        .select("id, closed_at, opening_float_millimes, expected_cash_millimes, counted_cash_millimes, over_short_millimes")
-        .eq("status", "closed")
-        .gte("closed_at", since)
-        .order("closed_at", { ascending: false }),
+    // Every query is paged: these drive the money totals, and an unpaged read is
+    // silently capped at PostgREST's max_rows (see fetchAllRows).
+    const [payments, orders, closed] = await Promise.all([
+      fetchAllRows((from, to) =>
+        supabase
+          .from("payments")
+          .select("method, amount_millimes, created_at")
+          .gte("created_at", since)
+          .order("created_at")
+          .range(from, to),
+      ),
+      fetchAllRows((from, to) =>
+        supabase
+          .from("orders")
+          .select("tax_total_millimes, timbre_millimes, paid_at")
+          .gte("paid_at", since)
+          .not("paid_at", "is", null)
+          .order("paid_at")
+          .range(from, to),
+      ),
+      fetchAllRows((from, to) =>
+        supabase
+          .from("cash_sessions")
+          .select("id, closed_at, opening_float_millimes, expected_cash_millimes, counted_cash_millimes, over_short_millimes")
+          .eq("status", "closed")
+          .gte("closed_at", since)
+          .order("closed_at", { ascending: false })
+          .range(from, to),
+      ),
     ]);
 
     const byMethod: Record<string, number> = {};
     let salesTotal = 0;
-    for (const p of payments ?? []) {
+    for (const p of payments) {
       const m = (p.method as string) ?? "other";
       const amt = (p.amount_millimes as number) ?? 0;
       byMethod[m] = (byMethod[m] ?? 0) + amt;
@@ -77,14 +122,14 @@ export function Reports() {
     }
     let tax = 0;
     let timbre = 0;
-    for (const o of orders ?? []) {
+    for (const o of orders) {
       tax += (o.tax_total_millimes as number) ?? 0;
       timbre += (o.timbre_millimes as number) ?? 0;
     }
     const refunds = 0; // refunds UI not yet issued; kept for parity
 
-    setSummary({ salesTotal, byMethod, orders: (orders ?? []).length, tax, timbre, refunds });
-    setSessions((closed ?? []) as ClosedSession[]);
+    setSummary({ salesTotal, byMethod, orders: orders.length, tax, timbre, refunds });
+    setSessions(closed as ClosedSession[]);
     setLoading(false);
   }, [range, supabase]);
 
