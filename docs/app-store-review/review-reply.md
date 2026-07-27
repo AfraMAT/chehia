@@ -30,6 +30,31 @@ whole repo (97 findings, each re-verified against the real code before being fix
 
 ---
 
+## A0. Verified ground truth — read out of the signed build 7 IPA
+
+Downloaded the actual artifact EAS produced and inspected the bundle. Every claim §B makes
+to Apple is checked against this, not against the source:
+
+| Checked | Value in the shipped `Chehia.app` |
+| --- | --- |
+| `CFBundleIdentifier` | `tn.chehia.app` |
+| `CFBundleShortVersionString` / `CFBundleVersion` | **1.0.0 / 7** |
+| `CFBundleDevelopmentRegion` | `fr` |
+| `CFBundleLocalizations` | `fr, ar, en` |
+| `ITSAppUsesNonExemptEncryption` | `false` |
+| Orientation | portrait only |
+| **Usage descriptions — ALL of them** | exactly three: `NSCameraUsageDescription`, `NSLocationWhenInUseUsageDescription`, `NSMotionUsageDescription`, each in **French** |
+| Microphone / always / background location | **absent** — no such key exists in the binary |
+| `fr.lproj` / `ar.lproj` / `en.lproj` `InfoPlist.strings` | all three present, each carrying all three usage strings |
+| `PrivacyInfo.xcprivacy` | `NSPrivacyTracking: false`, **4** collected data types (Name, OtherUserContent, UserID, PurchaseHistory), all `Linked: false` / `Tracking: false` / purpose AppFunctionality, plus 4 required-reason API types |
+
+So the two things Apple's Guideline 4 message was about — permission strings that match the
+app's localization, and no strings for capabilities the app does not use — are **provably**
+fixed in the binary being submitted. The privacy manifest now also matches the published App
+Privacy label (it was an empty list in build 6).
+
+---
+
 ## A. App Review Information → Notes
 
 **Sign-in required:** No — the customer app is used anonymously (no account, no login).
