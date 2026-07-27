@@ -6,7 +6,7 @@
 // - Idempotent + de-duplicated: a unique (order_id, item) index means a
 //   resend never creates duplicate rows.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { corsHeaders, errorResponse, jsonResponse, readJsonObject } from "../_shared/cors.ts";
 
 type ItemRating = { item_id: string; rating: number; comment?: string };
 type SubmitReviewInput = {
@@ -42,12 +42,8 @@ Deno.serve(async (req) => {
   const userId = userData.user.id;
   const admin = createClient(supabaseUrl, serviceKey);
 
-  let input: SubmitReviewInput;
-  try {
-    input = await req.json();
-  } catch {
-    return errorResponse("bad_json", "Invalid JSON body");
-  }
+  const input = await readJsonObject<SubmitReviewInput>(req);
+  if (!input) return errorResponse("bad_json", "Invalid JSON body");
 
   if (!input?.order_id || !UUID_RE.test(input.order_id)) {
     return errorResponse("bad_request", "order_id (UUID) is required");

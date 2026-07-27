@@ -35,14 +35,23 @@
 -- ============================================================================
 
 -- ---- 1. pin_hash is not a client-readable column ----------------------------
-revoke select (pin_hash), update (pin_hash), insert (pin_hash)
-  on public.staff from anon, authenticated;
+-- The TABLE-level grant has to go first. Supabase ships
+-- `grant all on all tables in schema public to anon, authenticated`, and a
+-- table-level SELECT covers every column including ones added later — a
+-- column-level `revoke select (pin_hash)` against it is a no-op
+-- (has_column_privilege still answers true). Revoke the table privilege, then
+-- re-grant column by column.
+revoke select, insert, update on public.staff from anon, authenticated;
 
--- Re-grant the columns clients legitimately read, so narrowing SELECT above
--- cannot accidentally leave the portal without access to a column it uses.
+-- Every column except pin_hash. Safe to enumerate: no client anywhere selects
+-- `*` from staff, directly or as an embedded resource — all five call sites
+-- name their columns and none asks for pin_hash.
 grant select (id, restaurant_id, auth_uid, role, display_name, is_active, created_at)
   on public.staff to anon, authenticated;
 
+-- anon gets no write path at all. RLS already denied it (every staff policy
+-- needs an authenticated identity), so this only removes a privilege that was
+-- never usable.
 grant update (display_name, is_active, role)
   on public.staff to authenticated;
 

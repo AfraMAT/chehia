@@ -7,7 +7,7 @@
 //   contact@aframat.com). Email failures never fail the request — the lead is
 //   already saved and visible in the admin portal.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { corsHeaders, errorResponse, jsonResponse, readJsonObject } from "../_shared/cors.ts";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const LANGS = ["fr", "ar", "en"];
@@ -20,12 +20,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return errorResponse("method_not_allowed", "POST only", 405);
 
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return errorResponse("bad_json", "Invalid JSON body");
-  }
+  const body = await readJsonObject<Record<string, unknown>>(req);
+  if (!body) return errorResponse("bad_json", "Invalid JSON body");
 
   // Honeypot: a hidden field real users never fill. Bots do → pretend success.
   if (clean(body.company_website, 200)) return jsonResponse({ ok: true });

@@ -3,7 +3,7 @@
 // (scanned) or table_id (chosen via discovery); a per-user open-call cap bounds
 // abuse of the token-free path.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { corsHeaders, errorResponse, jsonResponse, readJsonObject } from "../_shared/cors.ts";
 
 const REASONS = ["bill", "water", "cutlery", "other"] as const;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -25,12 +25,8 @@ Deno.serve(async (req) => {
     return errorResponse("unauthorized", "Sign in (anonymously) first", 401);
   }
 
-  let input: { qr_token?: string; table_id?: string; reason?: string; note?: string };
-  try {
-    input = await req.json();
-  } catch {
-    return errorResponse("bad_json", "Invalid JSON body");
-  }
+  const input = await readJsonObject<{ qr_token?: string; table_id?: string; reason?: string; note?: string }>(req);
+  if (!input) return errorResponse("bad_json", "Invalid JSON body");
   if (!input.qr_token && !input.table_id) return errorResponse("bad_request", "qr_token or table_id required");
   if (input.table_id && !UUID_RE.test(input.table_id)) return errorResponse("bad_request", "table_id must be a UUID");
   const reason = REASONS.includes(input.reason as typeof REASONS[number])

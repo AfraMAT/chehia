@@ -3,7 +3,7 @@
 // (the browser client cannot create auth users). The new member is scoped to
 // the caller's restaurant; managers may only create waiter/kitchen.
 import { callerId, EMAIL_RE, generatePassword, serviceClient } from "../_shared/admin.ts";
-import { corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { corsHeaders, errorResponse, jsonResponse, readJsonObject } from "../_shared/cors.ts";
 
 const ASSIGNABLE = ["manager", "waiter", "kitchen"] as const;
 
@@ -27,12 +27,8 @@ Deno.serve(async (req) => {
     return errorResponse("forbidden", "Only an owner or manager can add staff", 403);
   }
 
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return errorResponse("bad_json", "Invalid JSON body");
-  }
+  const body = await readJsonObject<Record<string, unknown>>(req);
+  if (!body) return errorResponse("bad_json", "Invalid JSON body");
 
   const email = String(body.email ?? "").trim().toLowerCase();
   const displayName = String(body.display_name ?? "").trim();

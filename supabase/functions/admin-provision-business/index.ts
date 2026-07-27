@@ -11,7 +11,7 @@ import {
   SLUG_RE,
   slugify,
 } from "../_shared/admin.ts";
-import { corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { corsHeaders, errorResponse, jsonResponse, readJsonObject } from "../_shared/cors.ts";
 
 const LANGS = ["fr", "ar", "en"] as const;
 
@@ -32,12 +32,8 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (!pa) return errorResponse("forbidden", "Platform admin only", 403);
 
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return errorResponse("bad_json", "Invalid JSON body");
-  }
+  const body = await readJsonObject<Record<string, unknown>>(req);
+  if (!body) return errorResponse("bad_json", "Invalid JSON body");
 
   const restaurant = (body.restaurant ?? {}) as Record<string, unknown>;
   const owner = (body.owner ?? {}) as Record<string, unknown>;

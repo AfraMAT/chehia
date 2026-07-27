@@ -4,7 +4,7 @@
 // cash rounding, the amount actually collected, the change, and the TVA extracted
 // from the (TTC) total. settle_order_tx then records it atomically + idempotently.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { corsHeaders, errorResponse, jsonResponse, readJsonObject } from "../_shared/cors.ts";
 
 type SettleInput = {
   order_id: string;
@@ -41,12 +41,8 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (!staff) return errorResponse("not_staff", "This account is not staff of any venue", 403);
 
-  let input: SettleInput;
-  try {
-    input = await req.json();
-  } catch {
-    return errorResponse("bad_json", "Invalid JSON body");
-  }
+  const input = await readJsonObject<SettleInput>(req);
+  if (!input) return errorResponse("bad_json", "Invalid JSON body");
   if (!input?.order_id || !UUID_RE.test(input.order_id)) {
     return errorResponse("bad_request", "order_id (UUID) is required");
   }

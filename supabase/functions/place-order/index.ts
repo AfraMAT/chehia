@@ -6,7 +6,7 @@
 // - Prices are recomputed from the database; client-sent prices are ignored.
 // - Modifier selections are validated against group min/max rules.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { corsHeaders, errorResponse, jsonResponse, readJsonObject } from "../_shared/cors.ts";
 
 type OrderLineInput = {
   item_id: string;
@@ -133,12 +133,8 @@ Deno.serve(async (req) => {
 
   const admin = createClient(supabaseUrl, serviceKey);
 
-  let input: PlaceOrderInput;
-  try {
-    input = await req.json();
-  } catch {
-    return errorResponse("bad_json", "Invalid JSON body");
-  }
+  const input = await readJsonObject<PlaceOrderInput>(req);
+  if (!input) return errorResponse("bad_json", "Invalid JSON body");
 
   // Idempotency (all flows): a repeated client_ref returns the already-created
   // order. Checked up front so a group/solo retry never trips the session-state
@@ -237,8 +233,12 @@ Deno.serve(async (req) => {
     return errorResponse("too_many_lines", "Order too large");
   }
   for (const line of input.lines) {
-    if (!line.item_id || !Number.isInteger(line.qty) || line.qty < 1 || line.qty > 20) {
-      return errorResponse("bad_line", "Each line needs item_id and qty between 1 and 20");
+    // item_id is shape-checked here, not just truthiness: it goes straight into
+    // a PostgREST `.in("id", …)` on a uuid column, so a malformed value made the
+    // query itself error and the customer saw a 500 "could not load the menu"
+    // instead of a 400 naming the bad line.
+    if (!line.item_id || !UUID_RE.test(line.item_id) || !Number.isInteger(line.qty) || line.qty < 1 || line.qty > 20) {
+      return errorResponse("bad_line", "Each line needs a valid item_id and qty between 1 and 20");
     }
   }
 

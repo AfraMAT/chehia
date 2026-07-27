@@ -6,7 +6,7 @@
 //     hardened repricing + modifier validation are kept verbatim.
 // Prices are always recomputed here — the tablet's math is never trusted.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { corsHeaders, errorResponse, jsonResponse, readJsonObject } from "../_shared/cors.ts";
 
 type OrderLineInput = {
   item_id: string;
@@ -77,12 +77,8 @@ Deno.serve(async (req) => {
     return errorResponse("not_staff", "This account is not staff of any venue", 403);
   }
 
-  let input: RegisterOrderInput;
-  try {
-    input = await req.json();
-  } catch {
-    return errorResponse("bad_json", "Invalid JSON body");
-  }
+  const input = await readJsonObject<RegisterOrderInput>(req);
+  if (!input) return errorResponse("bad_json", "Invalid JSON body");
 
   const orderType = ["dine_in", "takeaway", "walk_in"].includes(input.order_type ?? "")
     ? input.order_type!

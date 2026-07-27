@@ -9,7 +9,7 @@
 // restaurant_id (restaurant_id is attacker-controlled, so it's in the WHERE).
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, errorResponse, jsonResponse } from "../_shared/cors.ts";
+import { corsHeaders, errorResponse, jsonResponse, readJsonObject } from "../_shared/cors.ts";
 
 /** Service-role client (bypasses RLS) for the gate + rate-limit reads. */
 function serviceClient(): SupabaseClient {
@@ -195,12 +195,8 @@ Deno.serve(async (req) => {
   const uid = await callerId(req);
   if (!uid) return errorResponse("unauthorized", "Sign in first", 401);
 
-  let body: { restaurant_id?: unknown; images?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return errorResponse("bad_json", "Invalid JSON body");
-  }
+  const body = await readJsonObject<{ restaurant_id?: unknown; images?: unknown }>(req);
+  if (!body) return errorResponse("bad_json", "Invalid JSON body");
 
   const restaurantId = String(body.restaurant_id ?? "");
   if (!UUID_RE.test(restaurantId)) return errorResponse("bad_request", "restaurant_id must be a UUID");
