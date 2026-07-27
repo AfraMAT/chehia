@@ -145,18 +145,23 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [storageKey]);
 
   // Realtime: any change to this session's participants or cart lines → refetch.
+  // Keyed on the session ID, NOT the session object: refetch() calls setSession()
+  // with a freshly-parsed row on every event, so depending on the object would
+  // tear down and resubscribe the channel after each message — and every event
+  // arriving during that gap is lost for good.
+  const sessionId = session?.id ?? null;
   useEffect(() => {
-    if (!session) return;
+    if (!sessionId) return;
     const channel = supabase
-      .channel(`session-${session.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "session_participants", filter: `session_id=eq.${session.id}` }, () => void refetch(session.id))
-      .on("postgres_changes", { event: "*", schema: "public", table: "session_cart_lines", filter: `session_id=eq.${session.id}` }, () => void refetch(session.id))
-      .on("postgres_changes", { event: "*", schema: "public", table: "order_sessions", filter: `id=eq.${session.id}` }, () => void refetch(session.id))
+      .channel(`session-${sessionId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "session_participants", filter: `session_id=eq.${sessionId}` }, () => void refetch(sessionId))
+      .on("postgres_changes", { event: "*", schema: "public", table: "session_cart_lines", filter: `session_id=eq.${sessionId}` }, () => void refetch(sessionId))
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_sessions", filter: `id=eq.${sessionId}` }, () => void refetch(sessionId))
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [session, refetch]);
+  }, [sessionId, refetch]);
 
   const persist = useCallback(
     (s: SessionState | null) => {
@@ -252,14 +257,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const place = useCallback(
     async (mode: "group" | "solo"): Promise<PlaceSessionResult> => {
       if (!session) return { ok: false, code: "no_session" };
-      await ensureCustomerSession();
       // Idempotency key survives a retry so a committed-but-lost response can't
       // duplicate the order.
       placeRefRef.current ??= randomUUID();
-      const { data: sessionData } = await supabase.auth.getSession();
       type PlaceResponse = { order?: { id: string }; error?: { code?: string } };
       let json: PlaceResponse | null;
+      // Anonymous sign-in and the token read must stay INSIDE the try: both
+      // reject on a flaky network, and the caller (group-cart's doPlace) clears
+      // its spinner only after this resolves — a rejection froze the sheet.
       try {
+        await ensureCustomerSession();
+        const { data: sessionData } = await supabase.auth.getSession();
         const response = await fetch(functionsUrl("place-order"), {
           method: "POST",
           headers: {

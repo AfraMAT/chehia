@@ -26,6 +26,15 @@ describe("millimesToDisplay", () => {
   it("handles negatives", () => {
     expect(millimesToDisplay(-1500, "fr")).toBe("−1,5");
   });
+  it("rounds a non-integer millime instead of splicing float digits", () => {
+    expect(millimesToDisplay(10000 / 3, "fr")).toBe("3,333");
+    expect(millimesToDisplay(2500.5, "fr")).toBe("2,501");
+    expect(millimesToDisplay(-1500.4, "fr")).toBe("−1,5");
+  });
+  it("degrades a non-finite amount to zero", () => {
+    expect(millimesToDisplay(NaN, "fr")).toBe("0,0");
+    expect(millimesToDisplay(Infinity, "fr")).toBe("0,0");
+  });
 });
 
 describe("formatPrice / currencyLabel", () => {
@@ -46,6 +55,11 @@ describe("formatDelta", () => {
   });
   it("is empty for zero", () => {
     expect(formatDelta(0, "fr")).toBe("");
+  });
+  it("rounds like millimesToDisplay, so a sub-millime delta is empty", () => {
+    expect(formatDelta(0.4, "fr")).toBe("");
+    expect(formatDelta(NaN, "fr")).toBe("");
+    expect(formatDelta(-1500.4, "fr")).toBe("−1,5");
   });
 });
 

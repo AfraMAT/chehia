@@ -13,7 +13,15 @@ export function Stars({ value, size = 14 }: { value: number | null | undefined; 
   const [w, setW] = useState(0);
   const pct = Math.max(0, Math.min(1, (value ?? 0) / 5));
   return (
-    <View style={{ position: "relative" }}>
+    // One a11y element, not two glyph runs: without `accessible` VoiceOver
+    // focuses the grey row and the gold overlay separately and announces
+    // "black star ×5" twice for a single rating.
+    <View
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={`${(value ?? 0).toFixed(1)} / 5`}
+      style={{ position: "relative" }}
+    >
       <Text
         onLayout={(e) => setW(e.nativeEvent.layout.width)}
         style={{ fontSize: size, color: STAR_EMPTY, letterSpacing: 1 }}

@@ -7,8 +7,11 @@ import type { Language } from "./types";
  */
 
 export function millimesToDisplay(millimes: number, lang: Language = "fr"): string {
-  const negative = millimes < 0;
-  const abs = Math.abs(millimes);
+  // Money is integer millimes: a computed average/split/percentage must round
+  // here rather than splice float digits into the fraction field.
+  const value = Number.isFinite(millimes) ? Math.round(millimes) : 0;
+  const negative = value < 0;
+  const abs = Math.abs(value);
   const dinars = Math.floor(abs / 1000);
   const rem = abs % 1000;
 
@@ -31,9 +34,10 @@ export function formatPrice(millimes: number, lang: Language = "fr"): string {
 
 /** "+1,0" style modifier deltas; empty string for zero. */
 export function formatDelta(millimes: number, lang: Language = "fr"): string {
-  if (millimes === 0) return "";
-  const sign = millimes > 0 ? "+" : "−";
-  return `${sign}${millimesToDisplay(Math.abs(millimes), lang)}`;
+  const value = Number.isFinite(millimes) ? Math.round(millimes) : 0;
+  if (value === 0) return "";
+  const sign = value > 0 ? "+" : "−";
+  return `${sign}${millimesToDisplay(Math.abs(value), lang)}`;
 }
 
 /** Whole large numbers with thin-space thousands grouping: 1284 → "1 284". */

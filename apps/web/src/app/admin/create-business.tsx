@@ -214,7 +214,7 @@ function Row({ label, value, mono = false }: { label: string; value: string; mon
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="text-[11px] font-extrabold text-muted-soft uppercase">{label}</span>
-      <span className={`text-[13px] font-bold text-ink ${mono ? "font-mono" : ""} text-right break-all`}>{value}</span>
+      <span className={`text-[13px] font-bold text-ink ${mono ? "font-mono" : ""} text-end break-all`}>{value}</span>
     </div>
   );
 }

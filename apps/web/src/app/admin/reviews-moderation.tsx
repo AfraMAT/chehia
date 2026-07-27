@@ -11,6 +11,7 @@ import {
 import { getSupabase } from "@/lib/supabase";
 import { useI18n } from "@/components/i18n-provider";
 import { Stars } from "@/components/ui";
+import { ConfirmDialog } from "../business/confirm-dialog";
 
 interface ModReview {
   id: string;
@@ -35,6 +36,11 @@ export function ReviewsModeration() {
   const [reviews, setReviews] = useState<ModReview[] | null>(null);
   const [filter, setFilter] = useState<Filter>("pending");
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Publishing makes free-text comments publicly readable on the customer venue
+  // pages, across every venue at once, and there is no bulk undo — so it is
+  // confirmed, with the count shown before the click.
+  const [confirmAll, setConfirmAll] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await supabase.rpc("admin_reviews_moderation", {
@@ -54,11 +60,14 @@ export function ReviewsModeration() {
     setBusyId(null);
   };
 
+  const pendingIds = (reviews ?? []).filter((r) => r.status === "pending").map((r) => r.id);
+
   const approveAll = async () => {
-    const pending = (reviews ?? []).filter((r) => r.status === "pending").map((r) => r.id);
-    if (pending.length === 0) return;
+    if (pendingIds.length === 0) return;
     setBusyId("all");
-    await supabase.from("reviews").update({ status: "approved" }).in("id", pending);
+    setFailed(false);
+    const { error } = await supabase.from("reviews").update({ status: "approved" }).in("id", pendingIds);
+    if (error) setFailed(true);
     await load();
     setBusyId(null);
   };
@@ -95,15 +104,20 @@ export function ReviewsModeration() {
             </button>
           ))}
         </div>
-        {filter === "pending" && (reviews?.some((r) => r.status === "pending") ?? false) && (
+        {filter === "pending" && pendingIds.length > 0 && (
           <button
             type="button"
-            onClick={() => void approveAll()}
+            onClick={() => setConfirmAll(true)}
             disabled={busyId === "all"}
             className="h-8 px-3.5 rounded-lg bg-success text-white font-extrabold text-[12.5px] cursor-pointer disabled:opacity-50"
           >
-            {t.admin.approveAll}
+            {t.admin.approveAll} <span className="tabular-nums">({pendingIds.length})</span>
           </button>
+        )}
+        {failed && (
+          <span role="alert" className="text-[12.5px] font-bold text-danger-text">
+            {t.errors.generic}
+          </span>
         )}
       </div>
 
@@ -179,6 +193,19 @@ export function ReviewsModeration() {
             </div>
           ))}
         </div>
+      )}
+
+      {confirmAll && (
+        <ConfirmDialog
+          title={t.admin.approveAll}
+          body={`${t.admin.reviewsPending} : ${pendingIds.length}`}
+          confirmLabel={t.admin.approve}
+          onConfirm={() => {
+            setConfirmAll(false);
+            void approveAll();
+          }}
+          onCancel={() => setConfirmAll(false)}
+        />
       )}
     </div>
   );

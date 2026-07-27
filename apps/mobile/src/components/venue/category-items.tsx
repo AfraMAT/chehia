@@ -80,7 +80,9 @@ export function CategoryItems({
             hitSlop={6}
             style={[rowDir(lang), { alignItems: "center", gap: 4, backgroundColor: theme.harissaTint, borderRadius: 100, paddingStart: 10, paddingEnd: 14, paddingVertical: 7 }]}
           >
-            <T weight="extrabold" size={13.5} color={theme.harissaPressed}>
+            {/* lang is load-bearing: it picks the Arabic face AND sets the RTL
+                base direction, without which the neutral chevron flips sides. */}
+            <T lang={lang} weight="extrabold" size={13.5} color={theme.harissaPressed}>
               {isRtl ? "›" : "‹"} {t.menu.backToCategories}
             </T>
           </Pressable>

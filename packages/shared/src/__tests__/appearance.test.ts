@@ -86,6 +86,16 @@ describe("resolveAppearance", () => {
     expect(a.extractedPalettes).toHaveLength(1);
     expect(a.extractedPalettes?.[0]?.id).toBe("extracted-1");
   });
+
+  it("drops an extracted palette whose tokens are not hex, and normalizes those that are", () => {
+    const notHex = { id: "junk-theme", name_i18n: {}, palette: { ...DEFAULT_PALETTE, ink: "", bg: "nope" } };
+    const shorthand = { id: "short", name_i18n: {}, palette: { ...DEFAULT_PALETTE, ink: "#FFF" } };
+    const a = resolveAppearance({ themeId: "junk-theme", extractedPalettes: [notHex, shorthand] });
+    expect(a.extractedPalettes?.map((p) => p.id)).toEqual(["short"]);
+    expect(a.extractedPalettes?.[0]?.palette.ink).toBe("#ffffff");
+    // the venue pointed at the dropped theme, so it falls back to a legible default
+    expect(resolveThemePalette(a)).toEqual(DEFAULT_PALETTE);
+  });
 });
 
 describe("resolveThemePalette", () => {

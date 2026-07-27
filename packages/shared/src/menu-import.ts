@@ -26,6 +26,13 @@ export interface MenuDraft {
   categories: DraftCategory[];
 }
 
+/**
+ * The only dietary tags the customer menus know how to render. Mirrors the
+ * `dietary_tags` enum in supabase/functions/extract-menu/index.ts — anything
+ * else the model drifts into is dropped rather than persisted as a dead chip.
+ */
+export const DIETARY_TAGS = ["vegetarian", "vegan", "spicy", "glutenFree"] as const;
+
 // Currency words/symbols a Tunisian menu might print next to the number.
 const CURRENCY_RE = /(dt|tnd|dinars?|millimes?|mill\.?|دينار|د\.?ت)/g;
 
@@ -102,7 +109,13 @@ export function validateDraft(
       const desc = cleanI18n(it.description_i18n);
       if (Object.keys(desc).length) item.description_i18n = desc;
       if (Array.isArray(it.dietary_tags)) {
-        const tags = it.dietary_tags.filter((tag): tag is string => typeof tag === "string");
+        const tags = [
+          ...new Set(
+            it.dietary_tags.filter(
+              (tag): tag is string => typeof tag === "string" && (DIETARY_TAGS as readonly string[]).includes(tag),
+            ),
+          ),
+        ];
         if (tags.length) item.dietary_tags = tags;
       }
       items.push(item);

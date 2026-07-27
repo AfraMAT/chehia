@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CtaButton, Handle, SheetClose, T } from "../../ui";
 import { useI18n } from "@/lib/i18n";
-import { colors, rowDir, useTheme } from "@/lib/theme";
+import { colors, faceFor, rowDir, sizeFor, useTheme } from "@/lib/theme";
 import { useSession } from "@/lib/session";
 
 const NICK_KEY = "chehia.nickname";
@@ -74,9 +74,11 @@ export function GroupSheet({
     borderColor: theme.borderStrong,
     backgroundColor: theme.card,
     paddingHorizontal: 14,
-    fontFamily: "Manrope_700Bold",
-    fontSize: 14,
+    fontFamily: faceFor(lang, "bold"),
+    fontSize: sizeFor(lang, 14),
     color: theme.ink,
+    textAlign: (isRtl ? "right" : "left") as "left" | "right",
+    writingDirection: (isRtl ? "rtl" : "ltr") as "rtl" | "ltr",
   } as const;
 
   return (

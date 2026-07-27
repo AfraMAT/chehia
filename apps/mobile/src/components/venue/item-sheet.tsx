@@ -274,6 +274,9 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                             accessibilityRole="radio"
                             accessibilityState={{ selected: active }}
                             accessibilityLabel={hasDelta ? `${tr(mod.name_i18n)}, ${formatDelta(mod.price_delta_millimes, lang)}` : tr(mod.name_i18n)}
+                            // Pill mode is only 38pt tall — 3pt of slop clears
+                            // the 44pt minimum without eating the 7pt row gap.
+                            hitSlop={blockStyle ? undefined : { top: 3, bottom: 3 }}
                             style={{
                               flexGrow: blockStyle ? 1 : 0,
                               minWidth: blockStyle ? 72 : undefined,

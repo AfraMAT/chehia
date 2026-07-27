@@ -75,8 +75,10 @@ export function formatDistanceKm(km: number, lang: string = "fr"): string {
   const sep = lang === "en" ? "." : ",";
   const unit = lang === "ar" ? { m: "م", km: "كم" } : { m: "m", km: "km" };
   if (km < 1) {
-    const m = Math.max(10, Math.round((km * 1000) / 10) * 10);
-    return `${m} ${unit.m}`;
+    // Round to 10 m BEFORE committing to the unit, so 0,996 km reads "1,0 km"
+    // rather than "1000 m".
+    const m = Math.round((km * 1000) / 10) * 10;
+    if (m < 1000) return `${Math.max(10, m)} ${unit.m}`;
   }
   if (km < 10) {
     return `${km.toFixed(1).replace(".", sep)} ${unit.km}`;

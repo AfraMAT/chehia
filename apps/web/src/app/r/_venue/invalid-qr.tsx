@@ -21,18 +21,24 @@ export function InvalidQr({ kind = "qr" }: { kind?: "qr" | "venue" }) {
         <p className="text-sm text-muted">{venue ? "Restaurant not found" : "This QR code is not valid"}</p>
       </div>
       {!venue && (
-        <p className="text-[13px] text-muted leading-relaxed max-w-[300px]">
-          Demandez au personnel de vérifier la carte de table, ou consultez le menu au comptoir.
-        </p>
+        <div className="flex flex-col gap-1.5 text-[13px] text-muted leading-relaxed max-w-[320px]">
+          <p>Demandez au personnel de vérifier la carte de table, ou consultez le menu au comptoir.</p>
+          <p dir="rtl">اطلب من الموظفين التحقق من بطاقة الطاولة، أو اطّلع على القائمة عند المنضدة.</p>
+          <p>Ask the staff to check the table card, or see the menu at the counter.</p>
+        </div>
       )}
       {/* Always give one clear way forward — a scanned dead-QR must never trap a
           guest with no next step. Discovery lets them find this venue (or a
           nearby one) and order through the browse flow. */}
       <Link
         href="/app"
-        className="h-12 px-8 rounded-xl bg-harissa text-white font-extrabold text-[15px] flex items-center justify-center shadow-[0_4px_12px_rgba(188,75,38,0.25)]"
+        className="min-h-12 px-8 py-2.5 rounded-xl bg-harissa text-white flex flex-col items-center justify-center gap-0.5 shadow-[0_4px_12px_rgba(188,75,38,0.25)]"
       >
-        {venue ? "Voir tous les restaurants" : "Découvrir les restaurants"}
+        <span className="font-extrabold text-[15px]">{venue ? "Voir tous les restaurants" : "Découvrir les restaurants"}</span>
+        <span dir="rtl" className="font-bold text-[13px]">
+          {venue ? "عرض كل المطاعم" : "اكتشف المطاعم"}
+        </span>
+        <span className="text-[12px] text-white/85">{venue ? "See all restaurants" : "Discover restaurants"}</span>
       </Link>
     </div>
   );

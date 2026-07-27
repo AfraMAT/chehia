@@ -49,6 +49,7 @@ export default function SettingsPage() {
   const [requireLocation, setRequireLocation] = useState<boolean>(restaurant.require_location);
   const [staffRows, setStaffRows] = useState<StaffRow[]>([]);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Upload a venue cover to the tenant-scoped folder (reuses the item-photos
@@ -104,16 +105,26 @@ export default function SettingsPage() {
 
   const save = async () => {
     setSaving(true);
+    setSaveError(false);
+    // Write every day, closed ones as the explicit "closed" marker: omitting them
+    // made a fully-closed week indistinguishable from "no hours configured", and
+    // it read back as open 08:00–22:00 everywhere. Consumers that split on "-"
+    // (venue-home, place-order's isWithinOpeningHours) treat it as closed.
     const opening: Record<string, string> = {};
-    for (const d of DAYS) if (!hours[d].closed) opening[d] = `${hours[d].open}-${hours[d].close}`;
-    await supabase
+    for (const d of DAYS) opening[d] = hours[d].closed ? "closed" : `${hours[d].open}-${hours[d].close}`;
+    const { error } = await supabase
       .from("restaurants")
       .update({ name, address, city, phone, whatsapp: whatsapp.trim() || null, instagram: instagram.trim() || null, languages, default_language: defaultLanguage, opening_hours: opening, require_qr: requireQr, require_table_confirmation: requireConfirm, enforce_opening_hours: enforceHours, reviews_enabled: reviewsEnabled, inventory_alerts_enabled: inventoryAlerts, cover_url: coverUrl, latitude, longitude, geofence_radius_m: radiusM, require_location: requireLocation })
       .eq("id", restaurant.id);
+    setSaving(false);
+    // RLS or the network rejected the write: never claim it was saved.
+    if (error) {
+      setSaveError(true);
+      return;
+    }
     await refreshRestaurant();
     // Don't force the operator's portal UI language to the venue default on save —
     // their chosen language (chehia.portal.lang) is independent of the customer default.
-    setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -147,6 +158,11 @@ export default function SettingsPage() {
         {saved && (
           <span className="text-xs font-extrabold text-success-text bg-success-tint rounded-full px-3 py-1.5">
             ✓ {t.portal.settings.saved}
+          </span>
+        )}
+        {saveError && (
+          <span role="alert" className="text-xs font-extrabold text-danger-text bg-danger-tint rounded-full px-3 py-1.5">
+            {t.errors.generic}
           </span>
         )}
       </div>
@@ -568,9 +584,12 @@ function parseHours(src: Record<string, string> | null | undefined): Record<Day,
   const has = src && Object.keys(src).length > 0;
   for (const d of DAYS) {
     const spec = src?.[d];
-    if (spec) {
+    // A range means open; "closed" (or anything without a "-") means closed.
+    if (spec?.includes("-")) {
       const [open, close] = spec.split("-");
       hours[d] = { open: open ?? "08:00", close: close ?? "22:00", closed: false };
+    } else if (spec) {
+      hours[d] = { open: "08:00", close: "22:00", closed: true };
     } else {
       hours[d] = { open: "08:00", close: "22:00", closed: !!has };
     }

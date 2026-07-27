@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LANGUAGES, LANGUAGE_LABELS, type Category, type Language } from "@chehia/shared";
+import { LANGUAGES, LANGUAGE_LABELS, currencyLabel, millimesToDisplay, type Category, type Language } from "@chehia/shared";
 import { callFunction, getSupabase } from "@/lib/supabase";
 import { Logo } from "@/components/brand";
 import { Spinner } from "@/components/ui";
@@ -48,6 +48,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [finishing, setFinishing] = useState(false);
   const [done, setDone] = useState(false);
+  const [finishError, setFinishError] = useState(false);
   const [menuValid, setMenuValid] = useState(false);
 
   // The wizard is setup-only: an already-onboarded venue must not re-enter it
@@ -62,13 +63,20 @@ export default function OnboardingPage() {
 
   const finish = useCallback(async () => {
     setFinishing(true);
-    await supabase
+    setFinishError(false);
+    const { error } = await supabase
       .from("restaurants")
       .update({ onboarding_completed_at: new Date().toISOString(), is_active: true })
       .eq("id", restaurant.id);
+    setFinishing(false);
+    // Without the completion stamp the portal bounces straight back here, so
+    // never show the success screen on a failed write — let them retry.
+    if (error) {
+      setFinishError(true);
+      return;
+    }
     await refreshRestaurant();
     setDone(true);
-    setFinishing(false);
   }, [supabase, restaurant.id, refreshRestaurant]);
 
   if (done) {
@@ -141,6 +149,12 @@ export default function OnboardingPage() {
           {step === 6 && <StaffStep />}
         </div>
 
+        {finishError && (
+          <p role="alert" className="text-[13px] font-extrabold text-danger-text bg-danger-tint rounded-lg px-3.5 py-2.5">
+            {t.errors.generic} — {t.errors.genericBody}
+          </p>
+        )}
+
         {/* Nav */}
         <div className="flex items-center gap-3">
           {step > 0 && (
@@ -199,7 +213,6 @@ function ProfileStep() {
   const [radiusM, setRadiusM] = useState<number>(restaurant.geofence_radius_m);
   const [requireLocation, setRequireLocation] = useState<boolean>(restaurant.require_location);
 
-  // Persist on unmount/change via a debounce-free save when the field blurs.
   const save = useCallback(async () => {
     await supabase
       .from("restaurants")
@@ -208,12 +221,18 @@ function ProfileStep() {
     await refreshRestaurant();
   }, [supabase, name, address, city, phone, languages, defaultLanguage, latitude, longitude, radiusM, requireLocation, restaurant.id, refreshRestaurant]);
 
-  // Persist the latest profile when the step unmounts (Next / Back).
+  // Persist the latest profile when the step unmounts (Next / Back). `save` gets
+  // a new identity on every keystroke, so keying the effect on it would fire one
+  // unordered PATCH + refetch per character — hold it in a ref and run once.
+  const latestSave = useRef(save);
+  useEffect(() => {
+    latestSave.current = save;
+  });
   useEffect(() => {
     return () => {
-      void save();
+      void latestSave.current();
     };
-  }, [save]);
+  }, []);
 
   const toggleLanguage = (code: Language) => {
     setLanguages((prev) => {
@@ -300,8 +319,9 @@ function HoursStep() {
   const { restaurant, refreshRestaurant } = usePortal();
   const supabase = getSupabase();
 
+  // A range means open; "closed" (or anything without a "-") means closed.
   const parse = (spec: string | undefined): { open: string; close: string; closed: boolean } => {
-    if (!spec) return { open: "08:00", close: "22:00", closed: true };
+    if (!spec?.includes("-")) return { open: "08:00", close: "22:00", closed: true };
     const [open, close] = spec.split("-");
     return { open: open ?? "08:00", close: close ?? "22:00", closed: false };
   };
@@ -315,18 +335,25 @@ function HoursStep() {
   });
 
   const save = useCallback(async () => {
+    // Closed days are written explicitly — omitting them made "closed all week"
+    // indistinguishable from "not configured yet" and read back as fully open.
     const opening: Record<string, string> = {};
-    for (const d of DAYS) if (!hours[d].closed) opening[d] = `${hours[d].open}-${hours[d].close}`;
+    for (const d of DAYS) opening[d] = hours[d].closed ? "closed" : `${hours[d].open}-${hours[d].close}`;
     await supabase.from("restaurants").update({ opening_hours: opening }).eq("id", restaurant.id);
     await refreshRestaurant();
   }, [supabase, hours, restaurant.id, refreshRestaurant]);
 
-  // Persist hours when the step unmounts.
+  // Persist hours when the step unmounts — via a ref so toggling a day doesn't
+  // fire a PATCH + refetch per change (see ProfileStep).
+  const latestSave = useRef(save);
+  useEffect(() => {
+    latestSave.current = save;
+  });
   useEffect(() => {
     return () => {
-      void save();
+      void latestSave.current();
     };
-  }, [save]);
+  }, []);
 
   const setDay = (d: Day, patch: Partial<{ open: string; close: string; closed: boolean }>) =>
     setHours((prev) => ({ ...prev, [d]: { ...prev[d], ...patch } }));
@@ -386,11 +413,11 @@ function HoursStep() {
 interface Cat {
   id: string;
   name: string;
-  items: { id: string; name: string; price: string }[];
+  items: { id: string; name: string; price_millimes: number }[];
 }
 
 function MenuStep({ defaultLang, onValidChange }: { defaultLang: Language; onValidChange: (v: boolean) => void }) {
-  const { t, tr } = useI18n();
+  const { t, tr, lang } = useI18n();
   const { restaurant } = usePortal();
   const supabase = getSupabase();
   const [cats, setCats] = useState<Cat[]>([]);
@@ -417,7 +444,7 @@ function MenuStep({ defaultLang, onValidChange }: { defaultLang: Language; onVal
         .map((i) => ({
           id: i.id as string,
           name: tr(i.name_i18n as Record<string, string>),
-          price: ((i.price_millimes as number) / 1000).toString(),
+          price_millimes: i.price_millimes as number,
         })),
     }));
     setCats(mapped);
@@ -462,7 +489,9 @@ function MenuStep({ defaultLang, onValidChange }: { defaultLang: Language; onVal
       .single();
     if (data)
       setCats((prev) =>
-        prev.map((c) => (c.id === catId ? { ...c, items: [...c.items, { id: data.id as string, name: name.trim(), price }] } : c)),
+        prev.map((c) =>
+          c.id === catId ? { ...c, items: [...c.items, { id: data.id as string, name: name.trim(), price_millimes: millimes }] } : c,
+        ),
       );
   };
 
@@ -488,7 +517,7 @@ function MenuStep({ defaultLang, onValidChange }: { defaultLang: Language; onVal
             <div key={i.id} className="flex items-center gap-2 text-[13px]">
               <span className="flex-1 font-bold text-ink truncate">{i.name}</span>
               <span className="font-bold text-muted-soft" dir="ltr">
-                {i.price} TND
+                {millimesToDisplay(i.price_millimes, lang)} {currencyLabel(lang)}
               </span>
             </div>
           ))}
@@ -600,6 +629,7 @@ function TablesStep() {
   const [zone, setZone] = useState("");
   const [existing, setExisting] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
 
   const loadCount = useCallback(async () => {
     const { count: c } = await supabase
@@ -617,6 +647,7 @@ function TablesStep() {
     const n = Math.max(1, Math.min(100, Number.parseInt(count, 10) || 0));
     if (!n) return;
     setBusy(true);
+    setError(false);
     const start = existing ?? 0;
     const rows = Array.from({ length: n }, (_, i) => ({
       restaurant_id: restaurant.id,
@@ -624,7 +655,8 @@ function TablesStep() {
       zone: zone.trim(),
       sort_order: start + i,
     }));
-    await supabase.from("tables").insert(rows);
+    const { error: insertError } = await supabase.from("tables").insert(rows);
+    setError(Boolean(insertError));
     await loadCount();
     setBusy(false);
   };
@@ -655,6 +687,11 @@ function TablesStep() {
       >
         {busy ? <Spinner /> : t.onboarding.generateTables}
       </button>
+      {error && (
+        <p role="alert" className="text-[12.5px] font-bold text-danger-text">
+          {t.errors.generic}
+        </p>
+      )}
     </div>
   );
 }

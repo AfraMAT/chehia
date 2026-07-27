@@ -1,5 +1,6 @@
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { MenuScreen } from "@/components/venue/menu-screen";
+import { VenueHome } from "@/components/venue/venue-home";
 import { useVenueState } from "@/lib/venue";
 
 /** P2/P7 · Scanned-flow menu route — guards loading/invalid, then renders the
@@ -11,6 +12,7 @@ export default function ScannedMenu() {
     // The landing screen renders the proper invalid-QR explanation.
     return <Redirect href={`/r/${slug}/t/${token}`} />;
   }
-  if (state.status !== "ready") return null;
+  // VenueHome renders the loading spinner — a deep link can land here cold.
+  if (state.status !== "ready") return <VenueHome />;
   return <MenuScreen />;
 }

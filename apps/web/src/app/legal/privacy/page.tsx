@@ -27,6 +27,7 @@ export default function PrivacyPage() {
           <li><b>Avis et notes (facultatif).</b> Si vous évaluez une commande : la note, un commentaire libre éventuel et un prénom éventuel. Les avis sont modérés avant leur éventuelle publication.</li>
           <li><b>Commande en groupe (facultatif).</b> Le pseudonyme que vous choisissez pour rejoindre une table partagée est visible par les autres participants et conservé avec la commande (comme étiquette sur les articles) une fois celle-ci passée.</li>
           <li><b>Comptes du personnel.</b> Pour les établissements : e-mail et rôle des membres de l’équipe, afin d’accéder au portail.</li>
+          <li><b>Photos (établissements uniquement).</b> Les photos de plats et de catégories téléversées depuis le portail sont conservées avec le menu. Un établissement peut aussi photographier son menu papier pour le transcrire automatiquement : cette photo est envoyée à un service d’analyse d’images puis <b>supprimée</b>, jamais enregistrée (voir « Sous-traitants »).</li>
           <li><b>Demandes de contact.</b> Si vous nous écrivez via le formulaire « restaurateurs » : nom, établissement, e-mail, téléphone, ville, message, et votre adresse IP (à des fins de prévention du spam).</li>
           <li><b>Préférences locales.</b> Votre panier et votre langue sont conservés dans le stockage local de votre appareil (localStorage sur le web, stockage de l’application sur mobile).</li>
         </ul>
@@ -35,25 +36,42 @@ export default function PrivacyPage() {
       <Section title="Ce que nous ne collectons pas">
         <p>
           Chehia est un service <b>« commande seule »</b> : le paiement se fait au comptoir. Nous ne
-          collectons ni ne stockons aucune donnée de carte bancaire. L’appareil photo sert uniquement à
-          scanner le code QR de votre table, <b>sur votre appareil</b> — aucune image n’est transmise ni
-          conservée.
+          collectons ni ne stockons aucune donnée de carte bancaire. Pour les <b>clients</b>, l’appareil
+          photo sert uniquement à scanner le code QR de votre table, <b>sur votre appareil</b> — aucune
+          image n’est transmise ni conservée. Les envois de photos décrits ci-dessus concernent
+          exclusivement les <b>établissements</b>, depuis leur portail et à leur initiative.
         </p>
       </Section>
 
       <Section title="Hébergement et sécurité">
         <p>
-          Les données sont hébergées chez Supabase, dans l’Union européenne (région eu-west-3, Paris).
-          L’accès est protégé par des règles de sécurité au niveau des lignes (Row-Level Security) : un
-          établissement ne voit que ses propres données.
+          Les données du service sont hébergées chez Supabase, dans l’Union européenne (région eu-west-3,
+          Paris) : base de données, comptes et fichiers. L’accès est protégé par des règles de sécurité au
+          niveau des lignes (Row-Level Security) : un établissement ne voit que ses propres données. Deux
+          fonctions précises font intervenir des prestataires situés hors de l’Union européenne — elles
+          sont détaillées ci-dessous.
+        </p>
+      </Section>
+
+      <Section title="Sous-traitants">
+        <ul className="list-disc ps-5 flex flex-col gap-1.5">
+          <li><b>Supabase</b> — <i>Union européenne (eu-west-3, Paris)</i>. Hébergement de la base de données, de l’authentification et des fichiers (dont les photos de plats). C’est l’hébergeur de l’ensemble des données du service.</li>
+          <li><b>Anthropic</b> — <i>États-Unis</i>. Intervient <b>uniquement</b> lorsqu’un établissement lance l’import de son menu par photo depuis le portail. La ou les photos du menu papier sont transmises au modèle d’analyse d’images pour être transcrites en texte, puis <b>immédiatement supprimées</b> : elles ne sont conservées ni par nous, ni dans notre base. Nous n’en gardons qu’une ligne technique (établissement, auteur de la demande, nombre d’images, taille totale, modèle utilisé, date), sans aucune image. Cette fonction n’est jamais déclenchée par un client.</li>
+          <li><b>Resend</b> — <i>États-Unis</i>. Achemine l’e-mail de notification lorsqu’une demande de contact « restaurateurs » est déposée : le nom, l’établissement, l’e-mail, le téléphone, la ville et le message y transitent pour être remis à notre boîte contact@aframat.com. La demande elle-même reste enregistrée chez Supabase, dans l’Union européenne.</li>
+        </ul>
+        <p className="mt-2.5">
+          Ces deux transferts vers les États-Unis sont limités aux finalités décrites ci-dessus. Le reste —
+          commandes, avis, positions, comptes du personnel, photos de plats — ne quitte pas l’infrastructure
+          européenne.
         </p>
       </Section>
 
       <Section title="Conservation">
         <p>
           Les commandes sont conservées pour le suivi et les statistiques de l’établissement. Les demandes
-          de contact sont conservées le temps de traiter votre demande. Vous pouvez demander la suppression
-          de vos données à tout moment.
+          de contact sont conservées le temps de traiter votre demande. Les photos de plats restent en ligne
+          tant que l’établissement ne les supprime pas ; les photos de menu papier ne sont, elles, jamais
+          conservées. Vous pouvez demander la suppression de vos données à tout moment.
         </p>
       </Section>
 

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   currencyLabel,
-  formatCount,
   millimesToDisplay,
   type AiInsight,
   type I18nText,
@@ -145,7 +144,7 @@ export default function StatsPage() {
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 px-6">
         <KpiCard
           label={t.portal.stats.sales}
-          value={formatCount(Math.round(stats.revenue / 1000))}
+          value={millimesToDisplay(stats.revenue, lang)}
           unit={currencyLabel(lang)}
           delta={stats.revenueDelta}
           deltaSuffix={t.portal.stats.vsLastWeek}
@@ -211,7 +210,7 @@ export default function StatsPage() {
                     <div className="flex justify-between gap-2">
                       <span className="text-[12.5px] font-extrabold text-ink truncate">{item.name}</span>
                       <span className="text-[11.5px] font-bold text-muted-soft whitespace-nowrap" dir="ltr">
-                        {item.qty} {t.portal.stats.sales2} · {formatCount(Math.round(item.revenue / 1000))} {currencyLabel(lang)}
+                        {item.qty} {t.portal.stats.sales2} · {millimesToDisplay(item.revenue, lang)} {currencyLabel(lang)}
                       </span>
                     </div>
                     <div className="h-1.5 rounded bg-sand-deep overflow-hidden">

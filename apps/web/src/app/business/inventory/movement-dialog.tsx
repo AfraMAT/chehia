@@ -11,7 +11,11 @@ export type MovementAction = "receive" | "waste" | "count" | "adjust";
 
 /** Parse a decimal typed with comma or dot; returns null when invalid. */
 function parseDecimal(value: string): number | null {
-  const n = Number(value.replace(",", ".").trim());
+  const trimmed = value.replace(",", ".").trim();
+  // A blank field is missing input, not 0 — Number("") === 0 would let a count
+  // submit and set the product's on-hand to zero.
+  if (trimmed === "") return null;
+  const n = Number(trimmed);
   return Number.isFinite(n) ? n : null;
 }
 

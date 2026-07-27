@@ -13,6 +13,15 @@ interface Config {
   review_window_days: number;
 }
 
+/**
+ * The two number inputs are not inside a <form> and Save is a plain button, so
+ * their min/max attributes never trigger constraint validation — and the table has
+ * no check constraint either. Clamp on the way out: review_window_days = 0 closes
+ * the review window for every order platform-wide (submit-review returns
+ * window_closed), and max_comment_len = 0 blanks every comment.
+ */
+const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, Math.round(n) || lo));
+
 /** Platform-admin global reviews configuration. */
 export function ReviewsConfig() {
   const { t } = useI18n();
@@ -20,6 +29,7 @@ export function ReviewsConfig() {
   const [cfg, setCfg] = useState<Config | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -38,8 +48,23 @@ export function ReviewsConfig() {
   const save = async () => {
     if (!cfg) return;
     setSaving(true);
-    await supabase.from("platform_reviews_config").update(cfg).eq("id", true);
+    setFailed(false);
+    const { error } = await supabase
+      .from("platform_reviews_config")
+      .update({
+        ...cfg,
+        max_comment_len: clamp(cfg.max_comment_len, 40, 2000),
+        review_window_days: clamp(cfg.review_window_days, 1, 365),
+      })
+      .eq("id", true);
     setSaving(false);
+    if (error) {
+      setFailed(true);
+      return;
+    }
+    // Reload so the screen shows what the database actually holds (clamped values
+    // included) rather than the local draft.
+    await load();
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -119,14 +144,21 @@ export function ReviewsConfig() {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => void save()}
-        disabled={saving}
-        className="h-11 px-6 self-start rounded-lg bg-harissa text-white font-extrabold text-sm shadow-[0_4px_12px_rgba(188,75,38,0.25)] hover:bg-harissa-pressed transition-colors cursor-pointer disabled:opacity-50"
-      >
-        {saved ? t.admin.cfgSaved : t.admin.cfgSave}
-      </button>
+      <div className="flex items-center gap-3 flex-wrap">
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={saving}
+          className="h-11 px-6 self-start rounded-lg bg-harissa text-white font-extrabold text-sm shadow-[0_4px_12px_rgba(188,75,38,0.25)] hover:bg-harissa-pressed transition-colors cursor-pointer disabled:opacity-50"
+        >
+          {saved ? t.admin.cfgSaved : t.admin.cfgSave}
+        </button>
+        {failed && (
+          <span role="alert" className="text-[12.5px] font-bold text-danger-text">
+            {t.errors.generic}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

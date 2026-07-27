@@ -76,4 +76,9 @@ describe("formatDistanceKm (unchanged behaviour sanity)", () => {
   it("formats metres under 1 km", () => {
     expect(formatDistanceKm(0.12, "en")).toBe("120 m");
   });
+  it("never renders a four-digit metre reading at the km boundary", () => {
+    expect(formatDistanceKm(0.996, "fr")).toBe("1,0 km");
+    expect(formatDistanceKm(0.9999, "en")).toBe("1.0 km");
+    expect(formatDistanceKm(0.994, "fr")).toBe("990 m");
+  });
 });

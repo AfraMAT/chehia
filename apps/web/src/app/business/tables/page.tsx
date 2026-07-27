@@ -21,6 +21,7 @@ export default function TablesPage() {
   const [tables, setTables] = useState<Table[]>([]);
   const [preview, setPreview] = useState<Table | null>(null);
   const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState(false);
 
   // Table management is owner/manager only.
   useEffect(() => {
@@ -51,6 +52,7 @@ export default function TablesPage() {
     if (!Number.isInteger(count) || count < 1 || count > 50) return;
     const zone = window.prompt(t.portal.tables.zone, "Salle") ?? "";
     setAdding(true);
+    setAddError(false);
     // Continue from the highest existing numeric label (counting rows would
     // produce duplicates after deactivations).
     const highest = Math.max(0, ...tables.map((tb) => Number.parseInt(tb.label, 10) || 0));
@@ -60,7 +62,10 @@ export default function TablesPage() {
       zone,
       sort_order: highest + i + 1,
     }));
-    await supabase.from("tables").insert(rows);
+    // A rejected insert used to leave an unchanged grid and no message at all,
+    // so the owner printed QR cards for tables that were never created.
+    const { error } = await supabase.from("tables").insert(rows);
+    setAddError(Boolean(error));
     setAdding(false);
     await reload();
   };
@@ -79,6 +84,11 @@ export default function TablesPage() {
         <span className="text-[12.5px] font-bold text-muted bg-card border border-line rounded-full px-3.5 py-1.5">
           {tables.length} {t.portal.tables.permanent}
         </span>
+        {addError && (
+          <span role="alert" className="text-[12.5px] font-extrabold text-danger-text bg-danger-tint rounded-full px-3.5 py-1.5">
+            {t.errors.generic}
+          </span>
+        )}
         <div className="flex-1" />
         <button
           type="button"

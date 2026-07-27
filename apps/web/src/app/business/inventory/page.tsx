@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  currencyLabel,
   formatQty,
   interpolate,
   millimesToDisplay,
@@ -144,7 +145,7 @@ export default function InventoryPage() {
             <SummaryCard value={summary?.total ?? 0} label={inv.items} />
             <SummaryCard value={summary?.low ?? 0} label={inv.low} tone="low" />
             <SummaryCard value={summary?.out ?? 0} label={inv.out} tone="out" />
-            <SummaryCard value={millimesToDisplay(summary?.value_millimes ?? 0, lang)} label={inv.stockValue} suffix="TND" />
+            <SummaryCard value={millimesToDisplay(summary?.value_millimes ?? 0, lang)} label={inv.stockValue} suffix={currencyLabel(lang)} />
           </div>
 
           {items.length === 0 ? (

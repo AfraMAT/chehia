@@ -1,5 +1,6 @@
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { CartScreen } from "@/components/venue/cart-screen";
+import { VenueHome } from "@/components/venue/venue-home";
 import { useVenueState } from "@/lib/venue";
 
 /** P4 · Scanned-flow cart route — guards loading/invalid, then renders the
@@ -10,6 +11,7 @@ export default function ScannedCart() {
   if (state.status === "invalid") {
     return <Redirect href={`/r/${slug}/t/${token}`} />;
   }
-  if (state.status !== "ready") return null;
+  // VenueHome renders the loading spinner — a deep link can land here cold.
+  if (state.status !== "ready") return <VenueHome />;
   return <CartScreen />;
 }

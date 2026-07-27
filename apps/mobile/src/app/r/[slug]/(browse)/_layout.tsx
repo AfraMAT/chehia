@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import { VenueProvider } from "@/lib/venue";
+import { useStackAnimation } from "@/lib/reduce-motion";
 import { SessionProvider } from "@/lib/session";
 import { colors } from "@/lib/theme";
 
@@ -9,6 +10,7 @@ import { colors } from "@/lib/theme";
  * SessionProvider is mounted too (group ordering self-hides off a scanned QR). */
 export default function BrowseLayout() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  const animation = useStackAnimation();
 
   return (
     <VenueProvider slug={String(slug)} browse>
@@ -17,7 +19,7 @@ export default function BrowseLayout() {
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: colors.cream },
-            animation: "slide_from_right",
+            animation,
           }}
         />
       </SessionProvider>

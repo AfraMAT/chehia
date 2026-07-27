@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { usePortal } from "../portal-provider";
 import { Reports } from "./reports";
 import { FiscalSettings } from "./fiscal-settings";
@@ -8,12 +9,13 @@ import { FiscalSettings } from "./fiscal-settings";
 /** Business "Caisse" — POS reports + fiscal configuration for the register. */
 export default function CaissePage() {
   const { canManage } = usePortal();
+  const { t } = useI18n();
   const [tab, setTab] = useState<"reports" | "fiscal">("reports");
 
   if (!canManage) {
     return (
       <div className="max-w-[760px] mx-auto p-6">
-        <p className="text-sm text-muted">Réservé au propriétaire ou au gérant.</p>
+        <p className="text-sm text-muted">{t.portal.caisse.managerOnly}</p>
       </div>
     );
   }
@@ -21,9 +23,9 @@ export default function CaissePage() {
   return (
     <div className="max-w-[760px] mx-auto p-6 flex flex-col gap-5">
       <header className="flex flex-col gap-3">
-        <h1 className="font-display font-extrabold text-2xl text-ink">Caisse</h1>
+        <h1 className="font-display font-extrabold text-2xl text-ink">{t.portal.nav.caisse}</h1>
         <div className="flex rounded-xl bg-sand p-1 gap-1 w-fit">
-          {([["reports", "Rapports"], ["fiscal", "Fiscalité"]] as const).map(([key, label]) => (
+          {([["reports", t.portal.caisse.tabReports], ["fiscal", t.portal.caisse.tabFiscal]] as const).map(([key, label]) => (
             <button
               key={key}
               type="button"

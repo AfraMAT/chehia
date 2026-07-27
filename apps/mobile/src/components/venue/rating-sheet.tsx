@@ -11,7 +11,7 @@ import {
 } from "@chehia/shared";
 import { CtaButton, FaceInput, Handle, SheetClose, StarInput, T } from "../ui";
 import { useI18n } from "@/lib/i18n";
-import { colors, rowDir, useTheme } from "@/lib/theme";
+import { colors, faceFor, rowDir, sizeFor, useTheme } from "@/lib/theme";
 import { ensureCustomerSession, functionsUrl, supabase, supabaseAnonKey } from "@/lib/supabase";
 
 function randomUUID(): string {
@@ -184,10 +184,11 @@ export function RatingSheet({
                     paddingHorizontal: 15,
                     paddingVertical: 12,
                     minHeight: 64,
-                    fontFamily: "Manrope_500Medium",
-                    fontSize: 15,
+                    fontFamily: faceFor(lang, "regular"),
+                    fontSize: sizeFor(lang, 15),
                     color: theme.ink,
                     textAlign: isRtl ? "right" : "left",
+                    writingDirection: isRtl ? "rtl" : "ltr",
                     textAlignVertical: "top",
                   }}
                 />
@@ -204,10 +205,11 @@ export function RatingSheet({
                     backgroundColor: theme.card,
                     paddingHorizontal: 15,
                     paddingVertical: 12,
-                    fontFamily: "Manrope_500Medium",
-                    fontSize: 15,
+                    fontFamily: faceFor(lang, "regular"),
+                    fontSize: sizeFor(lang, 15),
                     color: theme.ink,
                     textAlign: isRtl ? "right" : "left",
+                    writingDirection: isRtl ? "rtl" : "ltr",
                   }}
                 />
                 {phase === "error" && (

@@ -12,6 +12,7 @@ import { LeadsPanel } from "./leads-panel";
 import { ReviewsModeration } from "./reviews-moderation";
 import { ReviewsConfig } from "./reviews-config";
 import { PortalFooter } from "../business/portal-footer";
+import { ConfirmDialog } from "../business/confirm-dialog";
 
 interface VenueOverview {
   id: string;
@@ -42,6 +43,9 @@ export default function AdminDashboard() {
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Deactivating hides the venue from every customer read (RLS), killing in-progress
+  // scans, so it is confirmed. Reactivating is harmless and stays a single click.
+  const [toDeactivate, setToDeactivate] = useState<VenueOverview | null>(null);
   const [tab, setTab] = useState<"venues" | "leads" | "moderation" | "config">("venues");
 
   const load = useCallback(async () => {
@@ -202,7 +206,7 @@ export default function AdminDashboard() {
                     <button
                       type="button"
                       disabled={busyId === v.id}
-                      onClick={() => void toggleActive(v)}
+                      onClick={() => (v.is_active ? setToDeactivate(v) : void toggleActive(v))}
                       className={`h-9 px-3.5 rounded-lg text-[13px] font-extrabold cursor-pointer transition-colors disabled:opacity-50 ${
                         v.is_active
                           ? "border-[1.5px] border-line-strong text-muted hover:bg-sand"
@@ -230,6 +234,20 @@ export default function AdminDashboard() {
       <PortalFooter className="max-w-[960px] mx-auto w-full" />
 
       {creating && <CreateBusiness onClose={() => setCreating(false)} onCreated={() => void load()} />}
+
+      {toDeactivate && (
+        <ConfirmDialog
+          title={t.admin.deactivate}
+          body={`${toDeactivate.name} — /r/${toDeactivate.slug}`}
+          confirmLabel={t.admin.deactivate}
+          onConfirm={() => {
+            const v = toDeactivate;
+            setToDeactivate(null);
+            void toggleActive(v);
+          }}
+          onCancel={() => setToDeactivate(null)}
+        />
+      )}
     </div>
   );
 }

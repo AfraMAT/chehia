@@ -78,19 +78,29 @@ export function Tag({
   );
 }
 
-/** Quantity stepper — 44px targets. */
+/**
+ * Quantity stepper — 44px targets.
+ * `decreaseLabel` / `increaseLabel` name the control after the line it belongs to
+ * (already-translated, composed by the caller — this primitive is shared by four
+ * surfaces and has no dictionary of its own). Without them a multi-line cart
+ * exposes N buttons all called "−".
+ */
 export function Stepper({
   value,
   onChange,
   min = 0,
   max = 20,
   size = "md",
+  decreaseLabel,
+  increaseLabel,
 }: {
   value: number;
   onChange: (next: number) => void;
   min?: number;
   max?: number;
   size?: "sm" | "md";
+  decreaseLabel?: string;
+  increaseLabel?: string;
 }) {
   const h = size === "sm" ? "h-9" : "h-11";
   const w = size === "sm" ? "w-10" : "w-11";
@@ -98,17 +108,19 @@ export function Stepper({
     <div className={`inline-flex items-center border-[1.5px] border-line-strong rounded-full bg-white ${h}`}>
       <button
         type="button"
-        aria-label="−"
+        aria-label={decreaseLabel ?? "−"}
         className={`${w} ${h} flex items-center justify-center text-harissa font-extrabold text-xl cursor-pointer disabled:opacity-30`}
         disabled={value <= min}
         onClick={() => onChange(Math.max(min, value - 1))}
       >
         −
       </button>
-      <span className="w-6 text-center font-extrabold text-ink tabular-nums">{value}</span>
+      <span role="status" aria-live="polite" className="w-6 text-center font-extrabold text-ink tabular-nums">
+        {value}
+      </span>
       <button
         type="button"
-        aria-label="+"
+        aria-label={increaseLabel ?? "+"}
         className={`${w} ${h} flex items-center justify-center text-harissa font-extrabold text-xl cursor-pointer disabled:opacity-30`}
         disabled={value >= max}
         onClick={() => onChange(Math.min(max, value + 1))}
@@ -204,7 +216,9 @@ export function Stars({ value, size = 16, className = "" }: { value: number | nu
       style={{ fontSize: size, lineHeight: 1, letterSpacing: "1px" }}
     >
       <span style={{ color: STAR_EMPTY }}>★★★★★</span>
-      <span className="absolute left-0 top-0 overflow-hidden" style={{ color: STAR_GOLD, width: `${pct}%` }}>
+      {/* start-0, not left-0: in Arabic the row reads right-to-left, so the fill
+          must grow from the inline start or 4.3★ renders as ~0.7★. */}
+      <span className="absolute start-0 top-0 overflow-hidden" style={{ color: STAR_GOLD, width: `${pct}%` }}>
         ★★★★★
       </span>
     </span>

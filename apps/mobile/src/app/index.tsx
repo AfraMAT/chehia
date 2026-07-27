@@ -52,9 +52,10 @@ export default function ScanHome() {
     if (!permission?.granted) {
       const result = await requestPermission();
       if (!result.granted) {
-        // A permanent iOS denial (canAskAgain=false) no longer shows the system
-        // prompt, so guide the user to Settings instead of a silent no-op.
-        if (!result.canAskAgain) setCameraBlocked(true);
+        // Any denial gets visible feedback: iOS flips canAskAgain=false on the
+        // first "Don't Allow", Android keeps it true, and a CTA that changes
+        // nothing reads as broken. The Settings link works in both cases.
+        setCameraBlocked(true);
         return;
       }
     }

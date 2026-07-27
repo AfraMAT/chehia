@@ -140,7 +140,8 @@ export default function MenuManagementPage() {
           </span>
           <span className={`text-[11.5px] font-extrabold ${active ? "text-cream/60" : "text-disabled"}`}>{itemCount(cat.id)}</span>
         </button>
-        <div className="absolute -top-1.5 -end-1.5 hidden group-hover:flex gap-1">
+        {/* Always rendered (so they stay tabbable and tappable on touch), revealed on hover or focus. */}
+        <div className="absolute -top-1.5 -end-1.5 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
           <button
             type="button"
             aria-label={t.common.edit}

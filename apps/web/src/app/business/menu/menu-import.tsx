@@ -175,9 +175,19 @@ export function MenuImport({ onClose, onImported }: { onClose: () => void; onImp
   };
 
   const keptCount = cats.reduce((s, c) => (c.keep ? s + c.items.filter((i) => i.keep).length : s), 0);
+  // Items that will be imported but whose price the OCR could not read (or the
+  // owner left blank). These used to fall through `?? 0` and land on the live
+  // menu as free dishes; now they block the import until they are filled in.
+  const pricelessCount = cats.reduce(
+    (s, c) =>
+      c.keep
+        ? s + c.items.filter((i) => i.keep && hasAnyName(i.name) && parseMenuPrice(i.priceText) === null).length
+        : s,
+    0,
+  );
 
   const doImport = async () => {
-    if (busy || keptCount === 0) return;
+    if (busy || keptCount === 0 || pricelessCount > 0) return;
     setBusy(true);
     setError(null);
     const categories = cats
@@ -189,7 +199,8 @@ export function MenuImport({ onClose, onImported }: { onClose: () => void; onImp
           .map((it) => ({
             name_i18n: it.name,
             ...(hasAnyName(it.description) ? { description_i18n: it.description } : {}),
-            price_millimes: parseMenuPrice(it.priceText) ?? 0,
+            // Non-null: pricelessCount gates the button on exactly this set.
+            price_millimes: parseMenuPrice(it.priceText)!,
             ...(it.dietary_tags?.length ? { dietary_tags: it.dietary_tags } : {}),
           })),
       }))
@@ -401,7 +412,9 @@ export function MenuImport({ onClose, onImported }: { onClose: () => void; onImp
 
                   {cat.keep &&
                     cat.items.map((it, ii) => {
-                      const noPrice = it.priceText.trim() === "";
+                      // Flag anything that will not parse, not just a blank —
+                      // "3,5,5" or "environ 4" reads as filled but imports as 0.
+                      const noPrice = parseMenuPrice(it.priceText) === null;
                       return (
                         <div key={ii} className={`flex items-center gap-1.5 ${it.keep ? "" : "opacity-45"}`}>
                           <input
@@ -464,7 +477,15 @@ export function MenuImport({ onClose, onImported }: { onClose: () => void; onImp
             </div>
 
             <div className="border-t border-line px-5 py-3 flex items-center gap-2.5 shrink-0">
-              {error && <p className="text-[12.5px] font-bold text-danger-text flex-1">{error}</p>}
+              {error ? (
+                <p className="text-[12.5px] font-bold text-danger-text flex-1">{error}</p>
+              ) : (
+                pricelessCount > 0 && (
+                  <p className="text-[12.5px] font-bold text-warning-text flex-1">
+                    {tx.errorMissingPrice.replace("{n}", String(pricelessCount))}
+                  </p>
+                )
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -473,14 +494,14 @@ export function MenuImport({ onClose, onImported }: { onClose: () => void; onImp
                   setPhase("capture");
                 }}
                 disabled={busy}
-                className={`h-11 rounded-lg border-[1.5px] border-line-strong text-ink font-extrabold text-[13.5px] px-4 cursor-pointer hover:bg-sand transition-colors disabled:opacity-60 ${error ? "" : "flex-1"}`}
+                className={`h-11 rounded-lg border-[1.5px] border-line-strong text-ink font-extrabold text-[13.5px] px-4 cursor-pointer hover:bg-sand transition-colors disabled:opacity-60 ${error || pricelessCount > 0 ? "" : "flex-1"}`}
               >
                 {tx.retake}
               </button>
               <button
                 type="button"
                 onClick={() => void doImport()}
-                disabled={busy || keptCount === 0}
+                disabled={busy || keptCount === 0 || pricelessCount > 0}
                 className="h-11 rounded-lg bg-harissa text-white font-extrabold text-[13.5px] px-4 flex-1 flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(188,75,38,0.25)] hover:bg-harissa-pressed transition-colors cursor-pointer disabled:bg-disabled disabled:shadow-none"
               >
                 {busy ? <Spinner /> : tx.importCta.replace("{n}", String(keptCount))}

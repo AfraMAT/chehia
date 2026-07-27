@@ -272,7 +272,8 @@ export function CaisseProvider({ children }: { children: React.ReactNode }) {
   const [settleTarget, setSettleTarget] = useState<UnpaidOrder | null>(null);
 
   const clientRefRef = useRef<string | null>(null);
-  const settleRefRef = useRef<string | null>(null);
+  /** Settle idempotency key, bound to the order it was minted for. */
+  const settleRefRef = useRef<{ orderId: string; ref: string } | null>(null);
 
   const load = useCallback(async () => {
     const supabase = getSupabase();
@@ -417,7 +418,22 @@ export function CaisseProvider({ children }: { children: React.ReactNode }) {
 
   const settleOrder = useCallback(
     async (orderId: string, method: TenderMethod, tenderedMillimes: number | null): Promise<SettleResult> => {
-      settleRefRef.current ??= crypto.randomUUID();
+      // The settle idempotency key is per ORDER, not per register session.
+      //
+      // It used to be a bare `settleRefRef.current ??= randomUUID()` cleared only
+      // by clearTicket(). Settling a QR customer order at the counter never
+      // touches the ticket, so the ref survived — and `payments.client_ref` has a
+      // UNIQUE index, so the NEXT settlement inserted a duplicate ref, threw
+      // inside settle_order_tx, and came back as a generic db_error. The cashier
+      // had taken the cash, the order stayed unpaid, and every further
+      // settlement failed the same way until the page was reloaded.
+      //
+      // Keying on the order keeps a genuine retry idempotent (same order → same
+      // ref → settle_order_tx sees paid_at and returns the existing receipt)
+      // while guaranteeing a different order can never reuse a spent ref.
+      if (settleRefRef.current?.orderId !== orderId) {
+        settleRefRef.current = { orderId, ref: crypto.randomUUID() };
+      }
       try {
         const { ok, data: json } = await callFunction<{
           payment?: {
@@ -433,7 +449,7 @@ export function CaisseProvider({ children }: { children: React.ReactNode }) {
           order_id: orderId,
           method,
           tendered_millimes: tenderedMillimes,
-          client_ref: settleRefRef.current,
+          client_ref: settleRefRef.current.ref,
         });
         if (!ok || !json?.payment) return { ok: false, code: json?.error?.code ?? "settle_failed" };
         return {
@@ -549,7 +565,15 @@ export function CaisseProvider({ children }: { children: React.ReactNode }) {
   const drainQueue = useCallback(async () => {
     const sales = await allSales();
     for (const sale of sales) {
-      const isPermanent = (status: number) => status >= 400 && status < 500 && status !== 408 && status !== 429;
+      // 4xx = the server made a business decision, so retrying cannot help —
+      // EXCEPT for timeout/rate-limit and, crucially, auth. Reconnecting after a
+      // long offline stretch is exactly when the access token is stale, so 401
+      // and 403 arrive on the very first drain and used to dead-letter the whole
+      // batch into "needs attention" for a condition that clears itself the
+      // moment supabase-js refreshes the token. Retry those; a genuinely
+      // permanent 403 still dead-letters once attempts hit MAX_ATTEMPTS.
+      const RETRYABLE = new Set([401, 403, 408, 429]);
+      const isPermanent = (status: number) => status >= 400 && status < 500 && !RETRYABLE.has(status);
       const bump = async () => {
         const next: PendingSale = { ...sale, attempts: (sale.attempts ?? 0) + 1 };
         if (next.attempts >= MAX_ATTEMPTS) await deadLetter(sale, "max_attempts");
@@ -692,6 +716,17 @@ export function CaisseProvider({ children }: { children: React.ReactNode }) {
       void drainQueue();
     }
   }, [state, refreshPending, drainQueue]);
+
+  // Keep retrying while anything is still queued. A transient drain failure —
+  // an access token that has not refreshed yet, a server hiccup — only bumps the
+  // attempt counter, and the only other triggers are the `online` event and a
+  // page reload. Without this a till that briefly lost the network could sit the
+  // whole evening with unposted sales and nobody would know until close.
+  useEffect(() => {
+    if (state !== "ready" || !online || pendingCount === 0) return;
+    const id = setInterval(() => void drainQueue(), 30_000);
+    return () => clearInterval(id);
+  }, [state, online, pendingCount, drainQueue]);
 
   // Install the caisse as an offline-capable PWA — prod origin only, so the
   // service worker never controls the business/customer surfaces on the shared

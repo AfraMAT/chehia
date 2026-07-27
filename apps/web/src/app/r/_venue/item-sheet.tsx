@@ -271,7 +271,14 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
 
         {/* Footer: qty + add */}
         <div className="shrink-0 flex gap-3 px-4 py-3 bg-card border-t border-line">
-          <Stepper value={qty} onChange={setQty} min={1} max={20} />
+          <Stepper
+            value={qty}
+            onChange={setQty}
+            min={1}
+            max={20}
+            decreaseLabel={`${t.common.decrease}, ${tr(item.name_i18n)}`}
+            increaseLabel={`${t.common.increase}, ${tr(item.name_i18n)}`}
+          />
           <button
             type="button"
             onClick={submit}

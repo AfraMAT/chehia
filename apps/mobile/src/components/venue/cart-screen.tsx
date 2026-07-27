@@ -3,12 +3,12 @@ import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { cartCount, cartHasTable, cartTotal, currencyLabel, millimesToDisplay } from "@chehia/shared";
+import { cartCount, cartHasTable, cartTotal, currencyLabel, millimesToDisplay, orderErrorMessage } from "@chehia/shared";
 import { BackButton, CtaButton, Line, Stepper, T } from "../ui";
 import { useI18n } from "@/lib/i18n";
 import { useLocationGate } from "@/lib/location-gate";
 import { go } from "@/lib/nav";
-import { colors, rowDir, useTheme } from "@/lib/theme";
+import { colors, faceFor, rowDir, sizeFor, useTheme } from "@/lib/theme";
 import { useVenue } from "@/lib/venue";
 import { LocationGateCard } from "./location-gate";
 import { OfflineBanner } from "./offline-banner";
@@ -60,36 +60,9 @@ export function CartScreen() {
   const total = cartTotal(cart);
   const hasTable = cartHasTable(cart);
 
-  // Map each server error code (place-order) to an actionable message; anything
-  // unmapped — e.g. a generic db_error — falls back to "could not be sent".
-  // Keys must match the codes place-order actually emits (supabase/functions/
-  // place-order): the *_modifier codes are all stale-cart cases → "review cart".
-  const errorMessage = (code?: string): string => {
-    const messages: Record<string, string> = {
-      item_unavailable: t.cart.itemUnavailable,
-      unknown_item: t.cart.itemUnavailable,
-      unknown_table: t.errors.unknownTable,
-      qr_required: t.errors.qrRequired,
-      rate_limited: t.errors.rateLimited,
-      restaurant_inactive: t.errors.venueClosed,
-      ordering_paused: t.errors.venueClosed,
-      venue_closed: t.errors.venueClosed,
-      too_many_open_orders: t.errors.tooManyOpenOrders,
-      too_many_lines: t.errors.orderInvalid,
-      too_many_modifiers: t.errors.orderInvalid,
-      modifier_invalid: t.errors.orderInvalid,
-      missing_required_modifier: t.errors.orderInvalid,
-      unknown_modifier: t.errors.orderInvalid,
-      modifier_mismatch: t.errors.orderInvalid,
-      dup_modifier: t.errors.orderInvalid,
-      auth_failed: t.errors.sessionFailed,
-      // Location gate (browse): the server re-checks presence; surface the same
-      // friendly copy the in-cart gate uses if it slips past the client check.
-      location_required: t.location.gate.shareToOrder,
-      too_far: t.location.gate.tooFar,
-    };
-    return (code && messages[code]) || t.errors.orderFailed;
-  };
+  // Server error codes → actionable copy. The table lives in @chehia/shared so
+  // the web cart maps exactly the same set (it used to map only five of them).
+  const errorMessage = (code?: string): string => orderErrorMessage(code, t);
 
   const submit = async () => {
     if (submitting || count === 0) return;
@@ -148,7 +121,9 @@ export function CartScreen() {
 
         {/* Header */}
         <View style={[rowDir(lang), { alignItems: "center", gap: 12, paddingHorizontal: 20, paddingTop: 12 }]}>
-          <BackButton isRtl={isRtl} onPress={() => router.back()} />
+          {/* Deep links (group invites) can land here with an empty history —
+              fall back to the menu instead of a dead tap. */}
+          <BackButton isRtl={isRtl} onPress={() => (router.canGoBack() ? router.back() : go(`${basePath}/menu`, "replace"))} />
           <T lang={lang} display size={22}>
             {t.cart.title}
           </T>
@@ -167,7 +142,7 @@ export function CartScreen() {
               height={48}
               style={{ marginTop: 14, alignSelf: "stretch", marginHorizontal: 24 }}
               label={t.cart.browseMenu}
-              onPress={() => router.back()}
+              onPress={() => (router.canGoBack() ? router.back() : go(`${basePath}/menu`, "replace"))}
             />
           </View>
         ) : (
@@ -315,10 +290,11 @@ export function CartScreen() {
                       backgroundColor: theme.card,
                       paddingHorizontal: 14,
                       paddingVertical: 10,
-                      fontFamily: "Manrope_500Medium",
-                      fontSize: 13.5,
+                      fontFamily: faceFor(lang, "regular"),
+                      fontSize: sizeFor(lang, 13.5),
                       color: theme.ink,
                       textAlign: isRtl ? "right" : "left",
+                      writingDirection: isRtl ? "rtl" : "ltr",
                     }}
                   />
                 </View>
@@ -333,7 +309,10 @@ export function CartScreen() {
                       {t.common.subtotal} · {count} {count > 1 ? t.common.items : t.common.item}
                     </T>
                     <T weight="bold" size={13}>
-                      {millimesToDisplay(total, lang)} {currencyLabel(lang)}
+                      {millimesToDisplay(total, lang)}{" "}
+                      <T weight="bold" size={13} lang={lang}>
+                        {currencyLabel(lang)}
+                      </T>
                     </T>
                   </View>
                   <View style={[rowDir(lang), { justifyContent: "space-between", alignItems: "baseline" }]}>
@@ -384,8 +363,23 @@ export function CartScreen() {
                   <CtaButton
                     lang={lang}
                     height={54}
-                    disabled={submitting || !online}
-                    label={!hasTable ? t.landing.chooseTable : submitting ? t.cart.submitting : t.cart.submit}
+                    // Deliberately NOT disabled while offline. The whole P8 queue
+                    // — the banner, the 3h TTL, the auto-retry on reconnect — is
+                    // entered from placeOrder's network catch, so disabling the
+                    // button offline made the offline path unreachable by the one
+                    // gesture meant to trigger it: the customer just saw a dead
+                    // button on a café's flaky wifi. Tapping now queues the order
+                    // and the banner explains it will send itself.
+                    disabled={submitting}
+                    label={
+                      !hasTable
+                        ? t.landing.chooseTable
+                        : submitting
+                          ? t.cart.submitting
+                          : online
+                            ? t.cart.submit
+                            : t.offline.sendWhenOnline
+                    }
                     onPress={() => void submit()}
                   />
                 )}

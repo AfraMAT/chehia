@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useI18n } from "@/components/i18n-provider";
 import { Spinner } from "@/components/ui";
+import { useSheet } from "../use-sheet";
 import { useSession } from "./session-provider";
 
 const NICK_KEY = "chehia.nickname";
@@ -30,6 +31,8 @@ export function GroupSheet({
   const [code, setCode] = useState(initialCode ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useSheet(onClose);
 
   const errMsg = (e: string) =>
     e.includes("full") ? t.group.errorFull : e.includes("closed") ? t.group.errorClosed : e.includes("not_found") ? t.group.errorNotFound : t.errors.generic;

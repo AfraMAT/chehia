@@ -114,6 +114,38 @@ Deno.serve(async (req) => {
     return errorResponse("db_error", "Could not record the payment", 500);
   }
 
+  // Already settled: settle_order_tx returned the existing receipt without
+  // recording anything. Report what was ACTUALLY collected, not what we just
+  // recomputed — the fiscal profile (timbre, TVA rate, cash-rounding step) may
+  // have changed since, and `tendered` comes from this request, so echoing the
+  // fresh numbers would reprint a receipt showing change that was never given.
+  if (result.duplicate) {
+    const { data: recorded } = await admin
+      .from("payments")
+      .select("method, amount_millimes, tendered_millimes, change_millimes")
+      .eq("order_id", order.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const { data: settled } = await admin
+      .from("orders")
+      .select("tax_total_millimes, timbre_millimes, rounding_millimes")
+      .eq("id", order.id)
+      .maybeSingle();
+    return jsonResponse({
+      payment: {
+        ...result,
+        method: recorded?.method ?? method,
+        amount_millimes: recorded?.amount_millimes ?? amount,
+        tendered_millimes: recorded?.tendered_millimes ?? null,
+        change_millimes: recorded?.change_millimes ?? 0,
+        tax_total_millimes: settled?.tax_total_millimes ?? 0,
+        timbre_millimes: settled?.timbre_millimes ?? 0,
+        rounding_millimes: settled?.rounding_millimes ?? 0,
+      },
+    });
+  }
+
   return jsonResponse({
     payment: {
       ...result,

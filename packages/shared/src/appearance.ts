@@ -316,11 +316,18 @@ function coerceEnum<T extends string>(value: unknown, allowed: readonly T[], fal
   return typeof value === "string" && (allowed as readonly string[]).includes(value) ? (value as T) : fallback;
 }
 
-/** True when `p` has at least the palette shape (all keys present + string). */
-function isPalette(p: unknown): p is ThemePalette {
-  if (!p || typeof p !== "object") return false;
+/**
+ * A complete palette with every key a valid hex, normalized — or undefined.
+ * A preset that fails this is dropped rather than rendered: a non-hex token
+ * reaches the CSS vars / mobile theme verbatim and silently breaks the theme.
+ */
+function sanitizeFullPalette(p: unknown): ThemePalette | undefined {
+  if (!p || typeof p !== "object") return undefined;
   const obj = p as Record<string, unknown>;
-  return PALETTE_KEYS.every((k) => typeof obj[k] === "string");
+  if (!PALETTE_KEYS.every((k) => isHexColor(obj[k]))) return undefined;
+  const out = {} as ThemePalette;
+  for (const k of PALETTE_KEYS) out[k] = normalizeHex(obj[k] as string);
+  return out;
 }
 
 function sanitizePartialPalette(p: unknown): Partial<ThemePalette> | undefined {
@@ -343,11 +350,12 @@ function sanitizePresets(value: unknown): ThemePreset[] | undefined {
   for (const entry of value.slice(0, 8)) {
     if (!entry || typeof entry !== "object") continue;
     const e = entry as Record<string, unknown>;
-    if (typeof e.id === "string" && isPalette(e.palette)) {
+    const palette = sanitizeFullPalette(e.palette);
+    if (typeof e.id === "string" && palette) {
       out.push({
         id: e.id,
         name_i18n: (e.name_i18n && typeof e.name_i18n === "object" ? e.name_i18n : {}) as I18nText,
-        palette: e.palette as ThemePalette,
+        palette,
         dark: e.dark === true,
       });
     }

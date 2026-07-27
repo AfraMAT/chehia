@@ -15,7 +15,9 @@ import { TablePicker } from "./table-picker";
  * browse flow (table picked in-session via the picker). */
 export function VenueHome() {
   const { state, basePath, browse, cachedAt } = useVenueState();
-  const { t, tr, lang, setLang, isRtl } = useI18n();
+  // setLang = the customer picked it (persisted). setLangEphemeral = the venue
+  // forced it (this visit only). Line ~314's switcher must keep using setLang.
+  const { t, tr, lang, setLang, setLangEphemeral, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -24,12 +26,17 @@ export function VenueHome() {
   // never mix app chrome in one language with menu content that falls back to the
   // venue's default in another. The switcher only lists supported languages, so
   // this fires at most once, when entering a venue that doesn't speak `lang`.
+  //
+  // EPHEMERAL on purpose: this is the venue's constraint, not the customer's
+  // choice. It used to go through setLang, which writes AsyncStorage, so walking
+  // into one Arabic-only café rewrote the customer's app language for good — the
+  // whole app stayed Arabic afterwards with no obvious way back.
   const venueLanguages = state.status === "ready" ? (state.bundle.restaurant.languages as Language[]) : null;
   useEffect(() => {
     if (venueLanguages && venueLanguages.length > 0 && !venueLanguages.includes(lang)) {
-      setLang(venueLanguages[0]);
+      setLangEphemeral(venueLanguages[0]);
     }
-  }, [venueLanguages, lang, setLang]);
+  }, [venueLanguages, lang, setLangEphemeral]);
 
   if (state.status === "loading") {
     return (
@@ -296,7 +303,8 @@ export function VenueHome() {
 
           {/* Language switch */}
           <View style={{ marginTop: 20, gap: 8 }}>
-            <T lang={lang} weight="bold" size={12} color={theme.mutedSoft} style={{ letterSpacing: 0.5, textAlign: isRtl ? "right" : "left" }}>
+            {/* Arabic is a joined script — tracking severs the connecting strokes. */}
+            <T lang={lang} weight="bold" size={12} color={theme.mutedSoft} style={{ letterSpacing: lang === "ar" ? 0 : 0.5, textAlign: isRtl ? "right" : "left" }}>
               {t.common.language}
             </T>
             <View style={{ flexDirection: "row", gap: 8 }}>
@@ -391,7 +399,7 @@ function ContactRow({ restaurant }: { restaurant: Restaurant }) {
 
   return (
     <View style={{ marginTop: 18, gap: 8 }}>
-      <T lang={lang} weight="bold" size={12} color={theme.mutedSoft} style={{ letterSpacing: 0.5, textAlign: isRtl ? "right" : "left" }}>
+      <T lang={lang} weight="bold" size={12} color={theme.mutedSoft} style={{ letterSpacing: lang === "ar" ? 0 : 0.5, textAlign: isRtl ? "right" : "left" }}>
         {t.landing.contactTitle}
       </T>
       <View style={[rowDir(lang), { flexWrap: "wrap", gap: 8 }]}>
@@ -401,6 +409,9 @@ function ContactRow({ restaurant }: { restaurant: Restaurant }) {
             onPress={() => void Linking.openURL(c.url).catch(() => {})}
             accessibilityRole="button"
             accessibilityLabel={c.label}
+            // ~36pt tall by design; the slop lifts the real target past 44pt
+            // without overlapping the neighbouring chip (row gap is 8).
+            hitSlop={{ top: 4, bottom: 4 }}
             style={[
               rowDir(lang),
               {

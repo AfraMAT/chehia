@@ -11,11 +11,24 @@ import type { ReceiptData } from "./receipt-types";
 const ESC = 0x1b;
 const GS = 0x1d;
 
+/**
+ * Deliberately French, unlike the on-screen receipt: a CP437 thermal printer
+ * cannot render Arabic, so the printed ticket stays FR whatever the register's
+ * language is.
+ */
 const money = (m: number) => `${millimesToDisplay(m, "fr")} ${currencyLabel("fr")}`;
 
-/** é→e, à→a … so a CP437-only printer doesn't print garbage. */
+/**
+ * é→e, à→a … so a CP437-only printer doesn't print garbage. The dash mapping is
+ * load-bearing: `millimesToDisplay` emits U+2212 for negatives (the "Arrondi"
+ * line), and stripping it would print a deduction as a positive amount.
+ */
 function ascii(s: string): string {
-  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\x20-\x7e]/g, "");
+  return s
+    .replace(/[‐-―−]/g, "-") // dashes + U+2212 MINUS SIGN → ASCII "-"
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^\x20-\x7e]/g, "");
 }
 
 class Builder {

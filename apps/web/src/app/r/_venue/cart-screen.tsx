@@ -9,6 +9,7 @@ import {
   cartTotal,
   currencyLabel,
   millimesToDisplay,
+  orderErrorMessage,
   toOrderPayload,
 } from "@chehia/shared";
 import { callFunction, ensureCustomerSession } from "@/lib/supabase";
@@ -33,6 +34,15 @@ export function CartScreen() {
   // Idempotency key: stable across retries of the same submission, so a
   // lost response + retry can never create a duplicate order server-side.
   const clientRefRef = useRef<string | null>(null);
+  // …but a DIFFERENT cart is a different order. Without this reset, a submit
+  // whose response was lost (order committed, fetch threw → queued) kept its
+  // ref; the customer then edited the cart, the auto-retry reused the ref, and
+  // place-order replied with the ORIGINAL order — silently discarding whatever
+  // they had just added. Mirrors `cartSig` in mobile's venue.tsx.
+  const cartSig = JSON.stringify([cart.lines, cart.note, cart.tableId]);
+  useEffect(() => {
+    clientRefRef.current = null;
+  }, [cartSig]);
 
   const count = cartCount(cart);
   const total = cartTotal(cart);
@@ -58,7 +68,16 @@ export function CartScreen() {
     setError(null);
     clientRefRef.current ??= crypto.randomUUID();
     try {
-      await ensureCustomerSession();
+      // Anonymous sign-in gets its own catch: when GoTrue is the thing that is
+      // down, the shared handler below would report "queued — we'll send it
+      // when the network returns" to a customer whose network is perfectly
+      // fine, and the order would sit there forever.
+      try {
+        await ensureCustomerSession();
+      } catch {
+        setError(orderErrorMessage("auth_failed", t));
+        return;
+      }
       // Attach the customer's position so the server can re-check the geofence.
       // Only meaningful in the gated browse flow; harmless (ignored) otherwise.
       const geo = locationGate.coords
@@ -77,20 +96,14 @@ export function CartScreen() {
       }>("place-order", { ...toOrderPayload(cart, lang), ...geo, client_ref: clientRefRef.current });
       if (!ok || !json?.order) {
         const code = json?.error?.code;
-        if (code === "item_unavailable" || code === "unknown_item") {
-          // Actually remove the offending lines so the retry can succeed.
-          reconcileNow();
-          setError(t.cart.itemUnavailable);
-        } else if (code === "unknown_table") {
-          setError(t.errors.unknownTable);
-        } else if (code === "location_required") {
-          // Defense-in-depth: server rejected for a missing/stale fix. Re-prompt.
-          setError(t.location.gate.shareToOrder);
-        } else if (code === "too_far") {
-          setError(t.location.gate.tooFar);
-        } else {
-          setError(t.errors.orderFailed);
-        }
+        // A sold-out line has to actually leave the cart or the retry repeats
+        // the same rejection; every other code is copy-only.
+        if (code === "item_unavailable" || code === "unknown_item") reconcileNow();
+        // Shared table (@chehia/shared) so this maps the same ~20 codes the
+        // mobile cart does — this branch used to cover only five of them, so a
+        // paused venue, a closed venue or a rate-limited session all reported
+        // the unactionable "the order could not be sent".
+        setError(orderErrorMessage(code, t));
         return;
       }
       clientRefRef.current = null;
@@ -226,7 +239,15 @@ export function CartScreen() {
               </span>
             )}
             <div className="mt-1.5">
-              <Stepper size="sm" value={line.qty} onChange={(q) => updateQty(line.key, q)} />
+              {/* Name each control after its line — a five-line cart otherwise
+                  reads out as five identical "−" buttons. */}
+              <Stepper
+                size="sm"
+                value={line.qty}
+                onChange={(q) => updateQty(line.key, q)}
+                decreaseLabel={`${t.common.decrease} — ${tr(line.name)}`}
+                increaseLabel={`${t.common.increase} — ${tr(line.name)}`}
+              />
             </div>
           </div>
         ))}

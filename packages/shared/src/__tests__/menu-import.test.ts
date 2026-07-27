@@ -68,6 +68,27 @@ describe("validateDraft", () => {
     expect(validateDraft("nope", ["fr"]).ok).toBe(false);
   });
 
+  it("keeps only known dietary tags, deduped", () => {
+    const raw = {
+      categories: [
+        {
+          name_i18n: { fr: "X" },
+          items: [
+            {
+              name_i18n: { fr: "Salade" },
+              price_millimes: 1000,
+              dietary_tags: ["vegetarian", "vegetarian", "sans gluten", 42, "x".repeat(5000), "spicy"],
+            },
+            { name_i18n: { fr: "Brik" }, price_millimes: 1000, dietary_tags: ["halal"] },
+          ],
+        },
+      ],
+    };
+    const { draft } = validateDraft(raw, ["fr"]);
+    expect(draft.categories[0]!.items[0]!.dietary_tags).toEqual(["vegetarian", "spicy"]);
+    expect(draft.categories[0]!.items[1]!.dietary_tags).toBeUndefined();
+  });
+
   it("defaults source_language to fr when absent/invalid", () => {
     expect(validateDraft({ categories: [] }, ["fr"]).draft.source_language).toBe("fr");
     expect(validateDraft({ source_language: "zz", categories: [] }, ["fr"]).draft.source_language).toBe("fr");

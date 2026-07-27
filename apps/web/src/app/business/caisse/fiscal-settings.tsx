@@ -1,22 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { interpolate } from "@chehia/shared";
 import { getSupabase } from "@/lib/supabase";
 import { Spinner, Toggle } from "@/components/ui";
+import { useI18n } from "@/components/i18n-provider";
 import { usePortal } from "../portal-provider";
 
 /**
  * Fiscal configuration for the register. Owner/manager sets the régime, tax
  * identity, TVA/timbre and receipt footer; the caisse reads these to fill the
- * ticket de caisse. Defaults to the simplest legal case (forfaitaire). FR-first.
+ * ticket de caisse. Defaults to the simplest legal case (forfaitaire).
  */
 
-const ROUNDING_OPTIONS = [
-  { value: 0, label: "Aucun" },
-  { value: 10, label: "10 millimes" },
-  { value: 50, label: "50 millimes" },
-  { value: 100, label: "100 millimes" },
-];
+const ROUNDING_STEPS = [0, 10, 50, 100];
 
 interface FiscalForm {
   regime: "forfait" | "reel";
@@ -44,11 +41,14 @@ const EMPTY: FiscalForm = {
 
 export function FiscalSettings() {
   const { restaurant } = usePortal();
+  const { t } = useI18n();
+  const c = t.portal.caisse;
   const supabase = getSupabase();
   const [form, setForm] = useState<FiscalForm>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,14 +82,16 @@ export function FiscalSettings() {
   const update = <K extends keyof FiscalForm>(key: K, val: FiscalForm[K]) => {
     setForm((f) => ({ ...f, [key]: val }));
     setSaved(false);
+    setError(null);
   };
 
   const save = async () => {
     setSaving(true);
     setSaved(false);
+    setError(null);
     const rate = Number.parseFloat(form.default_tva_rate.replace(",", ".")) || 0;
     const timbre = Math.round((Number.parseFloat(form.timbre_tnd.replace(",", ".")) || 0) * 1000);
-    const { error } = await supabase.from("restaurant_fiscal").upsert({
+    const { error: saveErr } = await supabase.from("restaurant_fiscal").upsert({
       restaurant_id: restaurant.id,
       regime: form.regime,
       matricule_fiscal: form.matricule_fiscal.trim(),
@@ -102,7 +104,8 @@ export function FiscalSettings() {
       receipt_footer: form.receipt_footer.trim(),
     });
     setSaving(false);
-    if (!error) setSaved(true);
+    if (saveErr) setError(c.saveError);
+    else setSaved(true);
   };
 
   if (loading) {
@@ -115,7 +118,7 @@ export function FiscalSettings() {
 
   return (
     <div className="flex flex-col gap-5">
-      <Card title="Régime fiscal">
+      <Card title={c.regime}>
         <div className="flex rounded-xl bg-sand p-1 gap-1 w-fit">
           {(["forfait", "reel"] as const).map((r) => (
             <button
@@ -126,58 +129,58 @@ export function FiscalSettings() {
                 form.regime === r ? "bg-card text-harissa-pressed shadow-sm" : "text-muted hover:text-ink"
               }`}
             >
-              {r === "forfait" ? "Forfaitaire" : "Réel"}
+              {r === "forfait" ? c.forfait : c.reel}
             </button>
           ))}
         </div>
         <p className="text-[12.5px] text-muted-soft mt-2 leading-relaxed">
-          {form.regime === "forfait"
-            ? "Régime forfaitaire : pas de TVA ni de timbre sur le ticket (cas le plus courant pour un petit café)."
-            : "Régime réel : la TVA et le timbre sont calculés et affichés sur le ticket. À confirmer avec votre comptable."}
+          {form.regime === "forfait" ? c.forfaitHint : c.reelHint}
         </p>
       </Card>
 
-      <Card title="Identité fiscale">
-        <Field label="Matricule fiscal" value={form.matricule_fiscal} onChange={(v) => update("matricule_fiscal", v)} placeholder="1234567A/P/M/000" />
-        <Field label="Raison sociale" value={form.legal_name} onChange={(v) => update("legal_name", v)} placeholder={restaurant.name} />
-        <Field label="Forme juridique (optionnel)" value={form.legal_form} onChange={(v) => update("legal_form", v)} placeholder="SARL, personne physique…" />
+      <Card title={c.identity}>
+        <Field label={c.matricule} value={form.matricule_fiscal} onChange={(v) => update("matricule_fiscal", v)} placeholder="1234567A/P/M/000" />
+        <Field label={c.legalName} value={form.legal_name} onChange={(v) => update("legal_name", v)} placeholder={restaurant.name} />
+        <Field label={c.legalForm} value={form.legal_form} onChange={(v) => update("legal_form", v)} placeholder={c.legalFormPlaceholder} />
       </Card>
 
-      <Card title="TVA & timbre">
+      <Card title={c.taxTitle}>
         {form.regime === "reel" ? (
           <>
             <div className="flex items-center justify-between">
-              <span className="text-[14px] font-bold text-ink">Assujetti à la TVA</span>
+              <span className="text-[14px] font-bold text-ink">{c.tvaRegistered}</span>
               <Toggle checked={form.tva_registered} onChange={(v) => update("tva_registered", v)} />
             </div>
             {form.tva_registered && (
-              <Field label="Taux de TVA (%)" value={form.default_tva_rate} onChange={(v) => update("default_tva_rate", v)} placeholder="19" inputMode="decimal" />
+              <Field label={c.tvaRate} value={form.default_tva_rate} onChange={(v) => update("default_tva_rate", v)} placeholder="19" inputMode="decimal" />
             )}
-            <Field label="Timbre fiscal (TND)" value={form.timbre_tnd} onChange={(v) => update("timbre_tnd", v)} placeholder="1,000" inputMode="decimal" />
+            <Field label={c.timbreField} value={form.timbre_tnd} onChange={(v) => update("timbre_tnd", v)} placeholder="1,000" inputMode="decimal" />
           </>
         ) : (
-          <p className="text-[13px] text-muted-soft">TVA et timbre désactivés en régime forfaitaire.</p>
+          <p className="text-[13px] text-muted-soft">{c.taxDisabled}</p>
         )}
         <div className="flex flex-col gap-1.5 mt-1">
-          <label className="text-[13px] font-bold text-ink">Arrondi des espèces</label>
+          <label className="text-[13px] font-bold text-ink">{c.rounding}</label>
           <select
             value={form.cash_rounding_millimes}
             onChange={(e) => update("cash_rounding_millimes", Number(e.target.value))}
             className="h-11 rounded-lg border-[1.5px] border-line-strong bg-white px-3 text-[14px] text-ink outline-none focus:border-harissa w-fit"
           >
-            {ROUNDING_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+            {ROUNDING_STEPS.map((step) => (
+              <option key={step} value={step}>
+                {step === 0 ? c.roundingNone : interpolate(c.roundingStep, { n: step })}
+              </option>
             ))}
           </select>
-          <span className="text-[12px] text-muted-soft">Les paiements en espèces sont arrondis au plus proche.</span>
+          <span className="text-[12px] text-muted-soft">{c.roundingHint}</span>
         </div>
       </Card>
 
-      <Card title="Pied de ticket">
+      <Card title={c.footerTitle}>
         <textarea
           value={form.receipt_footer}
           onChange={(e) => update("receipt_footer", e.target.value)}
-          placeholder="Merci de votre visite !"
+          placeholder={c.footerPlaceholder}
           rows={2}
           maxLength={200}
           className="rounded-lg border-[1.5px] border-line-strong bg-white px-3.5 py-2.5 text-[14px] text-ink placeholder:text-muted-soft outline-none focus:border-harissa resize-none"
@@ -191,9 +194,10 @@ export function FiscalSettings() {
           disabled={saving}
           className="h-12 px-8 rounded-xl bg-harissa text-white font-extrabold text-[15px] cursor-pointer hover:bg-harissa-pressed transition-colors disabled:opacity-60"
         >
-          {saving ? "Enregistrement…" : "Enregistrer"}
+          {saving ? c.saving : t.common.save}
         </button>
-        {saved && <span className="text-[14px] font-bold text-teal-pressed">Enregistré ✓</span>}
+        {saved && <span className="text-[14px] font-bold text-teal-pressed">{c.saved}</span>}
+        {error && <span className="text-[13px] font-bold text-danger-text">{error}</span>}
       </div>
     </div>
   );

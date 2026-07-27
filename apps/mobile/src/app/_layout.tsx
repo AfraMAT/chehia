@@ -17,15 +17,15 @@ import {
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
-import { AccessibilityInfo } from "react-native";
+import { useEffect } from "react";
 import { I18nProvider } from "@/lib/i18n";
+import { useStackAnimation } from "@/lib/reduce-motion";
 import { colors } from "@/lib/theme";
 
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [loaded] = useFonts({
+  const [loaded, fontError] = useFonts({
     BricolageGrotesque_700Bold,
     BricolageGrotesque_800ExtraBold,
     Manrope_500Medium,
@@ -37,20 +37,15 @@ export default function RootLayout() {
     IBMPlexSansArabic_700Bold,
   });
 
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const animation = useStackAnimation();
 
+  // Fail open: if a font asset can't load, start on system fonts rather than
+  // sitting on the splash screen forever (useFonts leaves `loaded` false).
   useEffect(() => {
-    if (loaded) void SplashScreen.hideAsync();
-  }, [loaded]);
+    if (loaded || fontError) void SplashScreen.hideAsync();
+  }, [loaded, fontError]);
 
-  // Respect the OS "Reduce Motion" accessibility setting.
-  useEffect(() => {
-    void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
-    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduceMotion);
-    return () => sub.remove();
-  }, []);
-
-  if (!loaded) return null;
+  if (!loaded && !fontError) return null;
 
   return (
     <I18nProvider>
@@ -59,7 +54,7 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.cream },
-          animation: reduceMotion ? "none" : "slide_from_right",
+          animation,
         }}
       />
     </I18nProvider>

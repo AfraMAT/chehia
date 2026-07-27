@@ -129,8 +129,15 @@ export function ItemEditor({
     };
   }, [item, restaurant.id, supabase]);
 
+  // Dinars → millimes. NOT parseMenuPrice: that one disambiguates a bare
+  // integer by magnitude (photo import, where the unit is unknown), whereas
+  // this field is explicitly labelled in dinars, so "3500" means 3500 TND.
   const parsePrice = (value: string): number | null => {
     const normalized = value.replace(",", ".").trim();
+    // Number("") and Number("   ") are both 0, so an empty price field used to
+    // pass the `millimes === null` guard in save() and store the dish at zero —
+    // a free item on the live menu. Blank is missing input, not a price of 0.
+    if (normalized === "") return null;
     const parsed = Number(normalized);
     if (!Number.isFinite(parsed) || parsed < 0) return null;
     return Math.round(parsed * 1000);

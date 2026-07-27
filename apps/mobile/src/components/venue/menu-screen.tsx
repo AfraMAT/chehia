@@ -19,7 +19,7 @@ import {
 import { T, ZelligeMark } from "../ui";
 import { useI18n } from "@/lib/i18n";
 import { go } from "@/lib/nav";
-import { rowDir, shadowDark, useTheme } from "@/lib/theme";
+import { faceFor, rowDir, shadowDark, sizeFor, useTheme } from "@/lib/theme";
 import { useVenue } from "@/lib/venue";
 import { ItemSheet } from "./item-sheet";
 import { ItemCard } from "./item-card";
@@ -161,7 +161,14 @@ export function MenuScreen() {
 
       {/* Header */}
       <View style={[rowDir(lang), { alignItems: "center", gap: 10, paddingHorizontal: 20, paddingTop: 12 }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel={t.common.back} hitSlop={10} onPress={() => router.back()}>
+        {/* A group invite deep-links straight here, so the history can be empty
+            — fall back to the venue landing instead of a dead tap. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.common.back}
+          hitSlop={10}
+          onPress={() => (router.canGoBack() ? router.back() : go(basePath, "replace"))}
+        >
           <ZelligeMark size={30} />
         </Pressable>
         <View style={{ flex: 1 }}>
@@ -190,7 +197,8 @@ export function MenuScreen() {
               justifyContent: "center",
             }}
           >
-            <T weight="extrabold" size={12.5} color={theme.ink}>
+            {/* lang picks the Arabic face — Manrope has no coverage for "ع". */}
+            <T lang={lang} weight="extrabold" size={12.5} color={theme.ink}>
               {langShort[lang]}
             </T>
           </Pressable>
@@ -318,10 +326,11 @@ export function MenuScreen() {
             placeholderTextColor={theme.mutedSoft}
             style={{
               flex: 1,
-              fontFamily: "Manrope_500Medium",
-              fontSize: 14,
+              fontFamily: faceFor(lang, "regular"),
+              fontSize: sizeFor(lang, 14),
               color: theme.ink,
               textAlign: isRtl ? "right" : "left",
+              writingDirection: isRtl ? "rtl" : "ltr",
             }}
           />
         </View>
@@ -430,7 +439,10 @@ export function MenuScreen() {
           </T>
           <View style={{ backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 12, paddingVertical: 9, paddingHorizontal: 14 }}>
             <T weight="extrabold" size={15} color={theme.cream}>
-              {millimesToDisplay(cartTotal(cart), lang)} {currencyLabel(lang)}
+              {millimesToDisplay(cartTotal(cart), lang)}{" "}
+              <T weight="extrabold" size={15} color={theme.cream} lang={lang}>
+                {currencyLabel(lang)}
+              </T>
             </T>
           </View>
         </Pressable>

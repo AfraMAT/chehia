@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { WaiterCallReason } from "@chehia/shared";
 import { CtaButton, Handle, SheetClose, T } from "../ui";
 import { useI18n } from "@/lib/i18n";
-import { colors, rowDir, useTheme } from "@/lib/theme";
+import { colors, faceFor, rowDir, sizeFor, useTheme } from "@/lib/theme";
 import { useVenueState } from "@/lib/venue";
 
 /** P6 · Call waiter — bottom sheet with reason presets. */
@@ -131,7 +131,8 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
                     value={note}
                     onChangeText={setNote}
                     maxLength={300}
-                    placeholder="…"
+                    accessibilityLabel={t.waiter.other}
+                    placeholder={t.waiter.other}
                     placeholderTextColor={theme.mutedSoft}
                     style={{
                       borderRadius: 14,
@@ -140,10 +141,11 @@ export function WaiterSheet({ onClose }: { onClose: () => void }) {
                       backgroundColor: theme.card,
                       paddingHorizontal: 15,
                       paddingVertical: 12,
-                      fontFamily: "Manrope_500Medium",
-                      fontSize: 14,
+                      fontFamily: faceFor(lang, "regular"),
+                      fontSize: sizeFor(lang, 14),
                       color: theme.ink,
                       textAlign: isRtl ? "right" : "left",
+                      writingDirection: isRtl ? "rtl" : "ltr",
                     }}
                   />
                 )}

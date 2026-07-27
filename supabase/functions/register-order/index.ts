@@ -157,6 +157,27 @@ Deno.serve(async (req) => {
     // Offline replay: honor the FROZEN prices the cash was already collected at.
     // Never reprice from the live menu and never re-check availability — the sale
     // already happened; a menu/price edit must not change what the customer paid.
+    //
+    // "Frozen" still does not mean "unvalidated". Two things are re-checked:
+
+    // (1) Tenancy. The captured ids were only shape-checked as UUIDs above, so a
+    // replay could name ANOTHER venue's item and have it recorded against — and
+    // deplete the stock of — this one. An id that no longer resolves at all is
+    // fine (the item was deleted during the offline window; order_items.item_id
+    // is `on delete set null`), but one that DOES resolve must be ours.
+    const capturedIds = [...new Set(input.captured_lines!.map((l) => l.item_id))];
+    const { data: known, error: knownErr } = await admin
+      .from("items")
+      .select("id, restaurant_id")
+      .in("id", capturedIds);
+    if (knownErr) {
+      console.error("register-order captured-line tenancy check failed:", knownErr);
+      return errorResponse("db_error", "Could not verify the offline sale", 500);
+    }
+    if ((known ?? []).some((i) => i.restaurant_id !== table.restaurant_id)) {
+      return errorResponse("cross_tenant", "Offline sale references another venue's item", 403);
+    }
+
     pricedLines = input.captured_lines!.map((l) => ({
       item_id: l.item_id,
       name_snapshot: l.name_snapshot ?? {},
@@ -165,9 +186,18 @@ Deno.serve(async (req) => {
       modifiers_snapshot: Array.isArray(l.modifiers_snapshot) ? l.modifiers_snapshot : [],
       note: (l.note ?? "").slice(0, 500),
     }));
-    total = Number.isInteger(input.captured_subtotal)
-      ? input.captured_subtotal!
-      : pricedLines.reduce((s, l) => s + l.unit_price_millimes * l.qty, 0);
+
+    // (2) The total. It is now always derived from the frozen lines. It used to
+    // be taken straight from the client's `captured_subtotal`, which is the one
+    // number in this function the tablet was trusted on — an active staff
+    // account could replay a real basket with a subtotal of 0 and the sale was
+    // recorded, settled and fiscally numbered at zero. The queue always sends
+    // cartTotal() over these exact lines (caisse-provider's queueSale), so a
+    // disagreement is never legitimate: refuse rather than pick a side.
+    total = pricedLines.reduce((s, l) => s + l.unit_price_millimes * l.qty, 0);
+    if (Number.isInteger(input.captured_subtotal) && input.captured_subtotal !== total) {
+      return errorResponse("subtotal_mismatch", "Offline sale total does not match its lines", 409);
+    }
   } else {
   // ---- Load items + modifier structure, then reprice server-side ----
   const itemIds = [...new Set(input.lines!.map((l) => l.item_id))];

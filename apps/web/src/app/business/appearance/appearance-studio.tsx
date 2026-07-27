@@ -59,6 +59,7 @@ export function AppearanceStudio({
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   const palette = useMemo(() => resolveThemePalette(draft), [draft]);
   const previewTree = useMemo(
@@ -84,13 +85,17 @@ export function AppearanceStudio({
 
   const save = async () => {
     setSaving(true);
+    setSaveError(false);
     const { error } = await getSupabase().from("restaurants").update({ appearance: draft }).eq("id", restaurant.id);
     setSaving(false);
-    if (!error) {
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
-      onSaved?.(draft);
+    // The failure branch used to be silent: the button simply stopped spinning.
+    if (error) {
+      setSaveError(true);
+      return;
     }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+    onSaved?.(draft);
   };
 
   return (
@@ -205,6 +210,11 @@ export function AppearanceStudio({
             {t.common.save}
           </button>
           {saved && <span className="text-xs font-extrabold text-success-text bg-success-tint rounded-full px-3 py-1.5">✓ {tx.saved}</span>}
+          {saveError && (
+            <span role="alert" className="text-xs font-extrabold text-danger-text bg-danger-tint rounded-full px-3 py-1.5">
+              {t.errors.generic}
+            </span>
+          )}
         </div>
       </div>
 

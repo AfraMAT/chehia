@@ -56,7 +56,7 @@ export function TablePicker({ onClose }: { onClose: () => void }) {
             {[...byZone.entries()].map(([zone, list]) => (
               <View key={zone || "_"} style={{ gap: 8 }}>
                 {zone ? (
-                  <T weight="bold" size={12} color={theme.mutedSoft} style={{ letterSpacing: 0.5, textAlign: isRtl ? "right" : "left" }}>
+                  <T lang={lang} weight="bold" size={12} color={theme.mutedSoft} style={{ letterSpacing: lang === "ar" ? 0 : 0.5, textAlign: isRtl ? "right" : "left" }}>
                     {zone.toUpperCase()}
                   </T>
                 ) : null}

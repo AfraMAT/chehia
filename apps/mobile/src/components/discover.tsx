@@ -1,6 +1,6 @@
 import * as Location from "expo-location";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, TextInput, View } from "react-native";
+import { ActivityIndicator, FlatList, Linking, Pressable, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   foldSearch,
@@ -21,9 +21,9 @@ import { CtaButton, PhotoPlaceholder, Stars, T, Wordmark, ZelligeMark } from "./
 import { useI18n } from "@/lib/i18n";
 import { go } from "@/lib/nav";
 import { supabase } from "@/lib/supabase";
-import { colors, rowDir } from "@/lib/theme";
+import { colors, faceFor, rowDir, sizeFor } from "@/lib/theme";
 
-type GeoState = "idle" | "locating" | "on" | "denied" | "unavailable";
+type GeoState = "idle" | "locating" | "on" | "denied" | "blocked" | "unavailable";
 
 /**
  * Consumer discovery — find a venue by name or near you, then browse & order.
@@ -31,8 +31,10 @@ type GeoState = "idle" | "locating" | "on" | "denied" | "unavailable";
  *
  * "Near me" uses expo-location: it requests foreground permission, reads the
  * current position, and sorts venues by Haversine distance. Permission denied
- * → `locationOff`; a failed read or an unavailable native module (e.g. a bare
- * Expo Go) → `locationUnavailable`. Distance sorting stays off until coords exist.
+ * → `locationOff`; a permanent refusal (`canAskAgain === false`, iOS never
+ * re-prompts) → `blocked` with a Settings route; a failed read or an unavailable
+ * native module (e.g. a bare Expo Go) → `locationUnavailable`. Distance sorting
+ * stays off until coords exist.
  */
 export function Discover() {
   const { t, tr, lang, setLang, isRtl } = useI18n();
@@ -77,10 +79,12 @@ export function Discover() {
   const locate = useCallback(async () => {
     setGeo("locating");
     try {
-      const { granted } = await Location.requestForegroundPermissionsAsync();
+      const { granted, canAskAgain } = await Location.requestForegroundPermissionsAsync();
       if (!granted) {
         setCoords(null);
-        setGeo("denied");
+        // Permanently refused: the system prompt never reappears, so "Near me"
+        // would be a dead button — offer Settings instead of a silent no-op.
+        setGeo(canAskAgain ? "denied" : "blocked");
         return;
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -203,10 +207,11 @@ export function Discover() {
             returnKeyType="search"
             style={{
               flex: 1,
-              fontFamily: "Manrope_500Medium",
-              fontSize: 14,
+              fontFamily: faceFor(lang, "regular"),
+              fontSize: sizeFor(lang, 14),
               color: colors.ink,
               textAlign: isRtl ? "right" : "left",
+              writingDirection: isRtl ? "rtl" : "ltr",
             }}
           />
         </View>
@@ -239,15 +244,30 @@ export function Discover() {
         </Pressable>
       </View>
 
-      {(geo === "denied" || geo === "unavailable") && (
-        <T lang={lang} weight="semibold" size={12.5} color={colors.mutedSoft} style={{ paddingHorizontal: 20, paddingTop: 8, ...align }}>
-          {geo === "unavailable" ? t.discover.locationUnavailable : t.discover.locationOff}
-        </T>
+      {(geo === "denied" || geo === "blocked" || geo === "unavailable") && (
+        <View style={{ paddingHorizontal: 20, paddingTop: 8, gap: 4 }}>
+          <T lang={lang} weight="semibold" size={12.5} color={colors.mutedSoft} style={align}>
+            {geo === "unavailable" ? t.discover.locationUnavailable : t.discover.locationOff}
+          </T>
+          {geo === "blocked" && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.landing.openSettings}
+              hitSlop={10}
+              onPress={() => void Linking.openSettings()}
+              style={{ paddingVertical: 6, alignSelf: isRtl ? "flex-end" : "flex-start" }}
+            >
+              <T lang={lang} weight="bold" size={12.5} color={colors.sidiBouPressed} style={align}>
+                {t.landing.openSettings}
+              </T>
+            </Pressable>
+          )}
+        </View>
       )}
 
       {/* Section label */}
       {results.length > 0 && (
-        <T weight="bold" size={12} color={colors.mutedSoft} style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 2, letterSpacing: 0.5, ...align }}>
+        <T lang={lang} weight="bold" size={12} color={colors.mutedSoft} style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 2, letterSpacing: lang === "ar" ? 0 : 0.5, ...align }}>
           {(sortedByDistance ? t.discover.nearbyLabel : t.discover.allLabel).toUpperCase()}
         </T>
       )}
@@ -291,7 +311,13 @@ export function Discover() {
                   {t.discover.scanInstead}
                 </T>
               </View>
-              <Pressable onPress={() => go("/", "replace")}>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={t.landing.scanPrompt}
+                hitSlop={10}
+                onPress={() => go("/", "replace")}
+                style={{ paddingVertical: 10 }}
+              >
                 <T lang={lang} weight="bold" size={12.5} color={colors.muted}>
                   {t.landing.scanPrompt}
                 </T>

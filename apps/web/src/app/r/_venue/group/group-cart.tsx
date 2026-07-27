@@ -6,6 +6,7 @@ import { currencyLabel, formatPrice, interpolate, millimesToDisplay } from "@che
 import { useI18n } from "@/components/i18n-provider";
 import { Spinner, Stepper } from "@/components/ui";
 import { useVenue } from "../venue-provider";
+import { useSheet } from "../use-sheet";
 import { useSession } from "./session-provider";
 
 /** The shared group cart: participants, attributed lines, ready state, placement. */
@@ -30,6 +31,8 @@ export function GroupCart({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState<"group" | "solo" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  useSheet(onClose);
 
   const itemById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
@@ -134,12 +137,21 @@ export function GroupCart({ onClose }: { onClose: () => void }) {
                 ) : (
                   pLines.map((l) => {
                     const item = itemById.get(l.item_id);
+                    const name = item ? tr(item.name_i18n) : "—";
                     const unit = unitOf(l.item_id, l.modifier_ids);
                     return (
                       <div key={l.id} className="flex items-center gap-2.5 bg-card border border-line rounded-lg px-3 py-2">
-                        <span className="font-bold text-[13.5px] text-ink flex-1 min-w-0 truncate">{item ? tr(item.name_i18n) : "—"}</span>
+                        <span className="font-bold text-[13.5px] text-ink flex-1 min-w-0 truncate">{name}</span>
                         {mine ? (
-                          <Stepper value={l.qty} onChange={(q) => void setLineQty(l.id, q)} min={0} max={20} size="sm" />
+                          <Stepper
+                            value={l.qty}
+                            onChange={(q) => void setLineQty(l.id, q)}
+                            min={0}
+                            max={20}
+                            size="sm"
+                            decreaseLabel={`${t.common.decrease}, ${name}`}
+                            increaseLabel={`${t.common.increase}, ${name}`}
+                          />
                         ) : (
                           <span className="text-[12.5px] font-bold text-muted-soft">×{l.qty}</span>
                         )}

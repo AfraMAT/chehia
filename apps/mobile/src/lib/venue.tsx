@@ -336,6 +336,35 @@ export function VenueProvider(props: ProviderProps) {
     };
   }, [slug, token, target, browse]);
 
+  // A cached menu is a fallback, not a destination. The loader above is keyed on
+  // the VENUE, not on connectivity, so once the offline fallback rendered the
+  // customer browsed stale prices and stale sold-out flags for the rest of the
+  // visit — even after the café's wifi came back — and only a full app restart
+  // fixed it. Re-fetch once, as soon as we are online again.
+  const showingCachedMenu = state.status === "ready" && state.fromCache;
+  useEffect(() => {
+    if (!online || !showingCachedMenu) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const bundle = browse ? await fetchBrowseBundle(slug) : await fetchScannedBundle(slug, token);
+        if (cancelled || !bundle) return;
+        setState({ status: "ready", bundle, fromCache: false });
+        setCachedAt(null);
+        await AsyncStorage.setItem(
+          menuCacheKey(slug, target),
+          JSON.stringify({ v: MENU_CACHE_VERSION, bundle, at: new Date().toISOString() }),
+        );
+      } catch {
+        // Still unreachable — keep serving the cache and try again next time
+        // connectivity flips.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [online, showingCachedMenu, slug, token, target, browse]);
+
   // Hydrate cart + queued order. The cart is reconciled against the live
   // menu once it arrives (stale prices/vanished items are corrected).
   useEffect(() => {
@@ -634,6 +663,27 @@ export function VenueProvider(props: ProviderProps) {
           // fetch threw → offline. Move the cart into the queue (P8): the
           // live cart empties; new items form a separate future order. The
           // captured coords ride along so the retry still satisfies the gate.
+          //
+          // The queue holds exactly ONE order per target, so a second queue
+          // write used to overwrite the first and destroy it — the customer
+          // watched the banner keep saying "queued" while the food they ordered
+          // first was gone. Refuse instead: the cart is kept intact so nothing
+          // is lost, and the pending order still goes out on reconnect.
+          // Parse defensively: this runs inside a catch handler, so anything
+          // thrown here escapes placeOrder as a rejection and freezes the
+          // caller's submit spinner. A corrupt entry just means "no queue".
+          const existing = await AsyncStorage.getItem(queueKey(target)).catch(() => null);
+          let pending: QueuedPayload | null = null;
+          if (existing) {
+            try {
+              pending = JSON.parse(existing) as QueuedPayload;
+            } catch {
+              pending = null;
+            }
+          }
+          if (pending && isQueueFresh(pending)) {
+            return { ok: false, errorCode: "queue_busy" };
+          }
           const payload: QueuedPayload = { cart, language, clientRef, geo, queuedAt: Date.now() };
           await AsyncStorage.setItem(queueKey(target), JSON.stringify(payload));
           setQueuedOrder({

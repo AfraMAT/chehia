@@ -3,7 +3,6 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import {
   currencyLabel,
-  formatCount,
   formatElapsed,
   millimesToDisplay,
   type OrderStatus,
@@ -55,7 +54,7 @@ export default function OrdersPage() {
         <div className="flex-1" />
         <span className="text-[12.5px] font-bold text-muted bg-card border border-line rounded-full px-3.5 py-2" dir="ltr">
           {t.portal.orders.today} · {todayCount} {t.portal.nav.orders.toLowerCase()} ·{" "}
-          {formatCount(Math.round(todayRevenue / 1000))} {currencyLabel(lang)}
+          {millimesToDisplay(todayRevenue, lang)} {currencyLabel(lang)}
         </span>
         <span className="inline-flex items-center gap-2 text-[12.5px] font-extrabold text-ink bg-card border border-line rounded-full px-3.5 py-1.5">
           <Toggle checked={soundOn} onChange={setSoundOn} label={t.portal.orders.sound} />

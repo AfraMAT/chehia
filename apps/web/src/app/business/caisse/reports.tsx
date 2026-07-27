@@ -1,14 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { currencyLabel, millimesToDisplay } from "@chehia/shared";
+import { formatPrice, type Language } from "@chehia/shared";
 import { getSupabase } from "@/lib/supabase";
 import { Spinner } from "@/components/ui";
+import { useI18n } from "@/components/i18n-provider";
 
 /** POS reporting: sales by tender, TVA/timbre collected, and recent Z-reports. */
-
-const fmt = (m: number) => `${millimesToDisplay(m, "fr")} ${currencyLabel("fr")}`;
-const METHOD_LABEL: Record<string, string> = { cash: "Espèces", card: "Carte", d17: "D17", other: "Autre" };
 
 type Range = "today" | "week";
 
@@ -41,6 +39,14 @@ function sinceISO(range: Range): string {
 
 export function Reports() {
   const supabase = getSupabase();
+  const { t, lang } = useI18n();
+  const fmt = (m: number) => formatPrice(m, lang);
+  const methodLabel: Record<string, string> = {
+    cash: t.caisse.tender.cash,
+    card: t.caisse.tender.card,
+    d17: t.caisse.tender.d17,
+    other: t.caisse.tender.other,
+  };
   const [range, setRange] = useState<Range>("today");
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -99,7 +105,7 @@ export function Reports() {
               range === r ? "bg-card text-harissa-pressed shadow-sm" : "text-muted hover:text-ink"
             }`}
           >
-            {r === "today" ? "Aujourd'hui" : "7 jours"}
+            {r === "today" ? t.portal.stats.today : t.portal.stats.week}
           </button>
         ))}
       </div>
@@ -112,22 +118,22 @@ export function Reports() {
         <>
           {/* Headline */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Stat label="Ventes" value={fmt(summary.salesTotal)} strong />
-            <Stat label="Commandes" value={String(summary.orders)} />
-            <Stat label="TVA collectée" value={fmt(summary.tax)} />
-            <Stat label="Timbre" value={fmt(summary.timbre)} />
+            <Stat label={t.portal.stats.sales} value={fmt(summary.salesTotal)} strong />
+            <Stat label={t.portal.stats.orders} value={String(summary.orders)} />
+            <Stat label={t.portal.caisse.vatCollected} value={fmt(summary.tax)} />
+            <Stat label={t.caisse.receipt.stamp} value={fmt(summary.timbre)} />
           </div>
 
           {/* By tender */}
           <section className="bg-card border border-line rounded-2xl p-5 flex flex-col gap-3">
-            <h2 className="font-extrabold text-[15px] text-ink">Par mode de paiement</h2>
+            <h2 className="font-extrabold text-[15px] text-ink">{t.portal.caisse.byMethod}</h2>
             {Object.keys(summary.byMethod).length === 0 ? (
-              <p className="text-[13px] text-muted-soft">Aucune vente sur cette période.</p>
+              <p className="text-[13px] text-muted-soft">{t.portal.caisse.noSales}</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {["cash", "card", "d17", "other"].filter((m) => summary.byMethod[m]).map((m) => (
                   <div key={m} className="flex justify-between items-center">
-                    <span className="text-[13.5px] font-bold text-ink">{METHOD_LABEL[m]}</span>
+                    <span className="text-[13.5px] font-bold text-ink">{methodLabel[m]}</span>
                     <span className="text-[13.5px] font-bold text-ink tabular-nums" dir="ltr">{fmt(summary.byMethod[m])}</span>
                   </div>
                 ))}
@@ -137,18 +143,18 @@ export function Reports() {
 
           {/* Z-reports */}
           <section className="bg-card border border-line rounded-2xl p-5 flex flex-col gap-3">
-            <h2 className="font-extrabold text-[15px] text-ink">Clôtures de caisse (Z)</h2>
+            <h2 className="font-extrabold text-[15px] text-ink">{t.portal.caisse.zTitle}</h2>
             {sessions.length === 0 ? (
-              <p className="text-[13px] text-muted-soft">Aucune clôture sur cette période.</p>
+              <p className="text-[13px] text-muted-soft">{t.portal.caisse.noClosings}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead>
-                    <tr className="text-muted-soft text-left">
-                      <th className="font-bold pb-2 pe-3">Clôturée</th>
-                      <th className="font-bold pb-2 pe-3 text-end">Attendu</th>
-                      <th className="font-bold pb-2 pe-3 text-end">Compté</th>
-                      <th className="font-bold pb-2 text-end">Écart</th>
+                    <tr className="text-muted-soft text-start">
+                      <th className="font-bold pb-2 pe-3">{t.portal.caisse.closedAt}</th>
+                      <th className="font-bold pb-2 pe-3 text-end">{t.caisse.drawer.expected}</th>
+                      <th className="font-bold pb-2 pe-3 text-end">{t.caisse.drawer.counted}</th>
+                      <th className="font-bold pb-2 text-end">{t.caisse.drawer.variance}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -156,7 +162,7 @@ export function Reports() {
                       const os = s.over_short_millimes ?? 0;
                       return (
                         <tr key={s.id} className="border-t border-line">
-                          <td className="py-2 pe-3 text-ink">{formatDate(s.closed_at)}</td>
+                          <td className="py-2 pe-3 text-ink">{formatDate(s.closed_at, lang)}</td>
                           <td className="py-2 pe-3 text-ink tabular-nums text-end" dir="ltr">{fmt(s.expected_cash_millimes ?? 0)}</td>
                           <td className="py-2 pe-3 text-ink tabular-nums text-end" dir="ltr">{fmt(s.counted_cash_millimes ?? 0)}</td>
                           <td className={`py-2 tabular-nums text-end font-bold ${os < 0 ? "text-danger-text" : "text-teal-pressed"}`} dir="ltr">
@@ -187,9 +193,10 @@ function Stat({ label, value, strong }: { label: string; value: string; strong?:
   );
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, lang: Language): string {
+  const locale = lang === "ar" ? "ar-TN" : lang === "en" ? "en-GB" : "fr-FR";
   try {
-    return new Date(iso).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    return new Date(iso).toLocaleString(locale, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
   } catch {
     return iso;
   }
