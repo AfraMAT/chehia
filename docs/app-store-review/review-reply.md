@@ -17,14 +17,16 @@ whole repo (97 findings, each re-verified against the real code before being fix
 
 | Item | State |
 | --- | --- |
-| Code fixes | ✅ committed on `develop` (`8b41f5b`), all four gates green |
-| Build 1.0 (7) | ⏳ **not built yet** — blocked on local disk, see §F |
-| Screenshots | ⏳ regenerate from build 7 (§F step 2) |
-| App Review notes (§A) | ✅ text final below — re-paste, one label changed |
+| Code fixes | ✅ committed on `develop`, all four gates green |
+| **Build 1.0 (7)** | ✅ **BUILT** — EAS `acb5d805-02af-47d6-8678-0071f86f7cc6`, from commit `aff4e9f`, finished 2026-07-27 15:22 |
+| Upload to ASC | ⏳ `eas submit` running at time of writing — confirm it landed in TestFlight/Activity |
+| Screenshots | ➖ existing 6.9" set still accurate — see §F step 2 |
+| App Review notes (§A) | ✅ text final below — **re-paste, one label changed** |
 | Reply to Apple (§B) | ✅ text final below — **you paste this** |
 | Age rating | ✅ done + verified in ASC 2026-07-16, calculated 4+ |
 | App Privacy (§D) | ✅ 4 types published; build 7 now *matches* them in the bundle |
 | Demo venue on prod | ✅ re-verified 2026-07-27 (see §E) |
+| Cloud DB / edge fns | ⛔ deliberately **not applied** — see §H |
 
 ---
 
@@ -199,30 +201,54 @@ Do not gate this venue. Apple's reviewer re-tests this exact path after every up
 
 ## F. What YOU still have to do
 
-**1. Build and upload 1.0 (7)** — blocked right now on local disk (the Mac is at
-100%; free ~10GB and this unblocks). Then:
+**1. Confirm build 7 arrived.** It is built and `eas submit` was run against it. Check
+App Store Connect → your app → **TestFlight** (or the Activity tab) for **1.0 (7)**. Apple
+takes 5–30 min to finish processing after upload. If it is not there, re-run:
 
 ```bash
 cd apps/mobile
-eas build --platform ios --profile production   # autoIncrement bumps 6 → 7
-eas submit --platform ios --profile production  # uploads to ASC (ascAppId is set)
+eas submit --platform ios --profile production --id acb5d805-02af-47d6-8678-0071f86f7cc6
 ```
 
-`production.autoIncrement` **rewrites `app.json`** on disk (`ios.buildNumber`,
-`android.versionCode`) — commit that diff or the number gets reused.
+**2. Screenshots — nothing to do unless you want to.** The existing 6.9" set
+(`~/Desktop/chehia-asc-screenshots/`, 1320×2868, in order: landing, discover, menu, item,
+cart, tracking, venue) was captured from build 6 on the demo venue. Build 7 changes Arabic
+typography, touch targets and spacing — **none of which appear in those French screens**, so
+they are still an accurate depiction of the shipping build. Apple does not require a
+recapture per build. Leave them.
 
-**2. Screenshots** — Version page → Previews and Screenshots → **Delete All** on the
-existing 6.9" set, then drag the 7 files from `~/Desktop/chehia-asc-screenshots/`
-(1320×2868, numbered in order: landing, discover, menu, item, cart, tracking, venue).
-⚠️ Those captures are of **build 6**. Build 7 changes Arabic typography and some spacing
-but nothing in the French screens they depict, so they remain accurate — recapture only if
-you want the polish visible.
+**3. Attach build 7** to the version (Version page → Build → select 1.0 (7)).
 
-**3. Attach build 7** to the version, then **Reply to App Review** → paste §B.
+**4. App Review Information → Notes:** re-paste §A. This is the one metadata change that
+matters — the old notes told the reviewer to tap "Find a restaurant", which does not exist.
 
-**4. Resubmit to App Review.** Replying alone does NOT restart review. If that button is
+**5. Reply to App Review** → paste §B.
+
+**6. Resubmit to App Review.** Replying alone does NOT restart review. If that button is
 greyed out, use the blue **Update Review** button on the version page instead — it submits
 the updated version to the same open submission.
+
+---
+
+## H. Held back on purpose — your call, not blockers
+
+Three migrations and two edge-function fixes are committed to `develop` but **applied
+nowhere**. None of them affects the iOS build or the review:
+
+| Change | What it closes |
+| --- | --- |
+| `20260727000001_staff_credential_and_role_hardening.sql` | `staff.pin_hash` (the bcrypt register PIN) was selectable AND updatable by every colleague through PostgREST; a manager could promote themselves to owner. **Verified applied cleanly on the local stack** and the column privileges confirmed revoked. |
+| `20260727000002_lock_moderated_and_billing_columns.sql` | An owner could PATCH their own `rating_avg`/`rating_count` (walking around the admin-moderated review pipeline), their `plan`, and `order_seq`. |
+| `20260727000003_scope_item_ingredients_to_tenant.sql` | Cross-venue: one venue could 86 another's dishes and drain their stock. |
+| `supabase/functions/register-order` | Offline replay trusted the client's `captured_subtotal` — a staff account could ring a real basket at 0 millimes — and never checked captured item tenancy. |
+| `supabase/functions/settle-order` | Returned recomputed amounts for an already-paid order, so a reprint could show change that was never given. |
+
+⚠️ 000002 and 000003 are **not yet syntax-validated against a running Postgres** — Docker
+could not start under the disk pressure. Run `pnpm db:start && pnpm db:reset` before applying
+either. 000001 was validated.
+
+Deploy order when you are ready: **dev first, verify Caisse, then prod.** Never
+`supabase db push` — use the Supabase MCP `apply_migration` (see supabase/CLAUDE.md).
 
 ---
 
