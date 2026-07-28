@@ -1,8 +1,9 @@
 # Chehia — App Review resubmission (Submission 780237f1-…)
 
-_Rewritten 2026-07-27 for **build 1.0 (7)**, after a 12-dimension adversarial audit of the
-whole repo (97 findings, each re-verified against the real code before being fixed) and a
-7-agent fix sweep. Everything below is copy-paste ready._
+_Rewritten 2026-07-27 for build 1.0 (7); updated 2026-07-28 for **build 1.0 (8)**, which adds
+the illustrated menu art. Behind it: a 12-dimension adversarial audit of the whole repo (97
+findings, each re-verified against the real code before being fixed), a 7-agent fix sweep, and
+a full ASC form audit. Everything below is copy-paste ready._
 
 > **Read this first.** Apple rejected under Guideline 4 (permission language), 2.1(a) (demo
 > details) and 2.1(b) (business model). Build 6 already answered all three. Build 7 is not
@@ -18,22 +19,24 @@ whole repo (97 findings, each re-verified against the real code before being fix
 | Item | State |
 | --- | --- |
 | Code fixes | ✅ committed on `develop`, all four gates green |
-| **Build 1.0 (8)** | ✅ **BUILT** — EAS `ae4c572a-4867-40b1-a7e8-8cee4ff816f0`, ships the illustrated menu art. Build 7 (`acb5d805`) is also in TestFlight; **submit 8**. |
+| **Build 1.0 (8)** | ✅ **BUILT + SUBMITTED** (submission `dda74244`) — EAS `ae4c572a-4867-40b1-a7e8-8cee4ff816f0`, ships the illustrated menu art. Build 7 (`acb5d805`) is also in TestFlight; **submit 8**. |
 | Upload to ASC | ✅ **delivered** — EAS submission `459c5ab6-6301-48e6-bf21-221530547045` **FINISHED** 2026-07-27 19:30. Three later submissions of the same binary ERRORED/were cancelled: that is the expected redundant-binary rejection, not a problem. |
 | Screenshots | ⬆️ **8 new ones ready** in `~/Desktop/chehia-asc-FINAL/` — see §I |
 | App Review notes (§A) | ✅ text final below — **re-paste, one label changed** |
 | Reply to Apple (§B) | ✅ text final below — **you paste this** |
 | Age rating | ✅ done + verified in ASC 2026-07-16, calculated 4+ |
-| App Privacy (§D) | ✅ 4 types published; build 7 now *matches* them in the bundle |
+| App Privacy (§D) | ✅ 4 types published; the bundle *matches* them (was an empty list in build 6) |
 | Demo venue on prod | ✅ re-verified 2026-07-27 (see §E) |
 | Cloud DB / edge fns | ✅ **applied to prod** 2026-07-28 and verified live — see §H |
 
 ---
 
-## A0. Verified ground truth — read out of the signed build 7 IPA
+## A0. Verified ground truth — read out of the signed IPA
 
-Downloaded the actual artifact EAS produced and inspected the bundle. Every claim §B makes
-to Apple is checked against this, not against the source:
+Downloaded the actual artifact EAS produced (build 7) and inspected the bundle. Every claim §B
+makes to Apple is checked against this, not against the source. **Build 8 changes JavaScript
+only** — no app.json, plugin, permission or privacy-manifest edit between 7 and 8 — so every
+row below holds for build 8 except `CFBundleVersion`, which is 8:
 
 | Checked | Value in the shipped `Chehia.app` |
 | --- | --- |
