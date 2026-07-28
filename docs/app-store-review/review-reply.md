@@ -19,7 +19,7 @@ a full ASC form audit. Everything below is copy-paste ready._
 | Item | State |
 | --- | --- |
 | Code fixes | ✅ committed on `develop`, all four gates green |
-| **Build 1.0 (8)** | ✅ **BUILT + SUBMITTED** (submission `dda74244`) — EAS `ae4c572a-4867-40b1-a7e8-8cee4ff816f0`, ships the illustrated menu art. Build 7 (`acb5d805`) is also in TestFlight; **submit 8**. |
+| **Build 1.0 (9)** | ✅ **BUILT + SUBMITTED** — EAS `40985ff9-1192-4516-9d0c-fce83a490751`. Ships the illustrated menu art *and* the "1 items" plural fix. Builds 7 and 8 are also in TestFlight; **attach 9**. |
 | Upload to ASC | ✅ **delivered** — EAS submission `459c5ab6-6301-48e6-bf21-221530547045` **FINISHED** 2026-07-27 19:30. Three later submissions of the same binary ERRORED/were cancelled: that is the expected redundant-binary rejection, not a problem. |
 | Screenshots | ⬆️ **8 new ones ready** in `~/Desktop/chehia-asc-FINAL/` — see §I |
 | App Review notes (§A) | ✅ text final below — **re-paste, one label changed** |
@@ -271,24 +271,29 @@ shipped build 7 binary and live prod.
 1. **Attach build 7.** The version page still has **build 6**. Build 7 is in TestFlight with
    status **Complete / Ready to Submit** (uploaded Jul 27 5:16 PM), so it is just a matter of
    selecting it.
-2. **Screenshots — upload the 8 in `~/Desktop/chehia-asc-FINAL/`.** The 6.5" slot currently
-   holds 6 pre-rebrand captures (`1-home.png` … `6-order.png`) with the **old fork logo**, and
-   the first one is in **English** while the rest are French — mixed language on a
-   French-primary listing. Delete All, then drag in the new set (all 1320×2868, all French,
-   café-cup logo, in filename order):
+2. **Screenshots — THREE localizations, not one.** The listing has **French (primary),
+   Arabic and English (U.S.)**, and each carries its own 6 screenshots — all showing the
+   pre-rebrand **fork logo**, and the French set's first frame is in English. Replace all three:
 
-   | # | File | Why |
-   | --- | --- | --- |
-   | 01 | landing | brand + value prop. From build 6 **on purpose** — the simulator build shows a `__DEV__`-only "Démo" button that does not exist in the shipping app |
-   | 02 | menu-categories | the illustrated category tiles — the strongest frame |
-   | 03 | items | coffee list with per-dish art and prices |
-   | 04 | item-detail | modifiers, allergens, ratings |
-   | 05 | cart | 2 items, pay-at-counter stated |
-   | 06 | tracking | live order timeline |
-   | 07 | venue | table context, contact, language picker |
-   | 08 | discover | no-QR browse path (prod venue data) |
+   | Localization | Upload from |
+   | --- | --- |
+   | French | `~/Desktop/chehia-asc-FINAL/` |
+   | Arabic | `~/Desktop/chehia-asc-FINAL-ar/` |
+   | English (U.S.) | `~/Desktop/chehia-asc-FINAL-en/` |
 
-   Only the first 3 appear on the install sheet, which is why the menu art is #2.
+   **Use Media Manager → iPhone → the `6.9" Display` row**, not the version page. All files
+   are 1320×2868, which is the 6.9" size; the 6.5" slot only accepts 1242×2688 / 1284×2778 and
+   will reject them. For French the 6.5" row already says *"Using 6.9" Display"* so it
+   inherits; set Arabic and English the same way (6.5" row → **Edit** → use 6.9") rather than
+   uploading twice. A 6.5"-sized fallback exists at `~/Desktop/chehia-asc-FINAL-65/` if needed.
+
+   Each set is 8 frames in filename order: landing, menu-categories, items, item-detail, cart,
+   tracking, venue, discover. Only the first 3 appear on the install sheet, which is why the
+   illustrated menu art is #2.
+
+   Every frame was captured from the current source on a 6.9" simulator with the device set to
+   that language, so Arabic is genuinely RTL. The landing frames were captured with the
+   `__DEV__`-only "Démo" button temporarily hidden, so they match the production build exactly.
 3. **Digital Services Act trader status is NOT set up.** App Information → App Store
    Regulations & Permits → Digital Services Act shows a **Set Up** button. The app is
    available in **175 countries**, which includes the EU. Apple's warning: *"you must provide
