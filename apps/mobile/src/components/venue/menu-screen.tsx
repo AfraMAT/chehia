@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BackHandler, FlatList, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
+  itemCount,
   type I18nText,
   foldSearch,
   buildCategoryTree,
@@ -307,7 +308,7 @@ export function MenuScreen() {
             {t.menu.reorderUsual}
           </T>
           <T lang={lang} weight="bold" size={12} color={theme.harissaPressed}>
-            {lastOrder.reduce((s, l) => s + l.qty, 0)} {t.common.items}
+            {itemCount(lastOrder.reduce((s, l) => s + l.qty, 0), t)}
           </T>
         </Pressable>
       )}
@@ -423,7 +424,7 @@ export function MenuScreen() {
         <Pressable
           onPress={() => go(`${basePath}/cart`)}
           accessibilityRole="button"
-          accessibilityLabel={`${t.menu.viewCart} — ${count} ${t.common.items}, ${millimesToDisplay(cartTotal(cart), lang)} ${currencyLabel(lang)}`}
+          accessibilityLabel={`${t.menu.viewCart} — ${itemCount(count, t)}, ${millimesToDisplay(cartTotal(cart), lang)} ${currencyLabel(lang)}`}
           style={[
             rowDir(lang),
             shadowDark,

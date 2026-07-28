@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { cartCount, cartHasTable, cartTotal, currencyLabel, millimesToDisplay, orderErrorMessage } from "@chehia/shared";
+import { cartCount, cartHasTable, cartTotal, currencyLabel, millimesToDisplay, orderErrorMessage, itemCount } from "@chehia/shared";
 import { BackButton, CtaButton, Line, Stepper, T } from "../ui";
 import { useI18n } from "@/lib/i18n";
 import { useLocationGate } from "@/lib/location-gate";
@@ -226,7 +226,7 @@ export function CartScreen() {
                       {t.offline.queued}
                     </T>
                     <T lang={lang} weight="semibold" size={12.5} color="rgba(250,246,239,0.65)" style={align}>
-                      {queuedOrder.count} {t.common.items} · {millimesToDisplay(queuedOrder.totalMillimes, lang)}{" "}
+                      {itemCount(queuedOrder.count, t)} · {millimesToDisplay(queuedOrder.totalMillimes, lang)}{" "}
                       {currencyLabel(lang)} — {t.offline.queuedBody}
                     </T>
                   </View>
@@ -306,7 +306,7 @@ export function CartScreen() {
                   <Line dashed />
                   <View style={[rowDir(lang), { justifyContent: "space-between", marginTop: 6 }]}>
                     <T lang={lang} weight="semibold" size={13} color={theme.muted}>
-                      {t.common.subtotal} · {count} {count > 1 ? t.common.items : t.common.item}
+                      {t.common.subtotal} · {itemCount(count, t)}
                     </T>
                     <T weight="bold" size={13}>
                       {millimesToDisplay(total, lang)}{" "}

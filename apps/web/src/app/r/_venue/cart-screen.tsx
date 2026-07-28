@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
+  itemCount,
   cartCount,
   cartHasTable,
   cartTotal,
@@ -207,7 +208,7 @@ export function CartScreen() {
             <div className="flex flex-col">
               <span className="font-extrabold text-[15px] text-cream">{t.offline.queued}</span>
               <span className="text-[12.5px] font-semibold text-cream/65">
-                {count} {t.common.items} · <span dir="ltr">{millimesToDisplay(total, lang)} {currencyLabel(lang)}</span> —{" "}
+                {itemCount(count, t)} · <span dir="ltr">{millimesToDisplay(total, lang)} {currencyLabel(lang)}</span> —{" "}
                 {t.offline.queuedBody}
               </span>
             </div>
@@ -272,7 +273,7 @@ export function CartScreen() {
         <div className="border-t border-dashed border-line-strong mt-1.5 pt-3 flex flex-col gap-1.5 pb-4">
           <div className="flex justify-between">
             <span className="text-[13px] font-semibold text-muted">
-              {t.common.subtotal} · {count} {count > 1 ? t.common.items : t.common.item}
+              {t.common.subtotal} · {itemCount(count, t)}
             </span>
             <span className="text-[13px] font-bold text-ink" dir="ltr">
               {millimesToDisplay(total, lang)} {currencyLabel(lang)}

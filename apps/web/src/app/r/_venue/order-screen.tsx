@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  itemCount,
   currencyLabel,
   formatClock,
   interpolate,
@@ -455,7 +456,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
             >
               <div className="flex flex-col items-start gap-0.5 text-start">
                 <span className="font-extrabold text-sm text-ink">
-                  {count} {t.common.items} ·{" "}
+                  {itemCount(count, t)} ·{" "}
                   <span dir="ltr">{millimesToDisplay(order.total_millimes, lang)}</span> {currencyLabel(lang)}
                 </span>
                 <span className="text-xs font-semibold text-muted-soft">

@@ -3,6 +3,7 @@ import { AccessibilityInfo, ActivityIndicator, AppState, Pressable, ScrollView, 
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
+  itemCount,
   currencyLabel,
   formatClock,
   interpolate,
@@ -494,7 +495,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
                 accessible
                 accessibilityRole="button"
                 accessibilityState={{ expanded: detailsOpen }}
-                accessibilityLabel={`${count} ${t.common.items} · ${millimesToDisplay(order.total_millimes, lang)} ${currencyLabel(lang)}`}
+                accessibilityLabel={`${itemCount(count, t)} · ${millimesToDisplay(order.total_millimes, lang)} ${currencyLabel(lang)}`}
                 style={[
                   rowDir(lang),
                   {
@@ -514,7 +515,7 @@ export function OrderScreen({ orderId }: { orderId: string }) {
               >
                 <View style={{ flexShrink: 1 }}>
                   <T lang={lang} weight="extrabold" size={14} style={align}>
-                    {count} {t.common.items} · {millimesToDisplay(order.total_millimes, lang)} {currencyLabel(lang)}
+                    {itemCount(count, t)} · {millimesToDisplay(order.total_millimes, lang)} {currencyLabel(lang)}
                   </T>
                   <T lang={lang} weight="semibold" size={12} color={theme.mutedSoft} numberOfLines={1} style={align}>
                     {lines.map((l) => `${l.qty}× ${tr(l.name_snapshot)}`).join(", ")}

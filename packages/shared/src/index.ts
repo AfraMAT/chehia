@@ -13,3 +13,4 @@ export * from "./appearance";
 export * from "./menu-tree";
 export * from "./menu-art";
 export * from "./order-errors";
+export * from "./plural";
