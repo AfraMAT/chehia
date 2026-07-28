@@ -106,92 +106,82 @@ language (fr/ar/en).
 
 ## B. Reply to Apple — paste this into the message thread
 
-_Final for build 1.0 (9). Every claim below is verifiable in the shipped binary: the
-permission strings and privacy manifest were read out of the signed IPA, and app.json has not
-changed between builds 7, 8 and 9 (only the build number)._
+_Final for build 1.0 (9). **3 850 characters** — App Store Connect caps the reply box at
+4 000, so there is ~150 characters of headroom; if you edit it, re-count. Plain hyphens and
+no accented characters on purpose: the ASC message box mangles them._
+
+_Every claim is verifiable in the shipped binary — the permission strings and privacy
+manifest were read out of the signed IPA, and app.json has not changed between builds 7, 8
+and 9 (only the build number)._
 
 ```
 Hello, and thank you for the detailed feedback. We have addressed every point.
 
-Guideline 4 (Design) - permission-request language
-You were right: the permission prompts did not match the app's localization.
-This is fixed in build 9.
-- The app requests exactly two permissions: camera (to scan the QR code printed
-  on the table) and when-in-use location (to list nearby cafes and to confirm
-  the customer is on-site when a venue requires it). Both usage descriptions are
-  written in the app's primary localization, French, and are additionally
-  localized for every supported localization (French, Arabic, English) via
-  InfoPlist.strings, so the system prompt always appears in the same language as
-  the app's interface.
-- We removed the usage strings for capabilities the app does not use
-  (microphone, always-on/background location). Those keys are no longer present
-  in the binary at all.
-- One usage string remains that the app never triggers: NSMotionUsageDescription
-  (localized in French, Arabic and English). It is declared only because a system
-  framework referenced by our location library requires the declaration to pass
-  App Store validation (ITMS-90683). The app never requests motion permission and
-  never reads motion data, so no motion prompt is ever shown to the user. We have
-  kept it solely to remain compliant with that validation rule.
-- We also went beyond the report on this guideline: build 9 fixes Arabic text
-  rendering throughout (Arabic was falling back to a Latin typeface in text
-  fields and several labels), restores Reduce Motion support across the ordering
-  flow, raises every control to the 44pt minimum touch target, corrects the
-  VoiceOver labels on the quantity steppers and rating rows, and adds
-  illustrated artwork for every menu item so no dish renders as an empty
-  placeholder.
+GUIDELINE 4 (DESIGN) - PERMISSION LANGUAGE
+Fixed in build 9. The app requests exactly two permissions: camera (to scan the
+QR code printed on the table) and when-in-use location (to list nearby cafes and
+confirm the customer is on-site when a venue requires it). Both usage strings are
+written in the app's primary localization, French, and are additionally localized
+for every supported localization (French, Arabic, English) via InfoPlist.strings,
+so the system prompt always matches the app's interface language.
+
+We removed the usage strings for capabilities the app does not use (microphone,
+always-on/background location). Those keys are no longer present in the binary.
+
+One string remains that the app never triggers: NSMotionUsageDescription
+(localized fr/ar/en). It is declared only because a system framework referenced
+by our location library requires it to pass App Store validation (ITMS-90683).
+The app never requests motion permission and never reads motion data, so no
+motion prompt is ever shown.
+
+Build 9 also fixes Arabic text rendering, restores Reduce Motion support, raises
+every control to the 44pt minimum target, and corrects VoiceOver labels.
 
 Chehia is designed as an iPhone app - a portrait, on-the-go tool used at a cafe
 table. It also runs and functions fully on iPad in iPhone-compatibility mode.
 
-Guideline 2.1 - App Completeness / demo details
-No login is required: the customer app is fully anonymous, with no account and
-no sign-in of any kind. To make the full experience easy to reach we have
-attached a demo QR code and step-by-step instructions in App Review Information
-> Notes.
+GUIDELINE 2.1 - APP COMPLETENESS / DEMO DETAILS
+No login is required. The customer app is fully anonymous: no account, no
+sign-in. A demo QR code and step-by-step instructions are attached in App Review
+Information > Notes.
 
-There are two ways in, and neither needs a physical QR code:
-1. Scan the attached image (demo-qr-cafe-el-marsa-table-12.png) displayed on
-   another screen. It opens the demo venue "Cafe El Marsa - Table 12".
-2. No scanning at all: tap "Find a place" ("Trouver un etablissement" on a
-   French device), select "Cafe El Marsa", choose any table, then browse the
-   menu and place an order.
+Two ways in, neither needing a physical QR code:
+1. Scan the attached image (demo-qr-cafe-el-marsa-table-12.png) shown on another
+   screen. It opens the demo venue "Cafe El Marsa - Table 12".
+2. No scanning: tap "Find a place" ("Trouver un etablissement" on a French
+   device), select "Cafe El Marsa", pick any table, browse the menu and order.
 
-The demo venue accepts orders at any hour and from any location, and location
+The demo venue accepts orders at any hour from any location, and location
 permission is not required for either path, so neither the time of day nor your
-location can block the flow. After the order is sent, a live tracking screen
-shows its status (Received, Preparing, Ready, Served).
+location can block the flow. After sending, a live screen tracks the order
+(Received, Preparing, Ready, Served).
 
-Guideline 2.1 - business model questions
+GUIDELINE 2.1 - BUSINESS MODEL
 1) Does your app access any paid content or services?
-   No. The app contains no in-app purchases and no paid digital content.
+   No. No in-app purchases and no paid digital content.
 2) What are the paid content or services, and what are the costs?
-   None inside the app. The only thing a customer pays for is the physical food
-   and drink they order, which is prepared and consumed in person at the cafe or
-   restaurant. These are physical goods and services, not digital content.
+   None inside the app. Customers pay only for physical food and drink, prepared
+   and consumed in person at the cafe. Physical goods, not digital content.
 3) Do individual customers pay for the content or services?
-   Customers pay the cafe or restaurant directly, in person at the counter. No
-   payment of any kind happens inside the app; the app does not process, collect
-   or transmit any payment information.
-4) If no, does a company or organization pay for the content or services?
-   The cafes and restaurants are our B2B clients and subscribe to the Chehia
-   service. That subscription is handled entirely outside this iOS app, on our
-   separate web portal (business.chehia.app), and is billed by us directly. It
-   is not accessible or purchasable from the iOS customer app under review.
+   They pay the cafe directly, in person at the counter. No payment happens
+   inside the app; it does not process, collect or transmit payment information.
+4) If no, does a company or organization pay?
+   The cafes are our B2B clients and subscribe to Chehia. That subscription is
+   handled entirely outside this iOS app, on our separate web portal
+   (business.chehia.app), billed by us directly. It is not accessible or
+   purchasable from the app under review.
 5) Where do they pay, and what is the payment method?
-   Customers: at the venue's counter, in person, by cash or card - outside the
-   app. Businesses: on our web portal, billed directly by us - outside the app.
-6) If users create an account to use your app, are there fees involved?
-   Customers do not create an account. The app is used anonymously and is free,
-   with no fees of any kind.
+   Customers: at the venue counter, in person, cash or card - outside the app.
+   Businesses: on our web portal, billed directly by us - outside the app.
+6) If users create an account, are there fees?
+   Customers do not create an account. The app is anonymous and free.
 7) Steps for locating in-app purchases:
-   There are none. The app contains no purchase, subscription or paywall screen,
-   and no in-app purchases are configured in App Store Connect. The complete
-   customer flow is: open the app, scan the table QR (or pick a venue and
-   table), view the menu, add items, send the order, then pay at the counter in
-   person.
+   There are none. No purchase, subscription or paywall screen exists, and none
+   are configured in App Store Connect. The flow is: open the app, scan the table
+   QR (or pick a venue and table), view the menu, add items, send the order, pay
+   at the counter in person.
 
-Please let us know if there is anything else we can provide. Thank you for your
-time.
+Please let us know if there is anything else we can provide. Thank you.
 ```
 
 ## C. Age rating — ✅ DONE (verified in ASC 2026-07-16)
