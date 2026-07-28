@@ -18,9 +18,9 @@ whole repo (97 findings, each re-verified against the real code before being fix
 | Item | State |
 | --- | --- |
 | Code fixes | ✅ committed on `develop`, all four gates green |
-| **Build 1.0 (7)** | ✅ **BUILT** — EAS `acb5d805-02af-47d6-8678-0071f86f7cc6`, from commit `aff4e9f`, finished 2026-07-27 15:22 |
+| **Build 1.0 (8)** | ✅ **BUILT** — EAS `ae4c572a-4867-40b1-a7e8-8cee4ff816f0`, ships the illustrated menu art. Build 7 (`acb5d805`) is also in TestFlight; **submit 8**. |
 | Upload to ASC | ✅ **delivered** — EAS submission `459c5ab6-6301-48e6-bf21-221530547045` **FINISHED** 2026-07-27 19:30. Three later submissions of the same binary ERRORED/were cancelled: that is the expected redundant-binary rejection, not a problem. |
-| Screenshots | ➖ existing 6.9" set still accurate — see §F step 2 |
+| Screenshots | ⬆️ **8 new ones ready** in `~/Desktop/chehia-asc-FINAL/` — see §I |
 | App Review notes (§A) | ✅ text final below — **re-paste, one label changed** |
 | Reply to Apple (§B) | ✅ text final below — **you paste this** |
 | Age rating | ✅ done + verified in ASC 2026-07-16, calculated 4+ |
@@ -268,13 +268,24 @@ shipped build 7 binary and live prod.
 1. **Attach build 7.** The version page still has **build 6**. Build 7 is in TestFlight with
    status **Complete / Ready to Submit** (uploaded Jul 27 5:16 PM), so it is just a matter of
    selecting it.
-2. **Screenshots are the old set.** The 6.5" slot holds **6** files named `1-home.png`,
-   `2-discovery.png`, `3-menu.png`, `4-item-detail.png`, `5-cart.png`, `6-order.png` — the
-   pre-rebrand captures with the **old fork logo**. The 7 fresh 1320×2868 captures in
-   `~/Desktop/chehia-asc-screenshots/` were never uploaded. Not strictly blocking (6.5" is
-   still a valid size and 6 images clears the minimum) but the product page currently shows a
-   logo the app no longer has. Delete All on 6.5", then drag the 7 files in.
-   **Correction to an earlier note in this file: they need *uploading*, not recapturing.**
+2. **Screenshots — upload the 8 in `~/Desktop/chehia-asc-FINAL/`.** The 6.5" slot currently
+   holds 6 pre-rebrand captures (`1-home.png` … `6-order.png`) with the **old fork logo**, and
+   the first one is in **English** while the rest are French — mixed language on a
+   French-primary listing. Delete All, then drag in the new set (all 1320×2868, all French,
+   café-cup logo, in filename order):
+
+   | # | File | Why |
+   | --- | --- | --- |
+   | 01 | landing | brand + value prop. From build 6 **on purpose** — the simulator build shows a `__DEV__`-only "Démo" button that does not exist in the shipping app |
+   | 02 | menu-categories | the illustrated category tiles — the strongest frame |
+   | 03 | items | coffee list with per-dish art and prices |
+   | 04 | item-detail | modifiers, allergens, ratings |
+   | 05 | cart | 2 items, pay-at-counter stated |
+   | 06 | tracking | live order timeline |
+   | 07 | venue | table context, contact, language picker |
+   | 08 | discover | no-QR browse path (prod venue data) |
+
+   Only the first 3 appear on the install sheet, which is why the menu art is #2.
 3. **Digital Services Act trader status is NOT set up.** App Information → App Store
    Regulations & Permits → Digital Services Act shows a **Set Up** button. The app is
    available in **175 countries**, which includes the EU. Apple's warning: *"you must provide
