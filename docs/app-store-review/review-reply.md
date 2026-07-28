@@ -26,7 +26,7 @@ whole repo (97 findings, each re-verified against the real code before being fix
 | Age rating | ✅ done + verified in ASC 2026-07-16, calculated 4+ |
 | App Privacy (§D) | ✅ 4 types published; build 7 now *matches* them in the bundle |
 | Demo venue on prod | ✅ re-verified 2026-07-27 (see §E) |
-| Cloud DB / edge fns | ⛔ deliberately **not applied** — see §H |
+| Cloud DB / edge fns | ✅ **applied to prod** 2026-07-28 and verified live — see §H |
 
 ---
 
@@ -256,10 +256,59 @@ the updated version to the same open submission.
 
 ---
 
-## H. Held back on purpose — your call, not blockers
+## H. Deployed to prod 2026-07-28
 
-Three migrations and two edge-function fixes are committed to `develop` but **applied
-nowhere**. None of them affects the iOS build or the review:
+⚠️ **Dev was skipped — it was unreachable.** `chehia-dev` reported ACTIVE_HEALTHY but every
+Postgres connection timed out and its logs were empty, for over an hour. The local stack was
+used as the gate instead, which is arguably stronger: a full replay of all 37 migrations from
+scratch, plus behavioural attack tests, plus the integration suite. Re-run these three
+migrations on dev when it comes back so the two ledgers do not drift further.
+
+**How it was validated before prod**
+
+- `pnpm db:reset` — all 37 migrations replayed clean from an empty database.
+- Column grants asserted with `has_column_privilege`: pin_hash / rating_avg / plan /
+  order_seq revoked; name / is_active / appearance / opening_hours / price_millimes intact.
+- The actual attacks, run as SQL: a cross-venue `item_ingredients` link → rejected
+  (`item_not_in_restaurant`); a manager promoting themselves → `cannot_change_own_role`;
+  a manager granting owner → `only_owner_grants_owner`; an owner granting manager →
+  allowed; the service role → allowed (it must still seed a venue's first owner).
+- Integration suite **41/46**. The 5 failures are all HTTP 429 from the per-table burst
+  limit (4 orders / 90s on the shared `demo-elmarsa-t12` token) — the documented
+  environmental class. `place-order`'s rate limiter is untouched by this work.
+
+**Applied to prod (`wpnouppukofzmvsieyeq`) via Supabase MCP `apply_migration`, never db push**
+
+| Migration | Verified after apply |
+| --- | --- |
+| `20260727000001` staff credentials | `pin_hash` unreadable + unwritable by `anon` and `authenticated`; `role`/`display_name` still work; role trigger installed; 11 staff rows intact |
+| `20260727000002` moderated/billing columns | `rating_avg`, `plan`, `order_seq`, `items.rating_avg` all unwritable; `name`, `is_active`, `appearance`, `opening_hours`, `price_millimes`, `is_available` still writable |
+| `20260727000003` item_ingredients tenancy | trigger installed; both function bodies confirmed carrying the tenant predicates; 93 items / 100 orders / 1 link intact |
+
+**Edge functions — all 9 redeployed** (every one imports the new `_shared/cors.ts`):
+`place-order`, `register-order`, `settle-order`, `call-waiter`, `create-staff`,
+`admin-provision-business`, `extract-menu`, `submit-lead`, `submit-review`.
+
+`verify_jwt` was checked per function before and after — **every value unchanged**
+(place-order/register-order/settle-order/call-waiter/create-staff/admin-provision-business
+`true`; extract-menu/submit-lead/submit-review `false`). This is the trap called out in
+supabase/CLAUDE.md: `functions deploy` pushes config.toml's value, and four of these have no
+config block. config.toml matched the live state, so nothing moved.
+
+**Live smoke test against prod**
+
+- `null` JSON body → `400 bad_json` (was a 500 with a stack trace). The fix, proven in prod.
+- Malformed `item_id` → `400 bad_line` (was `500 could not load the menu`).
+- Real anonymous order on the demo venue: **A-513, 7 800 millimes** — exactly
+  2 × 2 500 + 2 800, so server-side repricing is correct end to end.
+- Same `client_ref` replayed → returned A-513 with `duplicate: true`. No second order.
+- Demo venue re-checked after all of it: active, all five gating switches false, 14 tables,
+  13 available items, `demo-elmarsa-t12` intact, rating 4.67 (3 reviews).
+
+Both new SECURITY DEFINER guards are `revoke execute … from public, anon, authenticated`
+with a pinned `search_path`, per the repo's grant-hygiene convention.
+
+_Original held-back note, kept for the record:_
 
 | Change | What it closes |
 | --- | --- |
