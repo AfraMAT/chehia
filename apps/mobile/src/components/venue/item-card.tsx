@@ -4,13 +4,15 @@ import {
   formatRating,
   millimesToDisplay,
   type Dictionary,
+  type I18nText,
   type ItemLayout,
   type MenuItem,
   type ModifierGroup,
 } from "@chehia/shared";
-import { PhotoPlaceholder, Stars, T, TagPill } from "../ui";
+import { Stars, T, TagPill } from "../ui";
+import { MenuImage } from "../menu-art";
 import { useI18n } from "@/lib/i18n";
-import { rowDir, useTheme } from "@/lib/theme";
+import { rowDir, useImageStyle, useTheme } from "@/lib/theme";
 
 function dietaryTag(tag: string, t: Dictionary): { label: string; tone: "green" | "amber" | "neutral" } | null {
   switch (tag) {
@@ -40,15 +42,20 @@ export function ItemCard({
   layout,
   onOpen,
   style,
+  categoryName,
 }: {
   item: MenuItem;
   groups: ModifierGroup[];
   layout: ItemLayout;
   onOpen: (item: MenuItem) => void;
   style?: StyleProp<ViewStyle>;
+  /** Parent category, so a dish whose own name is inconclusive still gets
+   *  sensible art — "Direct" under "Cafés" resolves to the coffee cup. */
+  categoryName?: I18nText | null;
 }) {
   const { t, tr, lang, isRtl } = useI18n();
   const theme = useTheme();
+  const imageStyle = useImageStyle();
   const available = item.is_available;
   const sizeGroup = groups.find((g) => g.min_select >= 1);
   const priceLabel = millimesToDisplay(item.price_millimes, lang);
@@ -82,7 +89,17 @@ export function ItemCard({
         ]}
       >
         <View>
-          <PhotoPlaceholder width="100%" height={104} radius={0} mirrored={isRtl} src={item.photo_url} />
+          <MenuImage
+            width="100%"
+            height={104}
+            radius={0}
+            mirrored={isRtl}
+            src={item.photo_url}
+            name={item.name_i18n}
+            art={item.art}
+            fallbackName={categoryName}
+            imageStyle={imageStyle}
+          />
           {item.is_popular && available && (
             <View
               style={{
@@ -162,7 +179,16 @@ export function ItemCard({
       ]}
     >
       <View>
-        <PhotoPlaceholder width={photo} height={photo} mirrored={isRtl} src={item.photo_url} />
+        <MenuImage
+          width={photo}
+          height={photo}
+          mirrored={isRtl}
+          src={item.photo_url}
+          name={item.name_i18n}
+          art={item.art}
+          fallbackName={categoryName}
+          imageStyle={imageStyle}
+        />
         {item.is_popular && available && (
           <View
             style={{

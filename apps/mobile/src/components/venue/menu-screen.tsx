@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BackHandler, FlatList, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
+  type I18nText,
   foldSearch,
   buildCategoryTree,
   cartCount,
@@ -124,6 +125,17 @@ export function MenuScreen() {
     </View>
   );
 
+  // Category name per item id, so a dish whose own name says nothing about what
+  // it is still gets sensible default art: "Direct" is a Tunisian latte, but the
+  // word matches no keyword, so without its "Cafés" parent it fell back to the
+  // generic plate. Keyed by id (not the active pill) so search results — which
+  // span every category — resolve correctly too.
+  const categoryNameById = useMemo(() => {
+    const map: Record<string, I18nText> = {};
+    for (const c of categories) map[c.id] = c.name_i18n;
+    return map;
+  }, [categories]);
+
   // A flat item list in the venue's item layout (shared by search + classic).
   const itemList = (data: MenuItem[]) => (
     <FlatList
@@ -150,6 +162,7 @@ export function MenuScreen() {
           layout={appearance.itemLayout}
           onOpen={setOpenItem}
           style={cards ? { flex: 1, maxWidth: "50%" } : undefined}
+          categoryName={categoryNameById[item.category_id]}
         />
       )}
     />

@@ -6,6 +6,7 @@ import {
   resolveAppearance,
   resolveThemePalette,
   spacing,
+  type ImageStyle,
   type Language,
   type ThemePalette,
 } from "@chehia/shared";
@@ -78,6 +79,15 @@ export function resolveThemeColors(rawAppearance: unknown): ThemeColors {
   return paletteToThemeColors(resolveThemePalette(resolveAppearance(rawAppearance)));
 }
 
+/**
+ * Raw `restaurants.appearance` blob → how the menu fills images that have no
+ * uploaded photo. resolveAppearance coerces anything unknown to the default
+ * ("illustration"), so this never throws and never returns an invalid value.
+ */
+export function resolveImageStyle(rawAppearance: unknown): ImageStyle {
+  return resolveAppearance(rawAppearance).imageStyle;
+}
+
 /** The default "Harissa & Sidi Bou" theme — value-identical to static `colors`. */
 export const DEFAULT_THEME_COLORS: ThemeColors = paletteToThemeColors(DEFAULT_PALETTE);
 
@@ -91,6 +101,18 @@ export const ThemeProvider = ThemeContext.Provider;
  */
 export function useTheme(): ThemeColors {
   return useContext(ThemeContext);
+}
+
+/**
+ * How this venue fills item/category images without a photo. Same fallback
+ * contract as useTheme: outside a provider (scan/discovery screens) it returns
+ * the default so shared components keep working.
+ */
+const ImageStyleContext = createContext<ImageStyle>("illustration");
+export const ImageStyleProvider = ImageStyleContext.Provider;
+
+export function useImageStyle(): ImageStyle {
+  return useContext(ImageStyleContext);
 }
 
 export const fontFamily = {

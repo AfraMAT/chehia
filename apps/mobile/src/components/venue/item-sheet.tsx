@@ -14,9 +14,10 @@ import {
   type ItemReviews,
   type MenuItem,
 } from "@chehia/shared";
-import { CtaButton, PhotoPlaceholder, Stars, Stepper, T, TagPill } from "../ui";
+import { CtaButton, Stars, Stepper, T, TagPill } from "../ui";
+import { MenuImage } from "../menu-art";
 import { useI18n } from "@/lib/i18n";
-import { colors, rowDir, useTheme } from "@/lib/theme";
+import { colors, rowDir, useImageStyle, useTheme } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/session";
 import { useVenue } from "@/lib/venue";
@@ -28,6 +29,7 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
   const { t, tr, lang, isRtl } = useI18n();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const imageStyle = useImageStyle();
 
   const groups = useMemo(
     () => [...(groupsByItem[item.id] ?? [])].sort((a, b) => a.sort_order - b.sort_order),
@@ -110,7 +112,16 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
         >
           {/* Photo */}
           <View>
-            <PhotoPlaceholder width="100%" height={180} radius={0} mirrored={isRtl} src={item.photo_url} />
+            <MenuImage
+              width="100%"
+              height={180}
+              radius={0}
+              mirrored={isRtl}
+              src={item.photo_url}
+              name={item.name_i18n}
+              art={item.art}
+              imageStyle={imageStyle}
+            />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t.common.close}

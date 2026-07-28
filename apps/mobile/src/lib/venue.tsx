@@ -20,7 +20,7 @@ import {
 } from "@chehia/shared";
 import { ensureCustomerSession, functionsUrl, supabase, supabaseAnonKey } from "./supabase";
 import { LocationGateProvider } from "./location-gate";
-import { ThemeProvider, resolveThemeColors } from "./theme";
+import { ImageStyleProvider, ThemeProvider, resolveImageStyle, resolveThemeColors } from "./theme";
 
 /** Customer position sent with a browse order so the server can verify presence. */
 export interface CustomerGeo {
@@ -838,6 +838,9 @@ export function VenueProvider(props: ProviderProps) {
   // recomputes when the appearance blob actually changes.
   const appearanceRaw = state.status === "ready" ? state.bundle.restaurant.appearance : null;
   const themeColors = useMemo(() => resolveThemeColors(appearanceRaw), [appearanceRaw]);
+  // Same blob also decides how an item with no photo is filled (illustration /
+  // pattern / plain). Read from the same source so the two can never disagree.
+  const imageStyle = useMemo(() => resolveImageStyle(appearanceRaw), [appearanceRaw]);
 
   // Location gate (customer side): only the browse flow of a venue that opted in
   // AND has a map pin. The scanned flow (qr_token proves presence) is exempt, so
@@ -850,6 +853,7 @@ export function VenueProvider(props: ProviderProps) {
   return (
     <VenueContext.Provider value={value}>
       <ThemeProvider value={themeColors}>
+        <ImageStyleProvider value={imageStyle}>
         <LocationGateProvider
           applies={gateApplies}
           lat={gateRestaurant?.latitude ?? null}
@@ -858,6 +862,7 @@ export function VenueProvider(props: ProviderProps) {
         >
           {props.children}
         </LocationGateProvider>
+        </ImageStyleProvider>
       </ThemeProvider>
     </VenueContext.Provider>
   );

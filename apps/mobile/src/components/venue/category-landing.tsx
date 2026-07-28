@@ -6,9 +6,10 @@ import {
   type CategoryNode,
   type Language,
 } from "@chehia/shared";
-import { PhotoPlaceholder, T } from "../ui";
+import { T } from "../ui";
+import { MenuImage } from "../menu-art";
 import { useI18n } from "@/lib/i18n";
-import { colors, rowDir, useTheme, type ThemeColors } from "@/lib/theme";
+import { colors, rowDir, useImageStyle, useTheme, type ThemeColors } from "@/lib/theme";
 
 function chunk<T>(arr: T[], n: number): T[][] {
   const out: T[][] = [];
@@ -32,6 +33,7 @@ function Media({
   theme: ThemeColors;
   isRtl: boolean;
 }) {
+  const imageStyle = useImageStyle();
   return node.icon && !node.image_url ? (
     <View
       accessibilityElementsHidden
@@ -40,7 +42,16 @@ function Media({
       <Text style={{ fontSize: Math.min(30, height * 0.34) }}>{node.icon}</Text>
     </View>
   ) : (
-    <PhotoPlaceholder width={width} height={height} radius={radius} mirrored={isRtl} src={node.image_url} />
+    <MenuImage
+      width={width}
+      height={height}
+      radius={radius}
+      mirrored={isRtl}
+      src={node.image_url}
+      name={node.name_i18n}
+      art={node.art}
+      imageStyle={imageStyle}
+    />
   );
 }
 

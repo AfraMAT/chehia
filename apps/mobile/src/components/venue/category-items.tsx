@@ -57,14 +57,14 @@ export function CategoryItems({
       return chunk(list, 2).map((row, ri) => (
         <View key={ri} style={[rowDir(lang), { gap: 10 }]}>
           {row.map((it) => (
-            <ItemCard key={it.id} item={it} groups={groupsByItem[it.id] ?? []} layout="cards" onOpen={onOpen} style={{ flex: 1 }} />
+            <ItemCard key={it.id} item={it} groups={groupsByItem[it.id] ?? []} layout="cards" onOpen={onOpen} style={{ flex: 1 }} categoryName={node.name_i18n} />
           ))}
           {row.length < 2 && <View style={{ flex: 1 }} />}
         </View>
       ));
     }
     return list.map((it) => (
-      <ItemCard key={it.id} item={it} groups={groupsByItem[it.id] ?? []} layout={itemLayout} onOpen={onOpen} />
+      <ItemCard key={it.id} item={it} groups={groupsByItem[it.id] ?? []} layout={itemLayout} onOpen={onOpen} categoryName={node.name_i18n} />
     ));
   };
 
