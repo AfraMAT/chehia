@@ -245,14 +245,138 @@ recapture per build. Leave them.
 
 **3. Attach build 7** to the version (Version page → Build → select 1.0 (7)).
 
-**4. App Review Information → Notes:** re-paste §A. This is the one metadata change that
-matters — the old notes told the reviewer to tap "Find a restaurant", which does not exist.
+**4. App Review Information → Notes: nothing to do.** Audited in ASC on 2026-07-28 — the live
+notes already say *"Tap 'Find a place' ('Trouver un établissement' on French devices)"*. The
+stale "Find a restaurant" wording was only ever in `docs/mobile-submission.md`, never in ASC.
+§A is kept below as the record of what is in the field.
 
 **5. Reply to App Review** → paste §B.
 
 **6. Resubmit to App Review.** Replying alone does NOT restart review. If that button is
 greyed out, use the blue **Update Review** button on the version page instead — it submits
 the updated version to the same open submission.
+
+---
+
+## I. App Store Connect — audited field by field, 2026-07-28
+
+I signed in and read every page. Below is what ASC **actually contains**, checked against the
+shipped build 7 binary and live prod.
+
+### ❗ Only three things need doing
+
+1. **Attach build 7.** The version page still has **build 6**. Build 7 is in TestFlight with
+   status **Complete / Ready to Submit** (uploaded Jul 27 5:16 PM), so it is just a matter of
+   selecting it.
+2. **Screenshots are the old set.** The 6.5" slot holds **6** files named `1-home.png`,
+   `2-discovery.png`, `3-menu.png`, `4-item-detail.png`, `5-cart.png`, `6-order.png` — the
+   pre-rebrand captures with the **old fork logo**. The 7 fresh 1320×2868 captures in
+   `~/Desktop/chehia-asc-screenshots/` were never uploaded. Not strictly blocking (6.5" is
+   still a valid size and 6 images clears the minimum) but the product page currently shows a
+   logo the app no longer has. Delete All on 6.5", then drag the 7 files in.
+   **Correction to an earlier note in this file: they need *uploading*, not recapturing.**
+3. **Digital Services Act trader status is NOT set up.** App Information → App Store
+   Regulations & Permits → Digital Services Act shows a **Set Up** button. The app is
+   available in **175 countries**, which includes the EU. Apple's warning: *"you must provide
+   and verify information regarding your account. If you don't, there may be payment delays or
+   your content may be removed from sale in certain countries or regions."* Set it (you are a
+   trader — you sell a B2B subscription) or drop the EU territories.
+
+### ✅ Everything else is already correct — verified, not assumed
+
+| Field | Value in ASC | Verdict |
+| --- | --- | --- |
+| Bundle ID / SKU / Apple ID | `tn.chehia.app` · `chehia-ios` · `6787508673` | ✅ matches the IPA |
+| Primary Language | **French** | ✅ matches `CFBundleDevelopmentRegion: fr` |
+| Category | **Food & Drink**, no secondary | ✅ |
+| Content Rights | "does not contain third-party content" | ✅ |
+| Age Rating | **4+**, 172 countries | ✅ |
+| Name / Subtitle | 6 / 28 chars | ✅ within 30 |
+| Promotional Text | 170 chars (field full) | ✅ |
+| Description | 1 737 chars | ✅ |
+| Keywords | 93 chars | ✅ within 100 |
+| Copyright | 12 chars ("2026 AfraMAT") | ✅ |
+| **Sign-in required** | **unchecked** | ✅ correct — the app is anonymous |
+| Contact | Moez Abbes · +1 248 979 8236 · abbesmoez22@gmail.com | ✅ |
+| **Reviewer notes** | 1 455 chars, and they **already say "Find a place" ("Trouver un établissement")** | ✅ **no re-paste needed** |
+| Attachment | `demo-qr-cafe-el-marsa-table-12.png` | ✅ |
+| App Privacy | **Published**, 4 types (Name, Other User Content, User ID, Purchase History), all *Not Linked to You*, all *App Functionality* | ✅ exactly matches `PrivacyInfo.xcprivacy` in build 7 |
+| Privacy Policy URL | `https://chehia.app/legal/privacy` | ✅ resolves — but see the caveat below |
+| Pricing | Free · base Tunisia · 175 countries · Public distribution · Tax "App Store software" | ✅ |
+| Game Center / IAP / Subscriptions | none | ✅ |
+| App Encryption docs | not requested | ✅ `ITSAppUsesNonExemptEncryption: false` is in the binary |
+
+### ⚠️ Privacy-policy caveat (not an App Review blocker)
+
+`https://chehia.app/legal/privacy` is served from **`main`**, and the correction to it is on
+**`develop`**. The live page still says *"aucune image n'est transmise ni conservée"* and names
+Supabase EU as the only host. For the **customer app under review** both statements are true —
+its camera really is on-device QR only. They are wrong about the **business portal**, where
+menu-photo import sends images to a vision model and leads are emailed via Resend. So Apple has
+no reason to object, but the document is inaccurate for portal users until `develop` reaches
+`main`. Merging is a production web deploy and is a separate decision.
+
+---
+
+### The original spec, for reference
+
+### Version page — 1.0 (iOS)
+
+| Field | Must be | Why / source |
+| --- | --- | --- |
+| Build | **1.0 (7)** | EAS `acb5d805`, delivered by submission `459c5ab6`. If only (6) is offered, processing hasn't finished. |
+| Version | `1.0` | `CFBundleShortVersionString` = 1.0.0 in the IPA |
+| What's New | optional for a first release; if present, describe the a11y/Arabic/reliability fixes | — |
+| Screenshots — 6.9" | the 7 existing 1320×2868 captures | `~/Desktop/chehia-asc-screenshots/`. No recapture needed for build 7. |
+| Screenshots — other sizes | none required | 6.9" alone satisfies iPhone. App is `supportsTablet:false`, so **no iPad screenshots are required** |
+| Promotional Text | ≤170 chars, fr | see docs/mobile-submission.md |
+| Description | fr | already live |
+| Keywords | ≤100 chars, fr | `qr,menu,carte,commande,commander,table,café,restaurant,tunisie,tunis,scanner,serveur,boissons` (93) |
+| Support URL | `https://chehia.app` | must resolve — it does |
+| Marketing URL | `https://chehia.app` | optional |
+| Copyright | `2026 AfraMAT` | — |
+| Category | Primary **Food & Drink** | — |
+| Age Rating | **4+** | questionnaire done 2026-07-16; build 7 adds no new capability |
+| Routing App Coverage File | leave empty | not a routing app |
+
+### App Review Information
+
+| Field | Must be |
+| --- | --- |
+| Sign-in required | **No** — anonymous, no accounts |
+| Contact first/last | Moez Abbes |
+| Contact email | abbesmoez22@gmail.com |
+| Contact phone | must be reachable |
+| Notes | **re-paste §A** — the old text said "Find a restaurant"; the real label is "Find a place" |
+| Attachment | `demo-qr-cafe-el-marsa-table-12.png` |
+
+### App Privacy
+
+Four types, each **Data Not Linked to You**, purpose **App Functionality**, **not** used for
+tracking — this now matches `PrivacyInfo.xcprivacy` in the binary exactly:
+
+Contact Info → Name · User Content → Other User Content · Identifiers → User ID ·
+Purchases → Purchase History.
+
+Location must stay **not** declared (ephemeral geofence check, never persisted — and the demo
+venue has gating off, so a reviewer never triggers it).
+
+### Pricing and Availability
+
+| Field | Must be |
+| --- | --- |
+| Price | **Free** |
+| Availability | all territories, **or** exclude the EU if you have not set Trader Status |
+
+⚠️ **The one thing that can silently block submission:** the EU **Digital Services Act trader
+status** declaration, under App Information → *Trader Status*. If it is unset and the app is
+available in the EU, ASC refuses the submission. Set it (you are a trader — you sell a B2B
+subscription) or exclude EU territories.
+
+### Should be empty / off
+
+In-App Purchases — none. Subscriptions — none. Game Center — off. App Encryption docs — not
+required (`ITSAppUsesNonExemptEncryption: false` is in the binary, so ASC will not ask).
 
 ---
 
