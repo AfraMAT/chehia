@@ -158,7 +158,24 @@ table, and the IARC content-rating answers.
 |---|---|---|
 | App icon | 512×512 PNG | ✅ `play-icon-512.png` |
 | Feature graphic | 1024×500 PNG | ✅ `play-feature-graphic-1024x500.png` |
-| Phone screenshots | 2–8, sides 320–3840 px | captured from the Android emulator — see § screenshots |
+| Phone screenshots | 2–8, sides 320–3840 px | ✅ **7 French frames at 1080×2400** in `~/Desktop/chehia-play-screenshots-fr/` |
+
+The screenshots are real Android captures from an API 35 emulator, in French (your default
+listing language), already ordered for impact — upload them in filename order:
+
+| # | File | Screen |
+|---|---|---|
+| 1 | `01-menu.png` | category grid with the illustrated menu art — the strongest frame |
+| 2 | `02-item.png` | item detail: sizes, extras, allergens, a guest review |
+| 3 | `03-suivi.png` | live order tracking, Reçue → En préparation → Servie |
+| 4 | `04-accueil.png` | landing — "Scannez. Commandez. Régalez-vous." |
+| 5 | `05-table.png` | the scanned table, "Vous payez au comptoir" |
+| 6 | `06-cafes.png` | a category's items with prices and diet tags |
+| 7 | `07-panier.png` | cart — "Paiement au comptoir — aucune carte requise" |
+
+Play shows only the **first few** in the listing preview, which is why the menu, item detail
+and live tracking lead. You do **not** need Arabic or English sets: Play falls back to the
+default language's screenshots for any localization you leave empty.
 
 ---
 
