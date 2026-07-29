@@ -1,5 +1,5 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { StatusBar } from "expo-status-bar";
+import { setStatusBarStyle } from "expo-status-bar";
 import { router } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackHandler, Linking, Pressable, View } from "react-native";
@@ -41,6 +41,12 @@ export default function ScanHome() {
     return () => sub.remove();
   }, [scanning]);
 
+  // Imperative, not a nested <StatusBar>: the root layout's own <StatusBar style="dark" />
+  // stays mounted and reasserts itself on re-render, so the declarative form loses.
+  useEffect(() => {
+    setStatusBarStyle(scanning ? "light" : "dark");
+  }, [scanning]);
+
   const onScanned = useCallback(({ data }: { data: string }) => {
     if (handledRef.current) return;
     const link = parseTableUrl(data);
@@ -79,17 +85,16 @@ export default function ScanHome() {
   if (scanning) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.ink }}>
-        {/* Status-bar contrast over a live camera, which can be any brightness. Tinting
-            alone cannot win (dark icons vanish on a dark frame, light on a bright one) and
-            Android 15 enforces edge-to-edge, so `hidden` is a no-op. So: force light icons
-            AND lay a scrim under them. The root's dark style resumes on unmount. */}
-        <StatusBar style="light" />
         <CameraView
           style={{ flex: 1 }}
           facing="back"
           barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
           onBarcodeScanned={onScanned}
         />
+        {/* Status-bar contrast over a live camera, which can be any brightness. Tinting
+            alone cannot win — dark icons vanish on a dark frame, light ones on a bright
+            frame — and Android 15 enforces edge-to-edge, so hiding the bar is a no-op.
+            Light icons (set imperatively above) plus this scrim make it scene-independent. */}
         <View
           pointerEvents="none"
           style={{
