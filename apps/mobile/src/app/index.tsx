@@ -1,4 +1,5 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BackHandler, Linking, Pressable, View } from "react-native";
@@ -78,6 +79,10 @@ export default function ScanHome() {
   if (scanning) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.ink }}>
+        {/* The root layout pins dark icons for the cream app. Over the camera that
+            renders the clock and battery invisible — and this is the first screen a
+            store reviewer touches. */}
+        <StatusBar style="light" />
         <CameraView
           style={{ flex: 1 }}
           facing="back"
