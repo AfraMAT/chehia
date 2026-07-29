@@ -213,6 +213,8 @@ export const ar: Dictionary = {
     ratingsCount: "{count} رأي",
     ratingCountOne: "رأي واحد",
     rateCta: "نقّط",
+    report: "إبلاغ",
+    reportSubject: "الإبلاغ عن تقييم",
   },
   offline: {
     unstable: "الاتصال غير مستقر",

@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, Text, View } from "react-native";
 import {
-  interpolate,
+  itemCount,
   nodeItemCount,
   type CategoryLayout,
   type CategoryNode,
@@ -86,7 +86,8 @@ export function CategoryLanding({
 }) {
   const { t, tr, lang, isRtl } = useI18n();
   const theme = useTheme();
-  const countLabel = (node: CategoryNode) => interpolate(t.menu.itemsCount, { n: nodeItemCount(node, itemCountByCategory) });
+  // itemCount, not the old "{n} item(s)" string — this is the menu's hero screen.
+  const countLabel = (node: CategoryNode) => itemCount(nodeItemCount(node, itemCountByCategory), t);
   const heading = <Heading lang={lang} isRtl={isRtl} label={t.menu.browseByCategory} />;
 
   const chevron = (

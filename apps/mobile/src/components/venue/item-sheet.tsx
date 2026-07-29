@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Modal, Pressable, ScrollView, View } from "react-native";
+import { Linking, Modal, Pressable, ScrollView, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -30,6 +30,19 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const imageStyle = useImageStyle();
+
+  /** Hands the offending review to a human via the same address as About & privacy. */
+  function reportReview(rv: ItemReviews["reviews"][number]) {
+    const body = [
+      `Item: ${tr(item.name_i18n)}`,
+      `${rv.name || t.rating.anon} · ${rv.created_at}`,
+      "",
+      rv.comment ?? "",
+    ].join("\n");
+    return Linking.openURL(
+      `mailto:contact@aframat.com?subject=${encodeURIComponent(t.rating.reportSubject)}&body=${encodeURIComponent(body)}`,
+    ).catch(() => {});
+  }
 
   const groups = useMemo(
     () => [...(groupsByItem[item.id] ?? [])].sort((a, b) => a.sort_order - b.sort_order),
@@ -357,6 +370,19 @@ export function ItemSheet({ item, onClose }: { item: MenuItem; onClose: () => vo
                         {rv.comment}
                       </T>
                     ) : null}
+                    {/* Play's UGC policy wants an in-app report path on every surface that
+                        displays another customer's words, on top of pre-publication moderation. */}
+                    <Pressable
+                      onPress={() => void reportReview(rv)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t.rating.report}
+                      hitSlop={10}
+                      style={{ alignSelf: isRtl ? "flex-start" : "flex-end" }}
+                    >
+                      <T lang={lang} size={11} weight="semibold" color={theme.mutedSoft}>
+                        {t.rating.report}
+                      </T>
+                    </Pressable>
                   </View>
                 ))}
               </View>

@@ -211,6 +211,8 @@ export const fr = {
     ratingsCount: "{count} avis",
     ratingCountOne: "1 avis",
     rateCta: "Noter",
+    report: "Signaler",
+    reportSubject: "Signalement d'un avis",
   },
   offline: {
     unstable: "Connexion instable",

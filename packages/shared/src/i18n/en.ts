@@ -213,6 +213,8 @@ export const en: Dictionary = {
     ratingsCount: "{count} reviews",
     ratingCountOne: "1 review",
     rateCta: "Rate",
+    report: "Report",
+    reportSubject: "Reporting a review",
   },
   offline: {
     unstable: "Unstable connection",

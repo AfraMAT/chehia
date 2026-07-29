@@ -92,6 +92,7 @@
     "android": {
       "package": "tn.chehia.app",
       "versionCode": 2,
+      "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#FBF2E4",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -107,7 +108,7 @@
             {
               "scheme": "https",
               "host": "app.chehia.app",
-              "pathPrefix": "/r"
+              "pathPrefix": "/r/"
             }
           ],
           "category": [

@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { router } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Linking, Pressable, View } from "react-native";
+import { BackHandler, Linking, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { parseTableUrl } from "@chehia/shared";
 import { T, CtaButton, Wordmark, ZelligeMark } from "@/components/ui";
@@ -28,6 +28,17 @@ export default function ScanHome() {
     },
     [],
   );
+
+  // Scanning is component state on the stack root, so without this Android's hardware
+  // back quits the app from the camera instead of returning to the landing.
+  useEffect(() => {
+    if (!scanning) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      setScanning(false);
+      return true;
+    });
+    return () => sub.remove();
+  }, [scanning]);
 
   const onScanned = useCallback(({ data }: { data: string }) => {
     if (handledRef.current) return;

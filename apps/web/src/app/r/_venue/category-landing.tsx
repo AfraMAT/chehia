@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  interpolate,
+  itemCount,
   nodeItemCount,
   type CategoryLayout,
   type CategoryNode,
@@ -26,7 +26,7 @@ export function CategoryLanding({
 }) {
   const { t, tr } = useI18n();
   const count = (node: CategoryNode) => nodeItemCount(node, itemCountByCategory);
-  const countLabel = (n: number) => interpolate(t.menu.itemsCount, { n });
+  const countLabel = (n: number) => itemCount(n, t);
 
   const heading = (
     <h2 className="px-5 pt-3 pb-1 font-display font-extrabold text-[19px] text-ink">{t.menu.browseByCategory}</h2>

@@ -393,7 +393,10 @@ function ContactRow({ restaurant }: { restaurant: Restaurant }) {
     chips.push({ key: "ig", label: "Instagram", glyph: "📸", url: `https://instagram.com/${handle}` });
   }
   if (restaurant.latitude != null && restaurant.longitude != null) {
-    chips.push({ key: "dir", label: t.landing.directions, glyph: "🧭", url: `https://maps.apple.com/?daddr=${restaurant.latitude},${restaurant.longitude}` });
+    // Google's universal maps URL, not maps.apple.com: on Android the Apple host is a
+    // dead end (web page, no navigation), and Directions is often the only chip a venue has.
+    // This form hands off to the Maps app on both platforms.
+    chips.push({ key: "dir", label: t.landing.directions, glyph: "🧭", url: `https://www.google.com/maps/dir/?api=1&destination=${restaurant.latitude},${restaurant.longitude}` });
   }
   if (chips.length === 0) return null;
 
