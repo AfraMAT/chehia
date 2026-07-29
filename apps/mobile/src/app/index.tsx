@@ -79,16 +79,27 @@ export default function ScanHome() {
   if (scanning) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.ink }}>
-        {/* The root layout pins dark icons for the cream app, which are invisible over a
-            dark camera frame — but light icons are equally invisible over a bright one,
-            so tinting cannot win. A full-bleed scanner hides the bar instead, which is
-            what every camera UI does. The root's dark style resumes when this unmounts. */}
-        <StatusBar hidden />
+        {/* Status-bar contrast over a live camera, which can be any brightness. Tinting
+            alone cannot win (dark icons vanish on a dark frame, light on a bright one) and
+            Android 15 enforces edge-to-edge, so `hidden` is a no-op. So: force light icons
+            AND lay a scrim under them. The root's dark style resumes on unmount. */}
+        <StatusBar style="light" />
         <CameraView
           style={{ flex: 1 }}
           facing="back"
           barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
           onBarcodeScanned={onScanned}
+        />
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: insets.top,
+            backgroundColor: "rgba(0,0,0,0.45)",
+          }}
         />
         {/* Scan frame overlay */}
         <View pointerEvents="none" style={{ position: "absolute", inset: 0, alignItems: "center", justifyContent: "center" }}>
