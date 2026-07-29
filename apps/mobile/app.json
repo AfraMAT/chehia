@@ -91,7 +91,7 @@
     },
     "android": {
       "package": "tn.chehia.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#FBF2E4",
