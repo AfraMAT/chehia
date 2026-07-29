@@ -79,10 +79,11 @@ export default function ScanHome() {
   if (scanning) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.ink }}>
-        {/* The root layout pins dark icons for the cream app. Over the camera that
-            renders the clock and battery invisible — and this is the first screen a
-            store reviewer touches. */}
-        <StatusBar style="light" />
+        {/* The root layout pins dark icons for the cream app, which are invisible over a
+            dark camera frame — but light icons are equally invisible over a bright one,
+            so tinting cannot win. A full-bleed scanner hides the bar instead, which is
+            what every camera UI does. The root's dark style resumes when this unmounts. */}
+        <StatusBar hidden />
         <CameraView
           style={{ flex: 1 }}
           facing="back"
