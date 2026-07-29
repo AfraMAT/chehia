@@ -284,10 +284,42 @@ above would have run straight into. Verified directly from the built APK with
 
 ---
 
+## 10b. Android QA — what was actually verified on-device
+
+Run on an **Android 15 / API 35** emulator (1080×2400) against the dev backend, by installing
+each built APK. Not one of these was caught by typecheck, lint or the 149 unit tests — every
+one of those was green on the broken builds too.
+
+| Verified | How |
+|---|---|
+| Full order flow | Real order **#A-511** placed; live tracking Reçue → En préparation → Servie |
+| Deep link | `https://app.chehia.app/r/cafe-el-marsa/t/demo-elmarsa-t12` resolved to Table 12 |
+| UGC **Report** control | Seeded an approved review on dev to force it; renders on the card |
+| Hardware **Back** on scanner | Camera → Back → landing, app stays alive |
+| Status bar over camera | Light icons + scrim, legible; restores to dark on exit |
+| Discover placeholder | "Rechercher un lieu…" on one line |
+| Plurals | "6 articles" / "6 items"; "1 article" singular in the cart |
+| `allowBackup=false`, `pathPrefix="/r/"`, `targetSdk 36` | `aapt2 dump` on the shipped APK |
+| No `RECORD_AUDIO`, no background location | `aapt2 dump badging` permission list |
+
+**Three fixes needed more than one attempt**, each disproven by installing the binary:
+
+1. Status bar over the camera took **three** goes. Tinting light failed (invisible on a bright
+   frame); hiding failed (**Android 15 enforces edge-to-edge, so `StatusBar hidden` is a
+   no-op**); the working answer is light icons set *imperatively* — the root layout's own
+   `<StatusBar style="dark" />` stays mounted and beats a nested declarative one — plus a 45%
+   scrim so contrast doesn't depend on the scene.
+2. The Discover placeholder wrap was **not** fixed by `numberOfLines={1}`; that prop does not
+   constrain Android's *hint* text. The cause was length — French was the longest of the three
+   at 30 chars.
+3. One audit finding was **wrong**: it claimed six modals render under the system bars. On
+   device the scrim covers the status bar correctly. Left alone.
+
 ## 11. What's done vs what's yours
 
 **Done (me):**
-- Production AAB + preview APK, rebuilt from `e0da988` at `versionCode 3`
+- **Production AAB `e7acc6e3`, `versionCode 7`** — the file to upload. Built from the exact
+  commit whose APK was verified on-device (see §10b), not from an unverified tree.
 - **One Play policy blocker fixed** — displayed user reviews had no in-app report path
   (Inappropriate Content / UGC). Plus four Android defects an iOS-only test pass missed:
   Directions opened Apple Maps, hardware Back quit the app from the QR scanner,
