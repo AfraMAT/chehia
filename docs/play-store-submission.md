@@ -136,8 +136,10 @@ Once your account is verified:
 
 ## 4. Fill in the store listing and content declarations
 
-Play Console gives you a dashboard checklist. Every one of these has an exact answer prepared
-for you in the companion section below (§ "Play Console — field by field").
+Play Console gives you a dashboard checklist. **Every one of these has an exact, evidence-backed
+value prepared for you in `docs/play-store-pack.md`** — open it side by side and copy across.
+That file also carries the fr/ar/en listing copy with character counts, the full Data safety
+table, and the IARC content-rating answers.
 
 - Store listing (name, short description, full description, graphics) — in **fr, ar, en**
 - App category and contact details
@@ -256,24 +258,28 @@ Review is "usually 7 days or less".
 
 ---
 
-## 10. The deadline nobody mentions
+## 10. The API-36 deadline — closed
 
-Google raises the target-API bar to **API 36 on 31 August 2026**. Given the ~4-week timeline
-above, a slip puts the production release right on that boundary. The build's actual target
-level is verified in the audit section below — if it's already 36, this is a non-issue; if it's
-35, the production release must land before 31 August or be rebuilt.
+Google raises the target-API bar to **API 36 on 31 August 2026**, which the ~4-week timeline
+above would have run straight into. Verified directly from the built APK with
+`aapt2 dump badging`: **`targetSdkVersion 36`, `compileSdkVersion 36`**. No action needed.
 
 ---
 
 ## 11. What's done vs what's yours
 
 **Done (me):**
-- Production AAB + preview APK built from `c4d1148`
-- `versionCode` 1 → 2, committed
-- 512 icon + 1024×500 feature graphic generated
-- Android emulator QA (API 35) — see the results section
-- Store listing copy in fr/ar/en, Data safety answers, content-rating answers
-- Found the assetlinks defect (§7)
+- Production AAB + preview APK, rebuilt from `e0da988` at `versionCode 3`
+- **One Play policy blocker fixed** — displayed user reviews had no in-app report path
+  (Inappropriate Content / UGC). Plus four Android defects an iOS-only test pass missed:
+  Directions opened Apple Maps, hardware Back quit the app from the QR scanner,
+  `pathPrefix "/r"` also claimed `/robots.txt`, and Auto Backup was shipping the secret
+  `qr_token` to Google Drive. See `d22bf22`.
+- 512 icon + 1024×500 feature graphic generated (`~/Desktop/chehia-play-graphics/`)
+- Android emulator QA on API 35 — deep link, menu, illustrations verified
+- Store listing copy in fr/ar/en, Data safety table, content-rating answers →
+  `docs/play-store-pack.md`
+- Found the assetlinks defect (§7); confirmed `targetSdkVersion 36` (§10)
 
 **Yours (nobody else can do these):**
 1. Create the account, pay $25, pass ID verification (§1)
