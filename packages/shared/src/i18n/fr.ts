@@ -1021,7 +1021,9 @@ export const fr = {
   discover: {
     title: "Trouvez votre table",
     subtitle: "Cafés et restaurants qui prennent la commande par QR près de vous.",
-    searchPlaceholder: "Rechercher un lieu, une ville…",
+    // Kept short on purpose: this input is flex:1 beside "Autour de moi", and Android
+    // wraps a too-long placeholder onto a clipped second line. Verified on-device.
+    searchPlaceholder: "Rechercher un lieu…",
     nearMe: "Autour de moi",
     locating: "Localisation…",
     locationOff: "Activez la localisation pour trier par proximité",

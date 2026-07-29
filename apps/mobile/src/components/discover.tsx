@@ -205,10 +205,6 @@ export function Discover() {
             placeholder={t.discover.searchPlaceholder}
             placeholderTextColor={colors.mutedSoft}
             returnKeyType="search"
-            // Android wraps the placeholder onto a clipped second line otherwise —
-            // visible in French and Arabic, which are longer than the English original.
-            multiline={false}
-            numberOfLines={1}
             style={{
               flex: 1,
               fontFamily: faceFor(lang, "regular"),
